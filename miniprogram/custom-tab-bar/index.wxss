@@ -1,0 +1,19 @@
+/**
+ * 自定义底部导航栏样式
+ */
+
+/* TabBar 容器样式 */
+.custom-tab-bar {
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+  background-color: #ffffff;
+  border-top: none !important;
+}
+
+/* 覆盖 TDesign 默认样式 */
+:host {
+  --td-tab-bar-active-color: #059669;
+  --td-tab-bar-color: #999999;
+  --td-tab-bar-bg-color: #ffffff;
+  --td-tab-bar-height: 104rpx;
+}
+

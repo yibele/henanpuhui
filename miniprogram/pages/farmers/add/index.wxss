@@ -1,0 +1,220 @@
+/**
+ * 新增农户页面样式
+ */
+
+.add-farmer-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 24rpx;
+  padding-bottom: 180rpx;
+}
+
+/* ==================== 表单区块 ==================== */
+
+.form-section {
+  margin-bottom: 32rpx;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  padding-left: 8rpx;
+}
+
+.section-indicator {
+  width: 8rpx;
+  height: 32rpx;
+  border-radius: 4rpx;
+}
+
+.section-indicator-green {
+  background-color: #059669;
+}
+
+.section-indicator-blue {
+  background-color: #3b82f6;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* ==================== 表单卡片 ==================== */
+
+.form-card {
+  background-color: #ffffff;
+  border-radius: 28rpx;
+  padding: 8rpx 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.form-item {
+  padding: 20rpx 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 24rpx;
+  padding: 20rpx 0;
+}
+
+.form-item-flex {
+  flex: 1;
+}
+
+.form-item-small {
+  width: 200rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 12rpx;
+}
+
+.form-input {
+  width: 100%;
+  height: 72rpx;
+  font-size: 32rpx;
+  color: #1f2937;
+  background-color: #f9fafb;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+}
+
+.form-input::placeholder {
+  color: #d1d5db;
+}
+
+.form-divider {
+  height: 1rpx;
+  background-color: #f3f4f6;
+}
+
+/* ==================== 上传区域 ==================== */
+
+.upload-area {
+  padding: 20rpx 0;
+}
+
+.upload-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.upload-btn {
+  flex: 1;
+  height: 180rpx;
+  background-color: #f9fafb;
+  border: 2rpx dashed #d1d5db;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+}
+
+.upload-btn:active {
+  background-color: #f3f4f6;
+}
+
+.upload-text {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.uploaded-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.uploaded-image-item {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+}
+
+.uploaded-image {
+  width: 100%;
+  height: 100%;
+  border-radius: 16rpx;
+}
+
+.delete-btn {
+  position: absolute;
+  top: -12rpx;
+  right: -12rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background-color: #ef4444;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== 提示信息 ==================== */
+
+.tips {
+  padding: 0 16rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 底部按钮 ==================== */
+
+.bottom-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 20rpx;
+  padding: 24rpx;
+  background-color: #ffffff;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.04);
+  padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.btn {
+  flex: 1;
+  height: 96rpx;
+  border-radius: 24rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.btn::after {
+  border: none;
+}
+
+.btn-cancel {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #34d399, #059669);
+  color: #ffffff;
+  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.3);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+

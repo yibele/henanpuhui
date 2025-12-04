@@ -1,0 +1,103 @@
+<!--
+  农户列表页面
+  搜索、筛选、列表展示
+-->
+<view class="farmer-list-page">
+  <!-- 搜索和筛选区域 -->
+  <view class="search-filter-area">
+    <!-- 搜索框 -->
+    <view class="search-row">
+      <view class="search-wrapper">
+        <t-search
+          value="{{searchValue}}"
+          placeholder="搜姓名/手机号"
+          shape="round"
+          bind:change="onSearchChange"
+          bind:clear="onSearchClear"
+        />
+      </view>
+      <view class="add-btn" bindtap="onAddFarmer">
+        <t-icon name="add" size="48rpx" color="#ffffff" />
+      </view>
+    </view>
+
+    <!-- 筛选标签 -->
+    <view class="filter-tabs">
+      <view 
+        wx:for="{{filterTabs}}" 
+        wx:key="value"
+        class="filter-tab {{activeFilter === item.value ? 'filter-tab-active' : ''}}"
+        data-value="{{item.value}}"
+        bindtap="onFilterChange"
+      >
+        {{item.label}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 农户列表 -->
+  <view class="farmer-list">
+    <block wx:if="{{filteredFarmers.length > 0}}">
+      <view 
+        wx:for="{{filteredFarmers}}" 
+        wx:key="id"
+        class="farmer-card"
+        data-id="{{item.id}}"
+        bindtap="onFarmerTap"
+      >
+        <!-- 状态条 -->
+        <view class="status-bar status-bar-{{item.status}}"></view>
+        
+        <view class="farmer-card-content">
+          <!-- 头像和基本信息 -->
+          <view class="farmer-info">
+            <view class="farmer-avatar">
+              <t-icon name="user" size="48rpx" color="#059669" />
+            </view>
+            <view class="farmer-details">
+              <view class="farmer-header">
+                <text class="farmer-name">{{item.name}}</text>
+                <view class="status-tag status-tag-{{item.status}}">
+                  <text wx:if="{{item.status === 'active'}}">合作中</text>
+                  <text wx:elif="{{item.status === 'pending'}}">待签约</text>
+                  <text wx:else>已暂停</text>
+                </view>
+              </view>
+              <view class="farmer-meta">
+                <view class="meta-item">
+                  <t-icon name="call" size="28rpx" color="#9ca3af" />
+                  <text>{{item.phone}}</text>
+                </view>
+                <view class="meta-item">
+                  <t-icon name="location" size="28rpx" color="#9ca3af" />
+                  <text class="truncate">{{item.address}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+          
+          <!-- 底部信息 -->
+          <view class="farmer-footer">
+            <text class="contract-date">签约: {{item.contractDate}}</text>
+            <view class="acreage-info">
+              <text class="acreage-value">{{item.acreage}} 亩</text>
+              <t-icon name="chevron-right" size="32rpx" color="#059669" />
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 空状态 -->
+    <view wx:else class="empty-state">
+      <t-empty 
+        icon="folder-open" 
+        description="没有找到相关农户"
+      />
+    </view>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-space"></view>
+</view>
+

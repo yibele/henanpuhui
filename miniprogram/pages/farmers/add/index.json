@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "新农户签约",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-input": "tdesign-miniprogram/input/input",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-toast": "tdesign-miniprogram/toast/toast",
+    "t-upload": "tdesign-miniprogram/upload/upload"
+  }
+}
+

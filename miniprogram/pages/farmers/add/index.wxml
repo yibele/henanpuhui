@@ -1,0 +1,155 @@
+<!--
+  新增农户页面
+  录入农户签约信息
+-->
+<view class="add-farmer-page">
+  <!-- 基本信息 -->
+  <view class="form-section">
+    <view class="section-header">
+      <view class="section-indicator section-indicator-green"></view>
+      <text class="section-title">基本信息</text>
+    </view>
+    
+    <view class="form-card">
+      <view class="form-item">
+        <text class="form-label">姓名</text>
+        <input 
+          class="form-input"
+          placeholder="输入姓名"
+          value="{{form.name}}"
+          bindinput="onNameInput"
+        />
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <view class="form-item">
+        <text class="form-label">联系电话</text>
+        <input 
+          class="form-input"
+          type="number"
+          maxlength="11"
+          placeholder="输入11位手机号"
+          value="{{form.phone}}"
+          bindinput="onPhoneInput"
+        />
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <view class="form-row">
+        <view class="form-item form-item-flex">
+          <text class="form-label">地址</text>
+          <input 
+            class="form-input"
+            placeholder="村组信息"
+            value="{{form.address}}"
+            bindinput="onAddressInput"
+          />
+        </view>
+        <view class="form-item form-item-small">
+          <text class="form-label">面积(亩)</text>
+          <input 
+            class="form-input"
+            type="digit"
+            placeholder="0"
+            value="{{form.acreage}}"
+            bindinput="onAcreageInput"
+          />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 身份与合同信息 -->
+  <view class="form-section">
+    <view class="section-header">
+      <view class="section-indicator section-indicator-blue"></view>
+      <text class="section-title">身份与合同信息</text>
+    </view>
+    
+    <view class="form-card">
+      <view class="form-item">
+        <text class="form-label">身份证号</text>
+        <input 
+          class="form-input"
+          maxlength="18"
+          placeholder="18位身份证号码"
+          value="{{form.idCard}}"
+          bindinput="onIdCardInput"
+        />
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <view class="form-item">
+        <text class="form-label">银行卡号 (结算)</text>
+        <input 
+          class="form-input"
+          type="number"
+          placeholder="请输入银行卡号"
+          value="{{form.bankAccount}}"
+          bindinput="onBankAccountInput"
+        />
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 照片上传 -->
+      <view class="upload-area">
+        <view class="upload-row">
+          <view class="upload-btn" bindtap="onChooseIdPhoto">
+            <t-icon name="camera" size="48rpx" color="#9ca3af" />
+            <text class="upload-text">拍摄身份证</text>
+          </view>
+          <view class="upload-btn" bindtap="onChooseContractPhoto">
+            <t-icon name="upload" size="48rpx" color="#9ca3af" />
+            <text class="upload-text">上传合同页</text>
+          </view>
+        </view>
+        
+        <!-- 已上传的合同照片 -->
+        <view wx:if="{{contractImages.length > 0}}" class="uploaded-images">
+          <view 
+            wx:for="{{contractImages}}" 
+            wx:key="*this"
+            class="uploaded-image-item"
+          >
+            <image class="uploaded-image" src="{{item}}" mode="aspectFill" />
+            <view 
+              class="delete-btn"
+              data-index="{{index}}"
+              catchtap="onDeleteContractPhoto"
+            >
+              <t-icon name="close" size="24rpx" color="#ffffff" />
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提示信息 -->
+  <view class="tips">
+    <text>* 确认保存后，该农户将进入系统管理。</text>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-actions">
+    <button class="btn btn-cancel" bindtap="onCancel">取消</button>
+    <button 
+      class="btn btn-submit" 
+      bindtap="onSubmit"
+      loading="{{submitting}}"
+    >保存</button>
+  </view>
+
+  <!-- Toast -->
+  <t-toast 
+    visible="{{toastVisible}}" 
+    message="{{toastMessage}}"
+    theme="text"
+    bind:close="onToastClose"
+  />
+</view>
+

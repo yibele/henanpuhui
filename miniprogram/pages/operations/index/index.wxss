@@ -1,0 +1,363 @@
+/**
+ * 农事作业页面样式
+ */
+
+.operations-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 160rpx;
+}
+
+/* ==================== Tab 样式 ==================== */
+
+.tab-wrapper {
+  background-color: #ffffff;
+  padding: 16rpx 24rpx;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.custom-tabs {
+  --td-tab-track-color: #059669;
+  --td-tab-item-active-color: #059669;
+}
+
+/* ==================== 内容区域 ==================== */
+
+.content-area {
+  padding: 24rpx;
+}
+
+.panel-content {
+  min-height: 60vh;
+}
+
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+/* ==================== 记录卡片通用样式 ==================== */
+
+.record-card {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  gap: 20rpx;
+}
+
+.record-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.record-icon-green {
+  background-color: #d1fae5;
+}
+
+.record-icon-orange {
+  background-color: #ffedd5;
+}
+
+.record-icon-blue {
+  background-color: #dbeafe;
+}
+
+.record-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.record-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4rpx;
+}
+
+.record-desc {
+  display: block;
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.record-date {
+  font-size: 24rpx;
+  color: #9ca3af;
+  background-color: #f9fafb;
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+/* ==================== 指导卡片样式 ==================== */
+
+.guidance-card {
+  background-color: #ffffff;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.guidance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.guidance-type {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.type-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+}
+
+.type-dot-blue {
+  background-color: #3b82f6;
+}
+
+.type-dot-red {
+  background-color: #ef4444;
+}
+
+.guidance-date {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.guidance-content {
+  font-size: 28rpx;
+  color: #4b5563;
+  background-color: #f9fafb;
+  padding: 20rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
+  line-height: 1.6;
+}
+
+.guidance-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.guidance-farmer {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #059669;
+  background-color: #d1fae5;
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.guidance-tech {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 收购卡片样式 ==================== */
+
+.acquisition-card {
+  background-color: #ffffff;
+  padding: 24rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.acquisition-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+.acquisition-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.acquisition-amount {
+  text-align: right;
+}
+
+.amount-value {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #f97316;
+}
+
+.status-tag {
+  display: inline-block;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  margin-top: 8rpx;
+}
+
+.status-tag-settled {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
+.status-tag-pending {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+.acquisition-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  color: #6b7280;
+  background-color: #f9fafb;
+  padding: 16rpx;
+  border-radius: 12rpx;
+}
+
+/* ==================== 库存网格样式 ==================== */
+
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.inventory-card {
+  background-color: #ffffff;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  height: 220rpx;
+}
+
+.inventory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.inventory-icon {
+  width: 48rpx;
+  height: 48rpx;
+  background-color: #ede9fe;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inventory-unit {
+  font-size: 24rpx;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.inventory-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.inventory-quantity {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.inventory-name {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 8rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-location {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 添加按钮 ==================== */
+
+.add-btn-wrapper {
+  margin-top: 24rpx;
+}
+
+.add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  width: 100%;
+  height: 88rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.add-btn::after {
+  border: none;
+}
+
+.add-btn-green {
+  border: 2rpx dashed #a7f3d0;
+  color: #059669;
+}
+
+.add-btn-blue {
+  border: 2rpx dashed #93c5fd;
+  color: #3b82f6;
+}
+
+.add-btn-orange {
+  border: 2rpx dashed #fed7aa;
+  color: #f97316;
+}
+
+.add-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+/* ==================== 空状态 ==================== */
+
+.empty-state {
+  padding: 80rpx 0;
+}
+
+/* ==================== 底部间距 ==================== */
+
+.bottom-space {
+  height: 40rpx;
+}
+

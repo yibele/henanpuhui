@@ -1,0 +1,170 @@
+<!--
+  农户详情页面
+  展示农户信息、合同信息、业务往来记录
+-->
+<view class="farmer-detail-page">
+  <block wx:if="{{farmer}}">
+    <!-- 基本信息卡片 -->
+    <view class="profile-card">
+      <view class="profile-header">
+        <view class="profile-avatar">
+          <t-icon name="user" size="64rpx" color="#059669" />
+        </view>
+        <view class="profile-info">
+          <view class="profile-name-row">
+            <text class="profile-name">{{farmer.name}}</text>
+            <view class="status-tag status-tag-{{farmer.status}}">
+              <text wx:if="{{farmer.status === 'active'}}">合作中</text>
+              <text wx:elif="{{farmer.status === 'pending'}}">待签约</text>
+              <text wx:else>已暂停</text>
+            </view>
+          </view>
+          <view class="profile-contact" bindtap="onCallTap">
+            <t-icon name="call" size="28rpx" color="#6b7280" />
+            <text>{{farmer.phone}}</text>
+          </view>
+          <view class="profile-address">
+            <t-icon name="location" size="28rpx" color="#6b7280" />
+            <text>{{farmer.address}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 快速信息 -->
+      <view class="quick-info-grid">
+        <view class="quick-info-item quick-info-blue">
+          <text class="quick-info-label">种植面积</text>
+          <view class="quick-info-value">
+            <text class="value-num">{{farmer.acreage}}</text>
+            <text class="value-unit">亩</text>
+          </view>
+        </view>
+        <view class="quick-info-item quick-info-purple">
+          <text class="quick-info-label">签约日期</text>
+          <view class="quick-info-value">
+            <text class="value-date">{{farmer.contractDate}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 合同与身份信息 -->
+    <view class="section">
+      <view class="section-title">合同与身份信息</view>
+      <view class="info-card">
+        <view class="info-item">
+          <view class="info-icon">
+            <t-icon name="creditcard" size="40rpx" color="#9ca3af" />
+          </view>
+          <view class="info-content">
+            <text class="info-label">身份证号</text>
+            <text class="info-value">{{farmer.idCard || '未录入'}}</text>
+          </view>
+        </view>
+        <view class="info-divider"></view>
+        <view class="info-item">
+          <view class="info-icon">
+            <t-icon name="creditcard" size="40rpx" color="#9ca3af" />
+          </view>
+          <view class="info-content">
+            <text class="info-label">银行卡号 (结算账户)</text>
+            <text class="info-value">{{farmer.bankAccount || '未录入'}}</text>
+          </view>
+        </view>
+        <view class="info-divider"></view>
+        <view class="info-item info-item-clickable" bindtap="onViewContract">
+          <view class="info-icon">
+            <t-icon name="file" size="40rpx" color="#9ca3af" />
+          </view>
+          <view class="info-content">
+            <text class="info-value-link">查看电子合同附件</text>
+          </view>
+          <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-section">
+      <block wx:if="{{farmer.status === 'pending'}}">
+        <button 
+          class="action-btn action-btn-primary"
+          data-action="activate"
+          bindtap="showStatusDialog"
+        >
+          <t-icon name="check-circle" size="40rpx" color="#ffffff" />
+          <text>确认签约</text>
+        </button>
+      </block>
+      <block wx:elif="{{farmer.status === 'active'}}">
+        <button 
+          class="action-btn action-btn-secondary"
+          data-action="suspend"
+          bindtap="showStatusDialog"
+        >
+          <t-icon name="error-circle" size="40rpx" color="#6b7280" />
+          <text>暂停合作</text>
+        </button>
+      </block>
+      <block wx:else>
+        <button 
+          class="action-btn action-btn-primary"
+          data-action="resume"
+          bindtap="showStatusDialog"
+        >
+          <t-icon name="refresh" size="40rpx" color="#ffffff" />
+          <text>恢复合作</text>
+        </button>
+      </block>
+    </view>
+
+    <!-- 业务往来记录 -->
+    <view class="section">
+      <view class="section-title">业务往来记录</view>
+      <view class="timeline" wx:if="{{businessRecords.length > 0}}">
+        <view 
+          wx:for="{{businessRecords}}" 
+          wx:key="id"
+          class="timeline-item"
+        >
+          <view class="timeline-dot timeline-dot-{{item.type === 'seed' ? 'green' : 'orange'}}"></view>
+          <view class="timeline-content">
+            <view class="timeline-header">
+              <text class="timeline-date">{{item.date}}</text>
+              <view class="timeline-tag timeline-tag-{{item.type}}">
+                <text wx:if="{{item.type === 'seed'}}">领种</text>
+                <text wx:else>交售</text>
+              </view>
+            </view>
+            <view class="timeline-title">{{item.seedType || item.productType}}</view>
+            <view class="timeline-desc">
+              数量: {{item.quantity}}kg
+              <text wx:if="{{item.totalAmount}}"> • 金额: ¥{{item.totalAmount}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="empty-records">
+        <text>暂无业务记录</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 加载中 -->
+  <view wx:else class="loading-state">
+    <t-icon name="loading" size="64rpx" color="#9ca3af" />
+    <text>加载中...</text>
+  </view>
+
+  <!-- 确认对话框 -->
+  <t-dialog
+    visible="{{dialogVisible}}"
+    title="确认操作"
+    content="{{dialogAction === 'activate' ? '确认与该农户签约？' : dialogAction === 'suspend' ? '确认暂停与该农户的合作？' : '确认恢复与该农户的合作？'}}"
+    confirm-btn="确认"
+    cancel-btn="取消"
+    bind:confirm="onDialogConfirm"
+    bind:cancel="onDialogCancel"
+  />
+</view>
+

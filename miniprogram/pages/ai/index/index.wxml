@@ -1,0 +1,99 @@
+<!--
+  AI 智能助手页面
+  对话式交互界面
+-->
+<view class="ai-page">
+  <!-- 聊天区域 -->
+  <scroll-view 
+    class="chat-area"
+    scroll-y
+    scroll-into-view="{{scrollToMessage}}"
+    scroll-with-animation
+    enhanced
+    show-scrollbar="{{false}}"
+  >
+    <!-- 欢迎提示 -->
+    <view class="welcome-tip">
+      <view class="welcome-icon">
+        <t-icon name="chat" size="48rpx" color="#059669" />
+      </view>
+      <text class="welcome-text">我是您的智能助手，有什么可以帮您？</text>
+    </view>
+
+    <!-- 消息列表 -->
+    <block wx:for="{{messages}}" wx:key="id">
+      <view id="msg-{{index}}" class="message-item message-{{item.role}}">
+        <!-- AI头像（左侧） -->
+        <view wx:if="{{item.role === 'assistant'}}" class="avatar avatar-ai">
+          <t-icon name="chat" size="32rpx" color="#059669" />
+        </view>
+        
+        <!-- 消息气泡 -->
+        <view class="message-bubble bubble-{{item.role}}">
+          <text class="message-content">{{item.content}}</text>
+        </view>
+        
+        <!-- 用户头像（右侧） -->
+        <view wx:if="{{item.role === 'user'}}" class="avatar avatar-user">
+          <t-icon name="user" size="32rpx" color="#ffffff" />
+        </view>
+      </view>
+    </block>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loading}}" class="message-item message-assistant">
+      <view class="avatar avatar-ai">
+        <t-icon name="chat" size="32rpx" color="#059669" />
+      </view>
+      <view class="message-bubble bubble-assistant loading-bubble">
+        <t-loading theme="dots" size="40rpx" />
+      </view>
+    </view>
+
+    <!-- 底部间距 -->
+    <view class="chat-bottom-space"></view>
+  </scroll-view>
+
+  <!-- 快捷建议 -->
+  <view wx:if="{{messages.length <= 1 && suggestions.length > 0}}" class="suggestions">
+    <view class="suggestions-title">您可以问我：</view>
+    <view class="suggestions-list">
+      <view 
+        wx:for="{{suggestions}}" 
+        wx:key="*this"
+        class="suggestion-item"
+        data-text="{{item}}"
+        bindtap="onSuggestionTap"
+      >
+        {{item}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 输入区域 -->
+  <view class="input-area">
+    <view class="input-wrapper">
+      <input 
+        class="chat-input"
+        placeholder="输入您的问题..."
+        value="{{inputValue}}"
+        confirm-type="send"
+        bindinput="onInputChange"
+        bindconfirm="sendMessage"
+      />
+      <view 
+        class="send-btn {{inputValue ? 'send-btn-active' : ''}}"
+        bindtap="sendMessage"
+      >
+        <t-icon 
+          name="arrow-up" 
+          size="40rpx" 
+          color="{{inputValue ? '#ffffff' : '#9ca3af'}}" 
+        />
+      </view>
+    </view>
+    <view class="input-tip">
+      <text>将对接微信官方 DeepSeek · 当前为演示模式</text>
+    </view>
+  </view>
+</view>

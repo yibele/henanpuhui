@@ -1,0 +1,146 @@
+<!--
+  农事作业页面
+  包含种苗发放、种植指导、收购管理、库存查询四个模块
+-->
+<view class="operations-page">
+  <!-- 顶部 Tab 切换 -->
+  <view class="tab-wrapper">
+    <t-tabs 
+      value="{{activeTab}}" 
+      bind:change="onTabChange"
+      t-class="custom-tabs"
+    >
+      <t-tab-panel wx:for="{{tabs}}" wx:key="label" label="{{item.label}}" value="{{index}}" />
+    </t-tabs>
+  </view>
+
+  <!-- 内容区域 -->
+  <view class="content-area">
+    <!-- 种苗发放 -->
+    <view wx:if="{{activeTab === 0}}" class="panel-content">
+      <view wx:if="{{seedRecords.length > 0}}" class="record-list">
+        <view wx:for="{{seedRecords}}" wx:key="id" class="record-card">
+          <view class="record-icon record-icon-green">
+            <t-icon name="tree" size="40rpx" color="#059669" />
+          </view>
+          <view class="record-info">
+            <text class="record-title">{{item.farmerName}}</text>
+            <text class="record-desc">{{item.seedType}} • {{item.quantity}}kg</text>
+          </view>
+          <view class="record-date">{{item.date}}</view>
+        </view>
+      </view>
+      <view wx:else class="empty-state">
+        <t-empty icon="folder-open" description="暂无发放记录" />
+      </view>
+      
+      <view class="add-btn-wrapper">
+        <button class="add-btn add-btn-green" bindtap="onAddSeed">
+          <t-icon name="add" size="36rpx" color="#059669" />
+          <text>发放登记</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 种植指导 -->
+    <view wx:if="{{activeTab === 1}}" class="panel-content">
+      <view wx:if="{{guidanceRecords.length > 0}}" class="record-list">
+        <view wx:for="{{guidanceRecords}}" wx:key="id" class="guidance-card">
+          <view class="guidance-header">
+            <view class="guidance-type">
+              <view class="type-dot type-dot-{{item.guidanceType === 'pesticide' ? 'red' : 'blue'}}"></view>
+              <text wx:if="{{item.guidanceType === 'fertilizer'}}">施肥指导</text>
+              <text wx:elif="{{item.guidanceType === 'pesticide'}}">病害防治</text>
+              <text wx:else>技术指导</text>
+            </view>
+            <text class="guidance-date">{{item.date}}</text>
+          </view>
+          <view class="guidance-content">{{item.notes}}</view>
+          <view class="guidance-footer">
+            <view class="guidance-farmer">农户: {{item.farmerName}}</view>
+            <text class="guidance-tech">技术员: {{item.technician}}</text>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="empty-state">
+        <t-empty icon="folder-open" description="暂无指导记录" />
+      </view>
+      
+      <view class="add-btn-wrapper">
+        <button class="add-btn add-btn-blue" bindtap="onAddGuidance">
+          <t-icon name="add" size="36rpx" color="#3b82f6" />
+          <text>新增指导</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 收购管理 -->
+    <view wx:if="{{activeTab === 2}}" class="panel-content">
+      <view wx:if="{{acquisitions.length > 0}}" class="record-list">
+        <view wx:for="{{acquisitions}}" wx:key="id" class="acquisition-card">
+          <view class="acquisition-header">
+            <view class="acquisition-info">
+              <view class="record-icon record-icon-orange">
+                <t-icon name="shop" size="40rpx" color="#f97316" />
+              </view>
+              <view>
+                <text class="record-title">{{item.farmerName}}</text>
+                <text class="record-desc">{{item.date}}</text>
+              </view>
+            </view>
+            <view class="acquisition-amount">
+              <text class="amount-value">¥{{item.totalAmount}}</text>
+              <view class="status-tag status-tag-{{item.status}}">
+                <text wx:if="{{item.status === 'settled'}}">已结算</text>
+                <text wx:else>待结算</text>
+              </view>
+            </view>
+          </view>
+          <view class="acquisition-detail">
+            <text>品类: {{item.productType}}</text>
+            <text>重量: {{item.quantity}}kg @ ¥{{item.pricePerKg}}/kg</text>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="empty-state">
+        <t-empty icon="folder-open" description="暂无收购记录" />
+      </view>
+      
+      <view class="add-btn-wrapper">
+        <button class="add-btn add-btn-orange" bindtap="onAddAcquisition">
+          <t-icon name="add" size="36rpx" color="#f97316" />
+          <text>收购录入</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 库存查询 -->
+    <view wx:if="{{activeTab === 3}}" class="panel-content">
+      <view wx:if="{{inventory.length > 0}}" class="inventory-grid">
+        <view wx:for="{{inventory}}" wx:key="id" class="inventory-card">
+          <view class="inventory-header">
+            <view class="inventory-icon">
+              <t-icon name="shop" size="32rpx" color="#8b5cf6" />
+            </view>
+            <text class="inventory-unit">{{item.unit}}</text>
+          </view>
+          <view class="inventory-body">
+            <text class="inventory-quantity">{{item.quantity}}</text>
+            <text class="inventory-name">{{item.name}}</text>
+            <view class="inventory-location">
+              <t-icon name="location" size="24rpx" color="#9ca3af" />
+              <text>{{item.location}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="empty-state">
+        <t-empty icon="folder-open" description="暂无库存数据" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-space"></view>
+</view>
+

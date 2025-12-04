@@ -1,0 +1,108 @@
+<!--
+  收购录入页面
+-->
+<view class="form-page">
+  <view class="form-card">
+    <!-- 选择农户 -->
+    <view class="form-item" bindtap="showFarmerSelect">
+      <text class="form-label">交售农户</text>
+      <view class="form-value-row">
+        <text class="form-value {{selectedFarmer ? '' : 'form-placeholder'}}">
+          {{selectedFarmer.name || '点击选择农户'}}
+        </text>
+        <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
+      </view>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <!-- 收购品类和单价 -->
+    <view class="form-row">
+      <view class="form-item form-item-half" bindtap="showProductSelect">
+        <text class="form-label">收购品类</text>
+        <view class="form-value-row">
+          <text class="form-value">{{productOptions[productIndex]}}</text>
+          <t-icon name="chevron-down" size="32rpx" color="#d1d5db" />
+        </view>
+      </view>
+      <view class="form-item form-item-half">
+        <text class="form-label">单价 (元/kg)</text>
+        <input 
+          class="price-input"
+          type="digit"
+          placeholder="0.00"
+          value="{{pricePerKg}}"
+          bindinput="onPriceInput"
+        />
+      </view>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <!-- 收购重量 -->
+    <view class="form-item">
+      <text class="form-label">收购重量 (kg)</text>
+      <input 
+        class="quantity-input quantity-input-orange"
+        type="digit"
+        placeholder="0.00"
+        value="{{quantity}}"
+        bindinput="onQuantityInput"
+      />
+    </view>
+
+    <view class="form-divider"></view>
+
+    <!-- 预计总额 -->
+    <view class="total-row">
+      <text class="total-label">预计总额</text>
+      <text class="total-value">¥{{(quantity * pricePerKg) || 0}}</text>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-actions">
+    <button class="btn btn-cancel" bindtap="onCancel">取消</button>
+    <button class="btn btn-submit btn-orange" bindtap="onSubmit" loading="{{submitting}}">确认收购</button>
+  </view>
+
+  <!-- 农户选择弹窗 -->
+  <t-popup visible="{{showFarmerPopup}}" placement="bottom" bind:visible-change="closeFarmerPopup">
+    <view class="farmer-popup">
+      <view class="popup-header">
+        <text class="popup-title">选择农户</text>
+        <view class="popup-close" bindtap="closeFarmerPopup">
+          <t-icon name="close" size="40rpx" color="#6b7280" />
+        </view>
+      </view>
+      <view class="popup-search">
+        <t-search placeholder="搜索姓名或手机号" value="{{searchValue}}" bind:change="onSearchFarmer" />
+      </view>
+      <scroll-view class="farmer-list" scroll-y>
+        <view wx:for="{{filteredFarmers}}" wx:key="id" class="farmer-item" data-id="{{item.id}}" bindtap="onSelectFarmer">
+          <view class="farmer-item-info">
+            <text class="farmer-item-name">{{item.name}}</text>
+            <text class="farmer-item-addr">{{item.address}}</text>
+          </view>
+          <t-icon wx:if="{{selectedFarmer.id === item.id}}" name="check" size="40rpx" color="#f97316" />
+        </view>
+      </scroll-view>
+    </view>
+  </t-popup>
+
+  <!-- 品类选择器 -->
+  <t-picker
+    visible="{{showProductPicker}}"
+    value="{{[productIndex]}}"
+    title="选择收购品类"
+    cancelBtn="取消"
+    confirmBtn="确认"
+    bind:confirm="onProductConfirm"
+    bind:cancel="onProductCancel"
+  >
+    <t-picker-item options="{{productOptions}}" />
+  </t-picker>
+
+  <t-toast visible="{{toastVisible}}" message="{{toastMessage}}" bind:close="onToastClose" />
+</view>
+

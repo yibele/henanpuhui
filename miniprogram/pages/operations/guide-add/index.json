@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "种植指导",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-popup": "tdesign-miniprogram/popup/popup",
+    "t-search": "tdesign-miniprogram/search/search",
+    "t-toast": "tdesign-miniprogram/toast/toast",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea"
+  }
+}
+

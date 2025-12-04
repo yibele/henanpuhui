@@ -1,0 +1,94 @@
+<!--
+  种植指导页面
+-->
+<view class="form-page">
+  <view class="form-card">
+    <!-- 选择农户 -->
+    <view class="form-item" bindtap="showFarmerSelect">
+      <text class="form-label">指导对象</text>
+      <view class="form-value-row">
+        <text class="form-value {{selectedFarmer ? '' : 'form-placeholder'}}">
+          {{selectedFarmer.name || '点击选择农户'}}
+        </text>
+        <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
+      </view>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <!-- 指导类型 -->
+    <view class="form-item">
+      <text class="form-label">指导类型</text>
+      <view class="type-buttons">
+        <view 
+          wx:for="{{guidanceTypes}}" 
+          wx:key="value"
+          class="type-btn {{selectedType === item.value ? 'type-btn-active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="onTypeSelect"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <view class="form-divider"></view>
+
+    <!-- 指导内容 -->
+    <view class="form-item">
+      <text class="form-label">指导内容/备注</text>
+      <t-textarea
+        placeholder="请输入详细的指导建议..."
+        value="{{notes}}"
+        maxlength="500"
+        autosize
+        bind:change="onNotesInput"
+        t-class="notes-textarea"
+      />
+    </view>
+
+    <view class="form-divider"></view>
+
+    <!-- 现场照片 -->
+    <view class="form-item">
+      <text class="form-label">现场照片</text>
+      <view class="photo-btn" bindtap="onChoosePhoto">
+        <t-icon name="camera" size="48rpx" color="#9ca3af" />
+        <text class="photo-text">拍照</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="bottom-actions">
+    <button class="btn btn-cancel" bindtap="onCancel">取消</button>
+    <button class="btn btn-submit btn-blue" bindtap="onSubmit" loading="{{submitting}}">保存</button>
+  </view>
+
+  <!-- 农户选择弹窗 -->
+  <t-popup visible="{{showFarmerPopup}}" placement="bottom" bind:visible-change="closeFarmerPopup">
+    <view class="farmer-popup">
+      <view class="popup-header">
+        <text class="popup-title">选择农户</text>
+        <view class="popup-close" bindtap="closeFarmerPopup">
+          <t-icon name="close" size="40rpx" color="#6b7280" />
+        </view>
+      </view>
+      <view class="popup-search">
+        <t-search placeholder="搜索姓名或手机号" value="{{searchValue}}" bind:change="onSearchFarmer" />
+      </view>
+      <scroll-view class="farmer-list" scroll-y>
+        <view wx:for="{{filteredFarmers}}" wx:key="id" class="farmer-item" data-id="{{item.id}}" bindtap="onSelectFarmer">
+          <view class="farmer-item-info">
+            <text class="farmer-item-name">{{item.name}}</text>
+            <text class="farmer-item-addr">{{item.address}}</text>
+          </view>
+          <t-icon wx:if="{{selectedFarmer.id === item.id}}" name="check" size="40rpx" color="#3b82f6" />
+        </view>
+      </scroll-view>
+    </view>
+  </t-popup>
+
+  <t-toast visible="{{toastVisible}}" message="{{toastMessage}}" bind:close="onToastClose" />
+</view>
+

@@ -1,0 +1,240 @@
+/**
+ * 农户列表页面样式
+ */
+
+.farmer-list-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 160rpx;
+}
+
+/* ==================== 搜索筛选区域 ==================== */
+
+.search-filter-area {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #f5f5f5;
+  padding: 24rpx 24rpx 16rpx;
+}
+
+.search-row {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.search-wrapper {
+  flex: 1;
+}
+
+.add-btn {
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #34d399, #059669);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.35);
+  flex-shrink: 0;
+}
+
+.add-btn:active {
+  transform: scale(0.95);
+}
+
+/* 筛选标签 */
+.filter-tabs {
+  display: flex;
+  background-color: #ffffff;
+  border-radius: 20rpx;
+  padding: 8rpx;
+  margin-top: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.filter-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #6b7280;
+  border-radius: 16rpx;
+  transition: all 0.2s;
+}
+
+.filter-tab-active {
+  background-color: #d1fae5;
+  color: #059669;
+  font-weight: 700;
+}
+
+/* ==================== 农户列表 ==================== */
+
+.farmer-list {
+  padding: 0 24rpx;
+}
+
+.farmer-card {
+  background-color: #ffffff;
+  border-radius: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  border: 1rpx solid rgba(243, 244, 246, 0.8);
+  overflow: hidden;
+  position: relative;
+}
+
+.farmer-card:active {
+  transform: scale(0.99);
+  background-color: #fafafa;
+}
+
+/* 状态条 */
+.status-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8rpx;
+}
+
+.status-bar-active {
+  background-color: #059669;
+}
+
+.status-bar-pending {
+  background-color: #f97316;
+}
+
+.status-bar-inactive {
+  background-color: #d1d5db;
+}
+
+.farmer-card-content {
+  padding: 28rpx 28rpx 28rpx 36rpx;
+}
+
+/* 农户信息 */
+.farmer-info {
+  display: flex;
+  gap: 24rpx;
+}
+
+.farmer-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  background-color: #d1fae5;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.farmer-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.farmer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.farmer-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.status-tag {
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.status-tag-active {
+  background-color: #d1fae5;
+  color: #059669;
+  border: 1rpx solid #a7f3d0;
+}
+
+.status-tag-pending {
+  background-color: #ffedd5;
+  color: #ea580c;
+  border: 1rpx solid #fed7aa;
+}
+
+.status-tag-inactive {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1rpx solid #e5e7eb;
+}
+
+/* 联系信息 */
+.farmer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.meta-item .truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 300rpx;
+}
+
+/* 底部信息 */
+.farmer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f3f4f6;
+}
+
+.contract-date {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.acreage-info {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.acreage-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #059669;
+}
+
+/* ==================== 空状态 ==================== */
+
+.empty-state {
+  padding: 100rpx 0;
+}
+
+/* ==================== 底部间距 ==================== */
+
+.bottom-space {
+  height: 40rpx;
+}
+

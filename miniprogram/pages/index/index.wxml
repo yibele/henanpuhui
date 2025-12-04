@@ -1,0 +1,154 @@
+<!--
+  首页 Dashboard
+  数据概览、快捷操作、业务趋势
+-->
+<view class="dashboard-page">
+  <!-- 欢迎横幅 -->
+  <view class="welcome-banner">
+    <view class="banner-content">
+      <view class="banner-left">
+        <view class="banner-subtitle">今日概览</view>
+        <view class="banner-title">{{greeting}}，{{userName}}</view>
+      </view>
+      <view class="banner-right" bindtap="onScanTap">
+        <t-icon name="qrcode" size="48rpx" color="#ffffff" />
+      </view>
+    </view>
+    
+    <!-- 核心数据展示 -->
+    <view class="banner-stats">
+      <view class="banner-stat-item">
+        <view class="stat-label">本月收购 (kg)</view>
+        <view class="stat-value">{{stats.totalAcquisitions}}</view>
+      </view>
+      <view class="banner-stat-divider"></view>
+      <view class="banner-stat-item">
+        <view class="stat-label">待结算 (元)</view>
+        <view class="stat-value">¥{{stats.pendingSettlements}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷操作 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">常用功能</text>
+    </view>
+    <view class="quick-actions">
+      <view 
+        wx:for="{{quickActions}}" 
+        wx:key="label"
+        class="quick-action-item"
+        data-page="{{item.page}}"
+        bindtap="onQuickActionTap"
+      >
+        <view 
+          class="action-icon-wrapper" 
+          style="background-color: {{item.bgColor}};"
+        >
+          <t-icon name="{{item.icon}}" size="48rpx" color="{{item.color}}" />
+        </view>
+        <text class="action-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 业务趋势图表 -->
+  <view class="section">
+    <view class="card chart-card">
+      <view class="card-header">
+        <view>
+          <view class="card-title">业务趋势</view>
+          <view class="card-subtitle">近6个月发放与收购对比</view>
+        </view>
+      </view>
+      
+      <!-- 简易图表展示（用柱状条模拟） -->
+      <view class="chart-container">
+        <view class="chart-bars">
+          <view 
+            wx:for="{{trendData}}" 
+            wx:key="month"
+            class="chart-bar-group"
+          >
+            <view class="bar-wrapper">
+              <view 
+                class="bar bar-acquisition" 
+                style="height: {{item.acquisition / 50}}rpx;"
+              ></view>
+              <view 
+                class="bar bar-distribution" 
+                style="height: {{item.distribution / 10}}rpx;"
+              ></view>
+            </view>
+            <text class="bar-label">{{item.month}}</text>
+          </view>
+        </view>
+        
+        <!-- 图例 -->
+        <view class="chart-legend">
+          <view class="legend-item">
+            <view class="legend-dot legend-dot-green"></view>
+            <text class="legend-text">收购量</text>
+          </view>
+          <view class="legend-item">
+            <view class="legend-dot legend-dot-orange"></view>
+            <text class="legend-text">发放量</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 数据统计列表 -->
+  <view class="section">
+    <view class="card stats-card">
+      <view class="stats-header">
+        <text class="card-title">数据统计</text>
+        <text class="stats-update">实时更新</text>
+      </view>
+      
+      <!-- 统计项列表 -->
+      <view class="stats-list">
+        <view 
+          class="stats-item"
+          data-type="farmers"
+          bindtap="onStatTap"
+        >
+          <view class="stats-item-left">
+            <view class="stats-icon stats-icon-blue">
+              <t-icon name="user" size="32rpx" color="#3b82f6" />
+            </view>
+            <text class="stats-item-label">总签约农户</text>
+          </view>
+          <view class="stats-item-right">
+            <text class="stats-item-value">{{stats.totalFarmers}}</text>
+            <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
+          </view>
+        </view>
+
+        <view class="stats-divider"></view>
+
+        <view 
+          class="stats-item"
+          data-type="contracts"
+          bindtap="onStatTap"
+        >
+          <view class="stats-item-left">
+            <view class="stats-icon stats-icon-green">
+              <t-icon name="file-attachment" size="32rpx" color="#059669" />
+            </view>
+            <text class="stats-item-label">进行中合同</text>
+          </view>
+          <view class="stats-item-right">
+            <text class="stats-item-value">{{stats.activeContracts}}</text>
+            <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部间距（为 TabBar 留出空间） -->
+  <view class="bottom-space"></view>
+</view>

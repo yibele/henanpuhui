@@ -1,0 +1,54 @@
+@import '../seed-add/index.wxss';
+
+.type-buttons {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.type-btn {
+  padding: 16rpx 28rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  background-color: #ffffff;
+  color: #6b7280;
+  border: 2rpx solid #e5e7eb;
+}
+
+.type-btn-active {
+  background-color: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.notes-textarea {
+  background-color: #f9fafb !important;
+  border-radius: 20rpx !important;
+  margin-top: 16rpx;
+}
+
+.photo-btn {
+  width: 160rpx;
+  height: 160rpx;
+  background-color: #f9fafb;
+  border: 2rpx dashed #d1d5db;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-top: 16rpx;
+}
+
+.photo-text {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.btn-blue {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6) !important;
+  box-shadow: 0 8rpx 24rpx rgba(59, 130, 246, 0.3) !important;
+}
+
