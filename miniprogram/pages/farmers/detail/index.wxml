@@ -1,6 +1,6 @@
 <!--
   农户详情页面
-  展示农户信息、合同信息、业务往来记录
+  展示农户信息、操作按钮、业务往来记录
 -->
 <view class="farmer-detail-page">
   <block wx:if="{{farmer}}">
@@ -8,24 +8,25 @@
     <view class="profile-card">
       <view class="profile-header">
         <view class="profile-avatar">
-          <t-icon name="user" size="64rpx" color="#059669" />
+          <text wx:if="{{farmer.grade === 'gold'}}" class="grade-emoji">🥇</text>
+          <text wx:elif="{{farmer.grade === 'silver'}}" class="grade-emoji">🥈</text>
+          <text wx:else class="grade-emoji">🥉</text>
         </view>
         <view class="profile-info">
           <view class="profile-name-row">
             <text class="profile-name">{{farmer.name}}</text>
-            <view class="status-tag status-tag-{{farmer.status}}">
-              <text wx:if="{{farmer.status === 'active'}}">合作中</text>
-              <text wx:elif="{{farmer.status === 'pending'}}">待签约</text>
-              <text wx:else>已暂停</text>
+            <view class="grade-badge grade-badge-{{farmer.grade}}">
+              <text wx:if="{{farmer.grade === 'gold'}}">金牌</text>
+              <text wx:elif="{{farmer.grade === 'silver'}}">银牌</text>
+              <text wx:else>铜牌</text>
             </view>
           </view>
-          <view class="profile-contact" bindtap="onCallTap">
-            <t-icon name="call" size="28rpx" color="#6b7280" />
-            <text>{{farmer.phone}}</text>
+          <view class="profile-code">
+            <text class="code-text">{{farmer.customerCode}}</text>
           </view>
-          <view class="profile-address">
-            <t-icon name="location" size="28rpx" color="#6b7280" />
-            <text>{{farmer.address}}</text>
+          <view class="profile-contact" bindtap="onCallTap">
+            <t-icon name="call" size="28rpx" color="#059669" />
+            <text>{{farmer.phone}}</text>
           </view>
         </view>
       </view>
@@ -39,6 +40,13 @@
             <text class="value-unit">亩</text>
           </view>
         </view>
+        <view class="quick-info-item quick-info-orange">
+          <text class="quick-info-label">定金</text>
+          <view class="quick-info-value">
+            <text class="value-num">{{farmer.deposit || 0}}</text>
+            <text class="value-unit">元</text>
+          </view>
+        </view>
         <view class="quick-info-item quick-info-purple">
           <text class="quick-info-label">签约日期</text>
           <view class="quick-info-value">
@@ -48,10 +56,64 @@
       </view>
     </view>
 
-    <!-- 合同与身份信息 -->
+    <!-- 作业操作按钮 -->
     <view class="section">
-      <view class="section-title">合同与身份信息</view>
+      <view class="section-title">作业操作</view>
+      <view class="action-grid">
+        <view class="action-card action-card-green" bindtap="onOpenSeedPopup">
+          <view class="action-icon">🌱</view>
+          <text class="action-label">发放种苗</text>
+        </view>
+        <view class="action-card action-card-blue" bindtap="onOpenFertilizerPopup">
+          <view class="action-icon">🧪</view>
+          <text class="action-label">发放化肥</text>
+        </view>
+        <view class="action-card action-card-red" bindtap="onOpenPesticidePopup">
+          <view class="action-icon">🧴</view>
+          <text class="action-label">发放农药</text>
+        </view>
+        <view class="action-card action-card-orange" bindtap="onOpenAdvancePopup">
+          <view class="action-icon">💰</view>
+          <text class="action-label">预付款</text>
+        </view>
+        <view class="action-card action-card-purple" bindtap="onOpenPurchasePopup">
+          <view class="action-icon">🛒</view>
+          <text class="action-label">追加购苗</text>
+        </view>
+        <view class="action-card action-card-teal" bindtap="onViewContract">
+          <view class="action-icon">📄</view>
+          <text class="action-label">查看合同</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 种植地址 -->
+    <view class="section">
+      <view class="section-title">种植地址</view>
       <view class="info-card">
+        <view class="address-detail">
+          <view class="address-row">
+            <t-icon name="location" size="40rpx" color="#059669" />
+            <text class="address-full">{{farmer.addressText || '未录入'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 农户信息 -->
+    <view class="section">
+      <view class="section-title">农户信息</view>
+      <view class="info-card">
+        <view class="info-item">
+          <view class="info-icon">
+            <t-icon name="user" size="40rpx" color="#9ca3af" />
+          </view>
+          <view class="info-content">
+            <text class="info-label">种植户负责人</text>
+            <text class="info-value">{{farmer.manager || '未录入'}}</text>
+          </view>
+        </view>
+        <view class="info-divider"></view>
         <view class="info-item">
           <view class="info-icon">
             <t-icon name="creditcard" size="40rpx" color="#9ca3af" />
@@ -64,58 +126,46 @@
         <view class="info-divider"></view>
         <view class="info-item">
           <view class="info-icon">
-            <t-icon name="creditcard" size="40rpx" color="#9ca3af" />
+            <t-icon name="user-circle" size="40rpx" color="#9ca3af" />
           </view>
           <view class="info-content">
-            <text class="info-label">银行卡号 (结算账户)</text>
-            <text class="info-value">{{farmer.bankAccount || '未录入'}}</text>
+            <text class="info-label">签约业务员</text>
+            <text class="info-value">{{farmer.salesmanName || '未指定'}}</text>
           </view>
-        </view>
-        <view class="info-divider"></view>
-        <view class="info-item info-item-clickable" bindtap="onViewContract">
-          <view class="info-icon">
-            <t-icon name="file" size="40rpx" color="#9ca3af" />
-          </view>
-          <view class="info-content">
-            <text class="info-value-link">查看电子合同附件</text>
-          </view>
-          <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
         </view>
       </view>
     </view>
 
-    <!-- 操作按钮 -->
-    <view class="action-section">
-      <block wx:if="{{farmer.status === 'pending'}}">
-        <button 
-          class="action-btn action-btn-primary"
-          data-action="activate"
-          bindtap="showStatusDialog"
-        >
-          <t-icon name="check-circle" size="40rpx" color="#ffffff" />
-          <text>确认签约</text>
-        </button>
-      </block>
-      <block wx:elif="{{farmer.status === 'active'}}">
-        <button 
-          class="action-btn action-btn-secondary"
-          data-action="suspend"
-          bindtap="showStatusDialog"
-        >
-          <t-icon name="error-circle" size="40rpx" color="#6b7280" />
-          <text>暂停合作</text>
-        </button>
-      </block>
-      <block wx:else>
-        <button 
-          class="action-btn action-btn-primary"
-          data-action="resume"
-          bindtap="showStatusDialog"
-        >
-          <t-icon name="refresh" size="40rpx" color="#ffffff" />
-          <text>恢复合作</text>
-        </button>
-      </block>
+    <!-- 定金与面积管理 -->
+    <view class="section">
+      <view class="section-title">定金与面积管理</view>
+      <view class="manage-card">
+        <view class="manage-row">
+          <view class="manage-info">
+            <text class="manage-label">当前定金</text>
+            <text class="manage-value manage-value-orange">¥{{farmer.deposit || 0}}</text>
+          </view>
+          <view class="manage-actions">
+            <button class="manage-btn manage-btn-add" bindtap="onAddDeposit">
+              <t-icon name="add" size="28rpx" color="#059669" />
+            </button>
+            <button class="manage-btn manage-btn-reduce" bindtap="onReduceDeposit">
+              <t-icon name="remove" size="28rpx" color="#ef4444" />
+            </button>
+          </view>
+        </view>
+        <view class="manage-divider"></view>
+        <view class="manage-row">
+          <view class="manage-info">
+            <text class="manage-label">种植面积</text>
+            <text class="manage-value manage-value-blue">{{farmer.acreage}} 亩</text>
+          </view>
+          <button class="manage-btn-text" bindtap="onUpdateAcreage">
+            <t-icon name="edit" size="28rpx" color="#3b82f6" />
+            <text>调整</text>
+          </button>
+        </view>
+      </view>
     </view>
 
     <!-- 业务往来记录 -->
@@ -127,19 +177,23 @@
           wx:key="id"
           class="timeline-item"
         >
-          <view class="timeline-dot timeline-dot-{{item.type === 'seed' ? 'green' : 'orange'}}"></view>
+          <view class="timeline-dot timeline-dot-{{item.type}}"></view>
           <view class="timeline-content">
             <view class="timeline-header">
               <text class="timeline-date">{{item.date}}</text>
               <view class="timeline-tag timeline-tag-{{item.type}}">
-                <text wx:if="{{item.type === 'seed'}}">领种</text>
-                <text wx:else>交售</text>
+                <text wx:if="{{item.type === 'seed'}}">发苗</text>
+                <text wx:elif="{{item.type === 'fertilizer'}}">化肥</text>
+                <text wx:elif="{{item.type === 'pesticide'}}">农药</text>
+                <text wx:elif="{{item.type === 'advance'}}">预付款</text>
+                <text wx:elif="{{item.type === 'purchase'}}">购苗</text>
+                <text wx:else>其他</text>
               </view>
             </view>
-            <view class="timeline-title">{{item.seedType || item.productType}}</view>
+            <view class="timeline-title">{{item.name || item.seedType || item.productType}}</view>
             <view class="timeline-desc">
-              数量: {{item.quantity}}kg
-              <text wx:if="{{item.totalAmount}}"> • 金额: ¥{{item.totalAmount}}</text>
+              <text wx:if="{{item.quantity}}">数量: {{item.quantity}}{{item.unit || ''}}</text>
+              <text wx:if="{{item.amount}}"> • 金额: ¥{{item.amount}}</text>
             </view>
           </view>
         </view>
@@ -152,19 +206,286 @@
 
   <!-- 加载中 -->
   <view wx:else class="loading-state">
-    <t-icon name="loading" size="64rpx" color="#9ca3af" />
+    <t-loading theme="circular" size="40rpx" />
     <text>加载中...</text>
   </view>
 
-  <!-- 确认对话框 -->
-  <t-dialog
-    visible="{{dialogVisible}}"
-    title="确认操作"
-    content="{{dialogAction === 'activate' ? '确认与该农户签约？' : dialogAction === 'suspend' ? '确认暂停与该农户的合作？' : '确认恢复与该农户的合作？'}}"
-    confirm-btn="确认"
-    cancel-btn="取消"
-    bind:confirm="onDialogConfirm"
-    bind:cancel="onDialogCancel"
-  />
-</view>
+  <!-- ==================== 发放种苗弹窗 ==================== -->
+  <t-popup visible="{{seedPopupVisible}}" placement="bottom" bind:visible-change="onCloseSeedPopup">
+    <view class="popup-content popup-content-tall">
+      <view class="popup-header">
+        <text class="popup-title">🌱 发放种苗</text>
+        <view class="popup-close" bindtap="onCloseSeedPopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <scroll-view class="popup-scroll" scroll-y>
+        <view class="popup-form">
+          <view class="form-item">
+            <text class="form-label">发放时间</text>
+            <picker mode="date" value="{{seedForm.date}}" bindchange="onSeedDateChange">
+              <view class="picker-value">{{seedForm.date || '请选择日期'}}</view>
+            </picker>
+          </view>
+          <view class="form-item">
+            <text class="form-label">发放数量（株）</text>
+            <input class="form-input" type="digit" placeholder="输入数量" value="{{seedForm.quantity}}" bindinput="onSeedQuantityInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">单价（元/株）</text>
+            <input class="form-input" type="digit" placeholder="输入单价" value="{{seedForm.price}}" bindinput="onSeedPriceInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">苗款金额（元）</text>
+            <view class="form-value-auto">¥{{seedForm.amount || 0}}</view>
+          </view>
+          <view class="form-item">
+            <text class="form-label">领取人</text>
+            <input class="form-input" placeholder="输入领取人姓名" value="{{seedForm.receiver}}" bindinput="onSeedReceiverInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">领取地点</text>
+            <input class="form-input" placeholder="输入领取地点" value="{{seedForm.location}}" bindinput="onSeedLocationInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">发苗负责人</text>
+            <view class="form-value-auto">{{currentUser}}</view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onCloseSeedPopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitSeed">确认发放</button>
+      </view>
+    </view>
+  </t-popup>
 
+  <!-- ==================== 发放化肥弹窗 ==================== -->
+  <t-popup visible="{{fertilizerPopupVisible}}" placement="bottom" bind:visible-change="onCloseFertilizerPopup">
+    <view class="popup-content">
+      <view class="popup-header">
+        <text class="popup-title">🧪 发放化肥</text>
+        <view class="popup-close" bindtap="onCloseFertilizerPopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <scroll-view class="popup-scroll" scroll-y>
+        <view class="popup-form">
+          <view class="form-item">
+            <text class="form-label">使用时间</text>
+            <picker mode="date" value="{{fertilizerForm.date}}" bindchange="onFertilizerDateChange">
+              <view class="picker-value">{{fertilizerForm.date || '请选择日期'}}</view>
+            </picker>
+          </view>
+          <view class="form-item">
+            <text class="form-label">化肥名称</text>
+            <input class="form-input" placeholder="如：复合肥、尿素等" value="{{fertilizerForm.name}}" bindinput="onFertilizerNameInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">数量（袋/kg）</text>
+            <input class="form-input" type="digit" placeholder="输入数量" value="{{fertilizerForm.quantity}}" bindinput="onFertilizerQuantityInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">单价（元）</text>
+            <input class="form-input" type="digit" placeholder="输入单价" value="{{fertilizerForm.price}}" bindinput="onFertilizerPriceInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">金额（元）</text>
+            <view class="form-value-auto">¥{{fertilizerForm.amount || 0}}</view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onCloseFertilizerPopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitFertilizer">确认发放</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- ==================== 发放农药弹窗 ==================== -->
+  <t-popup visible="{{pesticidePopupVisible}}" placement="bottom" bind:visible-change="onClosePesticidePopup">
+    <view class="popup-content">
+      <view class="popup-header">
+        <text class="popup-title">🧴 发放农药</text>
+        <view class="popup-close" bindtap="onClosePesticidePopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <scroll-view class="popup-scroll" scroll-y>
+        <view class="popup-form">
+          <view class="form-item">
+            <text class="form-label">使用时间</text>
+            <picker mode="date" value="{{pesticideForm.date}}" bindchange="onPesticideDateChange">
+              <view class="picker-value">{{pesticideForm.date || '请选择日期'}}</view>
+            </picker>
+          </view>
+          <view class="form-item">
+            <text class="form-label">农药名称</text>
+            <input class="form-input" placeholder="如：吡虫啉、草甘膦等" value="{{pesticideForm.name}}" bindinput="onPesticideNameInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">数量（瓶/kg）</text>
+            <input class="form-input" type="digit" placeholder="输入数量" value="{{pesticideForm.quantity}}" bindinput="onPesticideQuantityInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">单价（元）</text>
+            <input class="form-input" type="digit" placeholder="输入单价" value="{{pesticideForm.price}}" bindinput="onPesticidePriceInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">金额（元）</text>
+            <view class="form-value-auto">¥{{pesticideForm.amount || 0}}</view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onClosePesticidePopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitPesticide">确认发放</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- ==================== 预付款弹窗 ==================== -->
+  <t-popup visible="{{advancePopupVisible}}" placement="bottom" bind:visible-change="onCloseAdvancePopup">
+    <view class="popup-content">
+      <view class="popup-header">
+        <text class="popup-title">💰 预付款</text>
+        <view class="popup-close" bindtap="onCloseAdvancePopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <view class="popup-form">
+        <view class="form-item">
+          <text class="form-label">预付日期</text>
+          <picker mode="date" value="{{advanceForm.date}}" bindchange="onAdvanceDateChange">
+            <view class="picker-value">{{advanceForm.date || '请选择日期'}}</view>
+          </picker>
+        </view>
+        <view class="form-item">
+          <text class="form-label">预付金额（元）</text>
+          <input class="form-input" type="digit" placeholder="输入金额" value="{{advanceForm.amount}}" bindinput="onAdvanceAmountInput" />
+        </view>
+        <view class="form-item">
+          <text class="form-label">备注</text>
+          <input class="form-input" placeholder="可选填写备注" value="{{advanceForm.remark}}" bindinput="onAdvanceRemarkInput" />
+        </view>
+      </view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onCloseAdvancePopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitAdvance">确认预付</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- ==================== 追加购苗弹窗 ==================== -->
+  <t-popup visible="{{purchasePopupVisible}}" placement="bottom" bind:visible-change="onClosePurchasePopup">
+    <view class="popup-content">
+      <view class="popup-header">
+        <text class="popup-title">🛒 追加购苗</text>
+        <view class="popup-close" bindtap="onClosePurchasePopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <scroll-view class="popup-scroll" scroll-y>
+        <view class="popup-form">
+          <view class="form-item">
+            <text class="form-label">购买日期</text>
+            <picker mode="date" value="{{purchaseForm.date}}" bindchange="onPurchaseDateChange">
+              <view class="picker-value">{{purchaseForm.date || '请选择日期'}}</view>
+            </picker>
+          </view>
+          <view class="form-item">
+            <text class="form-label">购买数量（株）</text>
+            <input class="form-input" type="digit" placeholder="输入数量" value="{{purchaseForm.quantity}}" bindinput="onPurchaseQuantityInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">单价（元/株）</text>
+            <input class="form-input" type="digit" placeholder="输入单价" value="{{purchaseForm.price}}" bindinput="onPurchasePriceInput" />
+          </view>
+          <view class="form-item">
+            <text class="form-label">金额（元）</text>
+            <view class="form-value-auto">¥{{purchaseForm.amount || 0}}</view>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onClosePurchasePopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitPurchase">确认购买</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- ==================== 查看合同弹窗 ==================== -->
+  <t-popup visible="{{contractPopupVisible}}" placement="bottom" bind:visible-change="onCloseContractPopup">
+    <view class="popup-content popup-content-tall">
+      <view class="popup-header">
+        <text class="popup-title">📄 合同附件</text>
+        <view class="popup-close" bindtap="onCloseContractPopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <scroll-view class="popup-scroll" scroll-y>
+        <view class="contract-images" wx:if="{{farmer.contractImages && farmer.contractImages.length > 0}}">
+          <image 
+            wx:for="{{farmer.contractImages}}" 
+            wx:key="*this"
+            class="contract-image"
+            src="{{item}}"
+            mode="widthFix"
+            bindtap="onPreviewContract"
+            data-url="{{item}}"
+          />
+        </view>
+        <view wx:else class="empty-contract">
+          <text>暂无合同附件</text>
+        </view>
+      </scroll-view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-full" bindtap="onCloseContractPopup">关闭</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- ==================== 定金调整弹窗 ==================== -->
+  <t-popup visible="{{depositPopupVisible}}" placement="bottom" bind:visible-change="onCloseDepositPopup">
+    <view class="popup-content">
+      <view class="popup-header">
+        <text class="popup-title">{{depositAction === 'add' ? '增加定金' : '减少定金'}}</text>
+        <view class="popup-close" bindtap="onCloseDepositPopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <view class="popup-form">
+        <view class="form-item">
+          <text class="form-label">金额（元）</text>
+          <input class="form-input" type="digit" placeholder="输入金额" value="{{depositInputValue}}" bindinput="onDepositInputChange" />
+        </view>
+      </view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onCloseDepositPopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitDeposit">确认</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- ==================== 面积调整弹窗 ==================== -->
+  <t-popup visible="{{acreagePopupVisible}}" placement="bottom" bind:visible-change="onCloseAcreagePopup">
+    <view class="popup-content">
+      <view class="popup-header">
+        <text class="popup-title">调整种植面积</text>
+        <view class="popup-close" bindtap="onCloseAcreagePopup">
+          <t-icon name="close" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      <view class="popup-form">
+        <view class="form-item">
+          <text class="form-label">当前面积: {{farmer.acreage}} 亩</text>
+          <input class="form-input" type="digit" placeholder="输入新的面积" value="{{acreageInputValue}}" bindinput="onAcreageInputChange" />
+        </view>
+      </view>
+      <view class="popup-footer">
+        <button class="popup-btn popup-btn-cancel" bindtap="onCloseAcreagePopup">取消</button>
+        <button class="popup-btn popup-btn-confirm" bindtap="onSubmitAcreage">确认</button>
+      </view>
+    </view>
+  </t-popup>
+</view>

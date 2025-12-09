@@ -38,18 +38,35 @@ export interface LoginResponse {
 /** 农户状态 */
 export type FarmerStatus = 'active' | 'pending' | 'inactive';
 
+/** 农户等级 */
+export type FarmerGrade = 'gold' | 'silver' | 'bronze';
+
+/** 四级地址结构 */
+export interface FarmerAddress {
+  county: string;          // 县城
+  township: string;        // 乡
+  town: string;            // 镇
+  village: string;         // 村
+}
+
 /** 农户信息 */
 export interface Farmer {
   id: string;              // 农户ID
+  customerCode: string;    // 客户编码（业务员编号+农户手机号）
   name: string;            // 姓名
   phone: string;           // 联系电话
-  idCard?: string;         // 身份证号
-  bankAccount?: string;    // 银行卡号（结算账户）
-  address: string;         // 地址（村组信息）
+  idCard: string;          // 身份证号
+  address: FarmerAddress;  // 种植地址（四级：县城/乡/镇/村）
+  addressText?: string;    // 地址文本（便于显示）
   acreage: number;         // 种植面积（亩）
+  grade: FarmerGrade;      // 农户等级（金牌/银牌/铜牌）
+  deposit: number;         // 定金（元）
+  manager: string;         // 种植户负责人
   contractDate: string;    // 签约日期
   status: FarmerStatus;    // 状态
   contractImages?: string[]; // 合同照片URL列表
+  salesmanId?: string;     // 业务员ID
+  salesmanName?: string;   // 业务员姓名
   createTime?: string;     // 创建时间
   updateTime?: string;     // 更新时间
 }
@@ -58,10 +75,12 @@ export interface Farmer {
 export interface AddFarmerParams {
   name: string;
   phone: string;
-  idCard?: string;
-  bankAccount?: string;
-  address: string;
+  idCard: string;
+  address: FarmerAddress;
   acreage: number;
+  grade: FarmerGrade;
+  deposit: number;
+  manager: string;
   contractImages?: string[];
 }
 

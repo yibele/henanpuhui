@@ -73,7 +73,8 @@
     "t-image": "tdesign-miniprogram/image/image",
     "t-tab-bar": "tdesign-miniprogram/tab-bar/tab-bar",
     "t-tab-bar-item": "tdesign-miniprogram/tab-bar-item/tab-bar-item",
-    "t-message": "tdesign-miniprogram/message/message"
+    "t-message": "tdesign-miniprogram/message/message",
+    "t-stepper": "tdesign-miniprogram/stepper/stepper"
   },
   "componentFramework": "glass-easel",
   "lazyCodeLoading": "requiredComponents",

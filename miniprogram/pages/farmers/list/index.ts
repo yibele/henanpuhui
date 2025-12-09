@@ -1,27 +1,25 @@
 /**
  * 农户列表页面
- * @description 展示所有签约农户，支持搜索和状态筛选
+ * @description 展示所有签约农户
  */
 
 import { MOCK_FARMERS } from '../../../models/mock-data';
-import type { Farmer, FarmerStatus } from '../../../models/types';
+import type { Farmer } from '../../../models/types';
 
 Page({
   data: {
     // 搜索关键词
     searchValue: '',
-    // 当前筛选状态
-    activeFilter: 'all' as 'all' | FarmerStatus,
-    // 筛选标签
-    filterTabs: [
-      { value: 'all', label: '全部' },
-      { value: 'active', label: '合作中' },
-      { value: 'pending', label: '待签约' }
-    ],
     // 农户列表
     farmers: [] as Farmer[],
     // 筛选后的农户列表
-    filteredFarmers: [] as Farmer[]
+    filteredFarmers: [] as Farmer[],
+    // 统计数据
+    stats: {
+      totalFarmers: 0,    // 签约农户数
+      totalAcreage: 0,    // 总面积
+      totalDeposit: 0     // 总定金
+    }
   },
 
   onLoad() {
@@ -44,30 +42,59 @@ Page({
   loadFarmers() {
     // 使用 Mock 数据
     const farmers = MOCK_FARMERS;
-    this.setData({ farmers });
+    
+    // 计算统计数据
+    const totalAcreage = farmers.reduce((sum, f) => sum + (f.acreage || 0), 0);
+    const totalDeposit = farmers.reduce((sum, f) => sum + (f.deposit || 0), 0);
+    
+    const stats = {
+      totalFarmers: farmers.length,
+      totalAcreage: this.formatNumber(totalAcreage),      // 格式化面积
+      totalDeposit: this.formatMoney(totalDeposit)        // 格式化金额为X.X万
+    };
+    
+    this.setData({ farmers, stats });
     this.filterFarmers();
   },
 
   /**
-   * 筛选农户
+   * 格式化数字（保留1位小数）
+   */
+  formatNumber(num: number): string {
+    if (num >= 10000) {
+      return (num / 10000).toFixed(1) + '万';
+    }
+    return num.toFixed(1);
+  },
+
+  /**
+   * 格式化金额（显示为X.X万）
+   */
+  formatMoney(amount: number): string {
+    if (amount >= 10000) {
+      return (amount / 10000).toFixed(2) + '万';
+    } else if (amount >= 1000) {
+      return (amount / 10000).toFixed(2) + '万';
+    }
+    return amount.toString();
+  },
+
+  /**
+   * 筛选农户（仅按搜索词）
    */
   filterFarmers() {
-    const { farmers, searchValue, activeFilter } = this.data;
+    const { farmers, searchValue } = this.data;
     
     let filtered = [...farmers];
     
-    // 按搜索词筛选
+    // 按搜索词筛选（支持姓名、手机号、客户编码）
     if (searchValue) {
       const keyword = searchValue.toLowerCase();
       filtered = filtered.filter(f => 
         f.name.toLowerCase().includes(keyword) || 
-        f.phone.includes(keyword)
+        f.phone.includes(keyword) ||
+        (f.customerCode && f.customerCode.toLowerCase().includes(keyword))
       );
-    }
-    
-    // 按状态筛选
-    if (activeFilter !== 'all') {
-      filtered = filtered.filter(f => f.status === activeFilter);
     }
     
     this.setData({ filteredFarmers: filtered });
@@ -86,15 +113,6 @@ Page({
    */
   onSearchClear() {
     this.setData({ searchValue: '' });
-    this.filterFarmers();
-  },
-
-  /**
-   * 切换筛选标签
-   */
-  onFilterChange(e: WechatMiniprogram.TouchEvent) {
-    const { value } = e.currentTarget.dataset;
-    this.setData({ activeFilter: value });
     this.filterFarmers();
   },
 
@@ -118,18 +136,6 @@ Page({
   },
 
   /**
-   * 获取状态文本
-   */
-  getStatusText(status: FarmerStatus): string {
-    const map = {
-      active: '合作中',
-      pending: '待签约',
-      inactive: '已暂停'
-    };
-    return map[status] || status;
-  },
-
-  /**
    * 下拉刷新
    */
   onPullDownRefresh() {
@@ -137,4 +143,3 @@ Page({
     wx.stopPullDownRefresh();
   }
 });
-

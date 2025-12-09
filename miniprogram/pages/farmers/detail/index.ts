@@ -1,10 +1,19 @@
 /**
  * 农户详情页面
- * @description 展示农户详细信息、合同信息、业务记录
+ * @description 展示农户详细信息、作业操作、业务记录
  */
 
-import { MOCK_FARMERS, MOCK_SEED_RECORDS, MOCK_ACQUISITIONS } from '../../../models/mock-data';
-import type { Farmer, SeedRecord, Acquisition } from '../../../models/types';
+import { MOCK_FARMERS } from '../../../models/mock-data';
+import type { Farmer } from '../../../models/types';
+
+// 获取应用实例
+const app = getApp<IAppOption>();
+
+// 获取今天日期
+const getTodayDate = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 Page({
   data: {
@@ -12,15 +21,70 @@ Page({
     farmerId: '',
     // 农户信息
     farmer: null as Farmer | null,
-    // 种苗发放记录
-    seedRecords: [] as SeedRecord[],
-    // 收购记录
-    acquisitions: [] as Acquisition[],
-    // 业务记录（合并排序）
+    // 当前用户（负责人）
+    currentUser: '业务员',
+    // 业务记录
     businessRecords: [] as any[],
-    // 对话框显示控制
-    dialogVisible: false,
-    dialogAction: '' as 'activate' | 'suspend' | 'resume'
+
+    // ========== 发放种苗 ==========
+    seedPopupVisible: false,
+    seedForm: {
+      date: getTodayDate(),
+      quantity: '',
+      price: '',
+      amount: 0,
+      receiver: '',
+      location: ''
+    },
+
+    // ========== 发放化肥 ==========
+    fertilizerPopupVisible: false,
+    fertilizerForm: {
+      date: getTodayDate(),
+      name: '',
+      quantity: '',
+      price: '',
+      amount: 0
+    },
+
+    // ========== 发放农药 ==========
+    pesticidePopupVisible: false,
+    pesticideForm: {
+      date: getTodayDate(),
+      name: '',
+      quantity: '',
+      price: '',
+      amount: 0
+    },
+
+    // ========== 预付款 ==========
+    advancePopupVisible: false,
+    advanceForm: {
+      date: getTodayDate(),
+      amount: '',
+      remark: ''
+    },
+
+    // ========== 追加购苗 ==========
+    purchasePopupVisible: false,
+    purchaseForm: {
+      date: getTodayDate(),
+      quantity: '',
+      price: '',
+      amount: 0
+    },
+
+    // ========== 查看合同 ==========
+    contractPopupVisible: false,
+
+    // ========== 定金管理 ==========
+    depositPopupVisible: false,
+    depositAction: '' as 'add' | 'reduce',
+    depositInputValue: '',
+
+    // ========== 面积管理 ==========
+    acreagePopupVisible: false,
+    acreageInputValue: ''
   },
 
   onLoad(options) {
@@ -29,30 +93,29 @@ Page({
       this.setData({ farmerId: id });
       this.loadFarmerDetail(id);
     }
+    this.loadCurrentUser();
+  },
+
+  /**
+   * 加载当前用户信息
+   */
+  loadCurrentUser() {
+    const userInfo = app.globalData.userInfo as any;
+    if (userInfo) {
+      this.setData({ currentUser: userInfo.nickName || '业务员' });
+    }
   },
 
   /**
    * 加载农户详情
-   * TODO: 替换为实际 API 调用
    */
   loadFarmerDetail(id: string) {
-    // 使用 Mock 数据
     const farmer = MOCK_FARMERS.find(f => f.id === id);
-    const seedRecords = MOCK_SEED_RECORDS.filter(r => r.farmerId === id);
-    const acquisitions = MOCK_ACQUISITIONS.filter(r => r.farmerId === id);
-
-    // 合并业务记录并排序
-    const businessRecords = [
-      ...seedRecords.map(r => ({ ...r, type: 'seed' })),
-      ...acquisitions.map(r => ({ ...r, type: 'acquisition' }))
-    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-    this.setData({
-      farmer,
-      seedRecords,
-      acquisitions,
-      businessRecords
-    });
+    
+    // 模拟业务记录数据
+    const businessRecords: any[] = [];
+    
+    this.setData({ farmer, businessRecords });
   },
 
   /**
@@ -61,85 +124,478 @@ Page({
   onCallTap() {
     const { farmer } = this.data;
     if (farmer?.phone) {
-      wx.makePhoneCall({
-        phoneNumber: farmer.phone
-      });
+      wx.makePhoneCall({ phoneNumber: farmer.phone });
     }
   },
 
-  /**
-   * 查看合同
-   */
-  onViewContract() {
-    wx.showToast({
-      title: '合同预览功能开发中',
-      icon: 'none'
-    });
-  },
+  // ==================== 发放种苗 ====================
 
-  /**
-   * 显示状态变更对话框
-   */
-  showStatusDialog(e: WechatMiniprogram.TouchEvent) {
-    const { action } = e.currentTarget.dataset;
+  onOpenSeedPopup() {
     this.setData({
-      dialogVisible: true,
-      dialogAction: action
+      seedPopupVisible: true,
+      seedForm: {
+        date: getTodayDate(),
+        quantity: '',
+        price: '',
+        amount: 0,
+        receiver: this.data.farmer?.name || '',
+        location: ''
+      }
     });
   },
 
-  /**
-   * 确认状态变更
-   */
-  onDialogConfirm() {
-    const { farmer, dialogAction } = this.data;
+  onCloseSeedPopup() {
+    this.setData({ seedPopupVisible: false });
+  },
+
+  onSeedDateChange(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'seedForm.date': e.detail.value });
+  },
+
+  onSeedQuantityInput(e: WechatMiniprogram.CustomEvent) {
+    const quantity = e.detail.value.replace(/[^\d.]/g, '');
+    const price = parseFloat(this.data.seedForm.price) || 0;
+    const amount = (parseFloat(quantity) || 0) * price;
+    this.setData({ 
+      'seedForm.quantity': quantity,
+      'seedForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onSeedPriceInput(e: WechatMiniprogram.CustomEvent) {
+    const price = e.detail.value.replace(/[^\d.]/g, '');
+    const quantity = parseFloat(this.data.seedForm.quantity) || 0;
+    const amount = quantity * (parseFloat(price) || 0);
+    this.setData({ 
+      'seedForm.price': price,
+      'seedForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onSeedReceiverInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'seedForm.receiver': e.detail.value });
+  },
+
+  onSeedLocationInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'seedForm.location': e.detail.value });
+  },
+
+  onSubmitSeed() {
+    const { seedForm, currentUser, businessRecords } = this.data;
+    
+    if (!seedForm.quantity || !seedForm.price) {
+      wx.showToast({ title: '请填写数量和单价', icon: 'none' });
+      return;
+    }
+
+    // 添加记录
+    const newRecord = {
+      id: `seed_${Date.now()}`,
+      type: 'seed',
+      date: seedForm.date,
+      name: '种苗发放',
+      quantity: seedForm.quantity,
+      unit: '株',
+      price: seedForm.price,
+      amount: seedForm.amount,
+      receiver: seedForm.receiver,
+      location: seedForm.location,
+      operator: currentUser
+    };
+
+    this.setData({
+      businessRecords: [newRecord, ...businessRecords],
+      seedPopupVisible: false
+    });
+
+    wx.showToast({ title: '发放成功', icon: 'success' });
+  },
+
+  // ==================== 发放化肥 ====================
+
+  onOpenFertilizerPopup() {
+    this.setData({
+      fertilizerPopupVisible: true,
+      fertilizerForm: {
+        date: getTodayDate(),
+        name: '',
+        quantity: '',
+        price: '',
+        amount: 0
+      }
+    });
+  },
+
+  onCloseFertilizerPopup() {
+    this.setData({ fertilizerPopupVisible: false });
+  },
+
+  onFertilizerDateChange(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'fertilizerForm.date': e.detail.value });
+  },
+
+  onFertilizerNameInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'fertilizerForm.name': e.detail.value });
+  },
+
+  onFertilizerQuantityInput(e: WechatMiniprogram.CustomEvent) {
+    const quantity = e.detail.value.replace(/[^\d.]/g, '');
+    const price = parseFloat(this.data.fertilizerForm.price) || 0;
+    const amount = (parseFloat(quantity) || 0) * price;
+    this.setData({ 
+      'fertilizerForm.quantity': quantity,
+      'fertilizerForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onFertilizerPriceInput(e: WechatMiniprogram.CustomEvent) {
+    const price = e.detail.value.replace(/[^\d.]/g, '');
+    const quantity = parseFloat(this.data.fertilizerForm.quantity) || 0;
+    const amount = quantity * (parseFloat(price) || 0);
+    this.setData({ 
+      'fertilizerForm.price': price,
+      'fertilizerForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onSubmitFertilizer() {
+    const { fertilizerForm, currentUser, businessRecords } = this.data;
+    
+    if (!fertilizerForm.name || !fertilizerForm.quantity || !fertilizerForm.price) {
+      wx.showToast({ title: '请填写完整信息', icon: 'none' });
+      return;
+    }
+
+    const newRecord = {
+      id: `fertilizer_${Date.now()}`,
+      type: 'fertilizer',
+      date: fertilizerForm.date,
+      name: fertilizerForm.name,
+      quantity: fertilizerForm.quantity,
+      unit: '袋',
+      price: fertilizerForm.price,
+      amount: fertilizerForm.amount,
+      operator: currentUser
+    };
+
+    this.setData({
+      businessRecords: [newRecord, ...businessRecords],
+      fertilizerPopupVisible: false
+    });
+
+    wx.showToast({ title: '发放成功', icon: 'success' });
+  },
+
+  // ==================== 发放农药 ====================
+
+  onOpenPesticidePopup() {
+    this.setData({
+      pesticidePopupVisible: true,
+      pesticideForm: {
+        date: getTodayDate(),
+        name: '',
+        quantity: '',
+        price: '',
+        amount: 0
+      }
+    });
+  },
+
+  onClosePesticidePopup() {
+    this.setData({ pesticidePopupVisible: false });
+  },
+
+  onPesticideDateChange(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'pesticideForm.date': e.detail.value });
+  },
+
+  onPesticideNameInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'pesticideForm.name': e.detail.value });
+  },
+
+  onPesticideQuantityInput(e: WechatMiniprogram.CustomEvent) {
+    const quantity = e.detail.value.replace(/[^\d.]/g, '');
+    const price = parseFloat(this.data.pesticideForm.price) || 0;
+    const amount = (parseFloat(quantity) || 0) * price;
+    this.setData({ 
+      'pesticideForm.quantity': quantity,
+      'pesticideForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onPesticidePriceInput(e: WechatMiniprogram.CustomEvent) {
+    const price = e.detail.value.replace(/[^\d.]/g, '');
+    const quantity = parseFloat(this.data.pesticideForm.quantity) || 0;
+    const amount = quantity * (parseFloat(price) || 0);
+    this.setData({ 
+      'pesticideForm.price': price,
+      'pesticideForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onSubmitPesticide() {
+    const { pesticideForm, currentUser, businessRecords } = this.data;
+    
+    if (!pesticideForm.name || !pesticideForm.quantity || !pesticideForm.price) {
+      wx.showToast({ title: '请填写完整信息', icon: 'none' });
+      return;
+    }
+
+    const newRecord = {
+      id: `pesticide_${Date.now()}`,
+      type: 'pesticide',
+      date: pesticideForm.date,
+      name: pesticideForm.name,
+      quantity: pesticideForm.quantity,
+      unit: '瓶',
+      price: pesticideForm.price,
+      amount: pesticideForm.amount,
+      operator: currentUser
+    };
+
+    this.setData({
+      businessRecords: [newRecord, ...businessRecords],
+      pesticidePopupVisible: false
+    });
+
+    wx.showToast({ title: '发放成功', icon: 'success' });
+  },
+
+  // ==================== 预付款 ====================
+
+  onOpenAdvancePopup() {
+    this.setData({
+      advancePopupVisible: true,
+      advanceForm: {
+        date: getTodayDate(),
+        amount: '',
+        remark: ''
+      }
+    });
+  },
+
+  onCloseAdvancePopup() {
+    this.setData({ advancePopupVisible: false });
+  },
+
+  onAdvanceDateChange(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'advanceForm.date': e.detail.value });
+  },
+
+  onAdvanceAmountInput(e: WechatMiniprogram.CustomEvent) {
+    const amount = e.detail.value.replace(/[^\d.]/g, '');
+    this.setData({ 'advanceForm.amount': amount });
+  },
+
+  onAdvanceRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'advanceForm.remark': e.detail.value });
+  },
+
+  onSubmitAdvance() {
+    const { advanceForm, currentUser, businessRecords } = this.data;
+    
+    if (!advanceForm.amount) {
+      wx.showToast({ title: '请填写预付金额', icon: 'none' });
+      return;
+    }
+
+    const newRecord = {
+      id: `advance_${Date.now()}`,
+      type: 'advance',
+      date: advanceForm.date,
+      name: '预付款',
+      amount: parseFloat(advanceForm.amount),
+      remark: advanceForm.remark,
+      operator: currentUser
+    };
+
+    this.setData({
+      businessRecords: [newRecord, ...businessRecords],
+      advancePopupVisible: false
+    });
+
+    wx.showToast({ title: '预付成功', icon: 'success' });
+  },
+
+  // ==================== 追加购苗 ====================
+
+  onOpenPurchasePopup() {
+    this.setData({
+      purchasePopupVisible: true,
+      purchaseForm: {
+        date: getTodayDate(),
+        quantity: '',
+        price: '',
+        amount: 0
+      }
+    });
+  },
+
+  onClosePurchasePopup() {
+    this.setData({ purchasePopupVisible: false });
+  },
+
+  onPurchaseDateChange(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'purchaseForm.date': e.detail.value });
+  },
+
+  onPurchaseQuantityInput(e: WechatMiniprogram.CustomEvent) {
+    const quantity = e.detail.value.replace(/[^\d.]/g, '');
+    const price = parseFloat(this.data.purchaseForm.price) || 0;
+    const amount = (parseFloat(quantity) || 0) * price;
+    this.setData({ 
+      'purchaseForm.quantity': quantity,
+      'purchaseForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onPurchasePriceInput(e: WechatMiniprogram.CustomEvent) {
+    const price = e.detail.value.replace(/[^\d.]/g, '');
+    const quantity = parseFloat(this.data.purchaseForm.quantity) || 0;
+    const amount = quantity * (parseFloat(price) || 0);
+    this.setData({ 
+      'purchaseForm.price': price,
+      'purchaseForm.amount': Math.round(amount * 100) / 100
+    });
+  },
+
+  onSubmitPurchase() {
+    const { purchaseForm, currentUser, businessRecords } = this.data;
+    
+    if (!purchaseForm.quantity || !purchaseForm.price) {
+      wx.showToast({ title: '请填写数量和单价', icon: 'none' });
+      return;
+    }
+
+    const newRecord = {
+      id: `purchase_${Date.now()}`,
+      type: 'purchase',
+      date: purchaseForm.date,
+      name: '追加购苗',
+      quantity: purchaseForm.quantity,
+      unit: '株',
+      price: purchaseForm.price,
+      amount: purchaseForm.amount,
+      operator: currentUser
+    };
+
+    this.setData({
+      businessRecords: [newRecord, ...businessRecords],
+      purchasePopupVisible: false
+    });
+
+    wx.showToast({ title: '购买成功', icon: 'success' });
+  },
+
+  // ==================== 查看合同 ====================
+
+  onViewContract() {
+    this.setData({ contractPopupVisible: true });
+  },
+
+  onCloseContractPopup() {
+    this.setData({ contractPopupVisible: false });
+  },
+
+  onPreviewContract(e: WechatMiniprogram.TouchEvent) {
+    const { url } = e.currentTarget.dataset;
+    const { farmer } = this.data;
+    
+    wx.previewImage({
+      current: url,
+      urls: farmer?.contractImages || []
+    });
+  },
+
+  // ==================== 定金管理 ====================
+
+  onAddDeposit() {
+    this.setData({
+      depositPopupVisible: true,
+      depositAction: 'add',
+      depositInputValue: ''
+    });
+  },
+
+  onReduceDeposit() {
+    this.setData({
+      depositPopupVisible: true,
+      depositAction: 'reduce',
+      depositInputValue: ''
+    });
+  },
+
+  onCloseDepositPopup() {
+    this.setData({ depositPopupVisible: false });
+  },
+
+  onDepositInputChange(e: WechatMiniprogram.CustomEvent) {
+    const value = e.detail.value.replace(/[^\d.]/g, '');
+    this.setData({ depositInputValue: value });
+  },
+
+  onSubmitDeposit() {
+    const { farmer, depositAction, depositInputValue } = this.data;
     if (!farmer) return;
 
-    let newStatus: 'active' | 'pending' | 'inactive';
-    let message = '';
-
-    switch (dialogAction) {
-      case 'activate':
-        newStatus = 'active';
-        message = '已确认签约';
-        break;
-      case 'suspend':
-        newStatus = 'inactive';
-        message = '已暂停合作';
-        break;
-      case 'resume':
-        newStatus = 'active';
-        message = '已恢复合作';
-        break;
-      default:
-        return;
+    const amount = parseFloat(depositInputValue);
+    if (isNaN(amount) || amount <= 0) {
+      wx.showToast({ title: '请输入有效金额', icon: 'none' });
+      return;
     }
 
-    // TODO: 调用 API 更新状态
-    // 这里直接更新本地数据
+    let newDeposit = farmer.deposit || 0;
+    if (depositAction === 'add') {
+      newDeposit += amount;
+    } else {
+      newDeposit = Math.max(0, newDeposit - amount);
+    }
+
     this.setData({
-      'farmer.status': newStatus,
-      dialogVisible: false
+      'farmer.deposit': newDeposit,
+      depositPopupVisible: false
     });
 
     wx.showToast({
-      title: message,
+      title: depositAction === 'add' ? '已增加定金' : '已减少定金',
       icon: 'success'
     });
   },
 
-  /**
-   * 取消对话框
-   */
-  onDialogCancel() {
-    this.setData({ dialogVisible: false });
+  // ==================== 面积管理 ====================
+
+  onUpdateAcreage() {
+    const { farmer } = this.data;
+    this.setData({
+      acreagePopupVisible: true,
+      acreageInputValue: farmer?.acreage?.toString() || ''
+    });
   },
 
-  /**
-   * 返回上一页
-   */
-  onBackTap() {
-    wx.navigateBack();
+  onCloseAcreagePopup() {
+    this.setData({ acreagePopupVisible: false });
+  },
+
+  onAcreageInputChange(e: WechatMiniprogram.CustomEvent) {
+    const value = e.detail.value.replace(/[^\d.]/g, '');
+    this.setData({ acreageInputValue: value });
+  },
+
+  onSubmitAcreage() {
+    const { farmer, acreageInputValue } = this.data;
+    if (!farmer) return;
+
+    const acreage = parseFloat(acreageInputValue);
+    if (isNaN(acreage) || acreage <= 0) {
+      wx.showToast({ title: '请输入有效面积', icon: 'none' });
+      return;
+    }
+
+    this.setData({
+      'farmer.acreage': acreage,
+      acreagePopupVisible: false
+    });
+
+    wx.showToast({ title: '面积已更新', icon: 'success' });
   }
 });
-

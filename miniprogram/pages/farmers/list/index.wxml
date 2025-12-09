@@ -1,16 +1,38 @@
 <!--
   农户列表页面
-  搜索、筛选、列表展示
+  展示签约农户列表
 -->
 <view class="farmer-list-page">
-  <!-- 搜索和筛选区域 -->
-  <view class="search-filter-area">
-    <!-- 搜索框 -->
+  <!-- 顶部统计卡片 -->
+  <view class="stats-card">
+    <view class="stats-header">
+      <text class="stats-title">我的签约农户</text>
+    </view>
+    <view class="stats-grid">
+      <view class="stats-item">
+        <text class="stats-value">{{stats.totalFarmers}}</text>
+        <text class="stats-label">签约农户(户)</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-value">{{stats.totalAcreage}}</text>
+        <text class="stats-label">总面积(亩)</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-value stats-value-orange">{{stats.totalDeposit}}</text>
+        <text class="stats-label">总定金(元)</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索区域 -->
+  <view class="search-area">
     <view class="search-row">
       <view class="search-wrapper">
         <t-search
           value="{{searchValue}}"
-          placeholder="搜姓名/手机号"
+          placeholder="搜姓名/手机号/客户编码"
           shape="round"
           bind:change="onSearchChange"
           bind:clear="onSearchClear"
@@ -18,19 +40,6 @@
       </view>
       <view class="add-btn" bindtap="onAddFarmer">
         <t-icon name="add" size="48rpx" color="#ffffff" />
-      </view>
-    </view>
-
-    <!-- 筛选标签 -->
-    <view class="filter-tabs">
-      <view 
-        wx:for="{{filterTabs}}" 
-        wx:key="value"
-        class="filter-tab {{activeFilter === item.value ? 'filter-tab-active' : ''}}"
-        data-value="{{item.value}}"
-        bindtap="onFilterChange"
-      >
-        {{item.label}}
       </view>
     </view>
   </view>
@@ -45,23 +54,27 @@
         data-id="{{item.id}}"
         bindtap="onFarmerTap"
       >
-        <!-- 状态条 -->
-        <view class="status-bar status-bar-{{item.status}}"></view>
-        
         <view class="farmer-card-content">
           <!-- 头像和基本信息 -->
           <view class="farmer-info">
-            <view class="farmer-avatar">
-              <t-icon name="user" size="48rpx" color="#059669" />
+            <view class="farmer-avatar farmer-avatar-{{item.grade}}">
+              <!-- 根据等级显示不同图标 -->
+              <text wx:if="{{item.grade === 'gold'}}" class="grade-emoji">🥇</text>
+              <text wx:elif="{{item.grade === 'silver'}}" class="grade-emoji">🥈</text>
+              <text wx:else class="grade-emoji">🥉</text>
             </view>
             <view class="farmer-details">
               <view class="farmer-header">
                 <text class="farmer-name">{{item.name}}</text>
-                <view class="status-tag status-tag-{{item.status}}">
-                  <text wx:if="{{item.status === 'active'}}">合作中</text>
-                  <text wx:elif="{{item.status === 'pending'}}">待签约</text>
-                  <text wx:else>已暂停</text>
+                <view class="grade-tag grade-tag-{{item.grade}}">
+                  <text wx:if="{{item.grade === 'gold'}}">金牌</text>
+                  <text wx:elif="{{item.grade === 'silver'}}">银牌</text>
+                  <text wx:else>铜牌</text>
                 </view>
+              </view>
+              <!-- 客户编码 -->
+              <view class="customer-code">
+                <text>{{item.customerCode}}</text>
               </view>
               <view class="farmer-meta">
                 <view class="meta-item">
@@ -70,7 +83,7 @@
                 </view>
                 <view class="meta-item">
                   <t-icon name="location" size="28rpx" color="#9ca3af" />
-                  <text class="truncate">{{item.address}}</text>
+                  <text class="truncate">{{item.addressText || item.address.village}}</text>
                 </view>
               </view>
             </view>
@@ -78,9 +91,16 @@
           
           <!-- 底部信息 -->
           <view class="farmer-footer">
-            <text class="contract-date">签约: {{item.contractDate}}</text>
-            <view class="acreage-info">
-              <text class="acreage-value">{{item.acreage}} 亩</text>
+            <view class="footer-left">
+              <text class="contract-date">签约: {{item.contractDate}}</text>
+            </view>
+            <view class="footer-right">
+              <view class="info-chip info-chip-blue">
+                <text>{{item.acreage}} 亩</text>
+              </view>
+              <view class="info-chip info-chip-orange" wx:if="{{item.deposit > 0}}">
+                <text>¥{{item.deposit}}</text>
+              </view>
               <t-icon name="chevron-right" size="32rpx" color="#059669" />
             </view>
           </view>
@@ -100,4 +120,3 @@
   <!-- 底部间距 -->
   <view class="bottom-space"></view>
 </view>
-

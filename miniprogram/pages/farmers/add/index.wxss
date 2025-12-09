@@ -1,12 +1,12 @@
 /**
- * 新增农户页面样式
+ * 新增农户页面样式（签约农户）
  */
 
 .add-farmer-page {
   min-height: 100vh;
   background-color: #f5f5f5;
   padding: 24rpx;
-  padding-bottom: 180rpx;
+  padding-bottom: 48rpx;
 }
 
 /* ==================== 表单区块 ==================== */
@@ -37,6 +37,18 @@
   background-color: #3b82f6;
 }
 
+.section-indicator-orange {
+  background-color: #f97316;
+}
+
+.section-indicator-purple {
+  background-color: #8b5cf6;
+}
+
+.section-indicator-teal {
+  background-color: #14b8a6;
+}
+
 .section-title {
   font-size: 28rpx;
   font-weight: 700;
@@ -56,26 +68,17 @@
   padding: 20rpx 0;
 }
 
-.form-row {
-  display: flex;
-  gap: 24rpx;
-  padding: 20rpx 0;
-}
-
-.form-item-flex {
-  flex: 1;
-}
-
-.form-item-small {
-  width: 200rpx;
-}
-
 .form-label {
   display: block;
   font-size: 24rpx;
   font-weight: 500;
   color: #6b7280;
   margin-bottom: 12rpx;
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: #ef4444;
 }
 
 .form-input {
@@ -98,20 +101,255 @@
   background-color: #f3f4f6;
 }
 
+/* ==================== Stepper + Input 组合 ==================== */
+
+.stepper-input-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.stepper-input {
+  flex: 1;
+  height: 80rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+  background-color: #f9fafb;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.stepper-input::placeholder {
+  color: #d1d5db;
+  font-weight: 400;
+}
+
+.deposit-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border-radius: 16rpx;
+  padding: 0 20rpx;
+  height: 80rpx;
+}
+
+.deposit-prefix {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ea580c;
+  margin-right: 8rpx;
+}
+
+.deposit-input {
+  flex: 1;
+  height: 80rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #ea580c;
+  background-color: transparent;
+  padding: 0;
+  text-align: left;
+}
+
+.stepper-controls {
+  display: flex;
+  gap: 8rpx;
+}
+
+.stepper-btn {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.stepper-btn:active {
+  transform: scale(0.92);
+}
+
+.stepper-btn-minus {
+  background-color: #f3f4f6;
+}
+
+.stepper-btn-plus {
+  background-color: #d1fae5;
+}
+
+/* ==================== 地址网格 ==================== */
+
+.address-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24rpx;
+  padding: 16rpx 0;
+}
+
+.address-item {
+  /* 单个地址输入项 */
+}
+
+/* ==================== 等级标签 ==================== */
+
+.grade-tags {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
+
+.grade-tag {
+  flex: 1;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  opacity: 0.5;
+  transition: all 0.2s;
+}
+
+.grade-tag:active {
+  transform: scale(0.96);
+}
+
+.grade-tag.active {
+  opacity: 1;
+  transform: scale(1.02);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.1);
+}
+
+.grade-tag-gold {
+  background-color: #fef3c7;
+  color: #d97706;
+  border: 2rpx solid #fbbf24;
+}
+
+.grade-tag-gold.active {
+  background-color: #fde68a;
+  border-color: #f59e0b;
+}
+
+.grade-tag-silver {
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 2rpx solid #9ca3af;
+}
+
+.grade-tag-silver.active {
+  background-color: #e5e7eb;
+  border-color: #6b7280;
+}
+
+.grade-tag-bronze {
+  background-color: #ffedd5;
+  color: #ea580c;
+  border: 2rpx solid #fb923c;
+}
+
+.grade-tag-bronze.active {
+  background-color: #fed7aa;
+  border-color: #ea580c;
+}
+
+/* ==================== 负责人信息 ==================== */
+
+.manager-info {
+  padding: 20rpx 0;
+}
+
+.manager-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.manager-label {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.manager-value {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.manager-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.manager-tag {
+  font-size: 20rpx;
+  color: #8b5cf6;
+  background-color: #f3e8ff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.manager-hint {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 客户编码预览 ==================== */
+
+.code-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 0;
+}
+
+.code-label {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.code-value {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #8b5cf6;
+  font-family: 'SF Mono', 'Monaco', monospace;
+  letter-spacing: 2rpx;
+}
+
 /* ==================== 上传区域 ==================== */
 
-.upload-area {
-  padding: 20rpx 0;
+.upload-section {
+  padding: 16rpx 0;
+}
+
+.upload-title {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 16rpx;
 }
 
 .upload-row {
   display: flex;
-  gap: 20rpx;
+  flex-wrap: wrap;
+  gap: 16rpx;
 }
 
 .upload-btn {
-  flex: 1;
-  height: 180rpx;
+  width: 160rpx;
+  height: 160rpx;
   background-color: #f9fafb;
   border: 2rpx dashed #d1d5db;
   border-radius: 20rpx;
@@ -119,7 +357,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12rpx;
+  gap: 8rpx;
 }
 
 .upload-btn:active {
@@ -127,15 +365,8 @@
 }
 
 .upload-text {
-  font-size: 24rpx;
+  font-size: 22rpx;
   color: #9ca3af;
-}
-
-.uploaded-images {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  margin-top: 20rpx;
 }
 
 .uploaded-image-item {
@@ -163,10 +394,26 @@
   justify-content: center;
 }
 
+.image-label {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40rpx;
+  background: linear-gradient(transparent, rgba(0,0,0,0.5));
+  border-radius: 0 0 16rpx 16rpx;
+  color: #ffffff;
+  font-size: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ==================== 提示信息 ==================== */
 
 .tips {
   padding: 0 16rpx;
+  margin-bottom: 32rpx;
   font-size: 24rpx;
   color: #9ca3af;
 }
@@ -174,15 +421,10 @@
 /* ==================== 底部按钮 ==================== */
 
 .bottom-actions {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
   display: flex;
   gap: 20rpx;
-  padding: 24rpx;
-  background-color: #ffffff;
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.04);
+  padding: 24rpx 0;
+  margin-top: 16rpx;
   padding-bottom: calc(24rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
 }
@@ -204,8 +446,9 @@
 }
 
 .btn-cancel {
-  background-color: #f3f4f6;
+  background-color: #ffffff;
   color: #6b7280;
+  border: 2rpx solid #e5e7eb;
 }
 
 .btn-submit {
@@ -217,4 +460,3 @@
 .btn:active {
   transform: scale(0.98);
 }
-
