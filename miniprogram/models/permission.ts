@@ -71,11 +71,11 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
   ],
 
-  // 财务/管理层导航栏：总览、农户、作业、结算、助手
+  // 财务/管理层导航栏：总览、收苗、农资、结算、助手
   [UserRole.FINANCE_ADMIN]: [
     { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
-    { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' },
-    { icon: 'tree', text: '作业', pagePath: '/pages/operations/index/index' },
+    { icon: 'cart', text: '收苗', pagePath: '/pages/stats/acquisition/index' },
+    { icon: 'shop', text: '农资', pagePath: '/pages/stats/supplies/index' },
     { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' },
     { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
   ]
@@ -157,6 +157,10 @@ export const PagePermissions: Record<string, Permission[]> = {
   
   // 结算相关页面
   '/pages/finance/index/index': [Permission.SETTLEMENT_VIEW],
+  
+  // 统计页面 - 仅管理层可访问
+  '/pages/stats/acquisition/index': [Permission.STATS_ALL],
+  '/pages/stats/supplies/index': [Permission.STATS_ALL],
   
   // AI助手 - 所有角色可访问
   '/pages/ai/index/index': [],

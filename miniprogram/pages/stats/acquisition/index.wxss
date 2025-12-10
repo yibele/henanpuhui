@@ -1,0 +1,266 @@
+/**
+ * 收苗统计页面样式
+ */
+
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 24rpx;
+  padding-bottom: 160rpx;
+  box-sizing: border-box;
+}
+
+/* 页面标题 */
+.page-header {
+  margin-bottom: 24rpx;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1f2937;
+  display: block;
+}
+
+.page-subtitle {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #6b7280;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.tab-item.active {
+  background-color: #059669;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* 卡片通用 */
+.card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 核心指标卡片 */
+.stats-card {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+}
+
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  width: 50%;
+  padding: 16rpx 0;
+  text-align: center;
+}
+
+.stat-item:nth-child(odd) {
+  border-right: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item:nth-child(1),
+.stat-item:nth-child(2) {
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.stat-value.highlight {
+  color: #fef08a;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 区块标题 */
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16rpx;
+  padding-left: 4rpx;
+}
+
+/* 仓库统计卡片 */
+.warehouse-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.warehouse-list {
+  padding: 8rpx 0;
+}
+
+.warehouse-item {
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.warehouse-item:last-child {
+  border-bottom: none;
+}
+
+.warehouse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.warehouse-name {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+}
+
+.warehouse-percent {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #059669;
+}
+
+.warehouse-progress {
+  height: 12rpx;
+  background-color: #e5e7eb;
+  border-radius: 6rpx;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+.warehouse-detail {
+  display: flex;
+  justify-content: space-between;
+}
+
+.detail-item {
+  text-align: center;
+}
+
+.detail-label {
+  font-size: 22rpx;
+  color: #9ca3af;
+  display: block;
+}
+
+.detail-value {
+  font-size: 26rpx;
+  color: #374151;
+  font-weight: 500;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.detail-value.highlight {
+  color: #059669;
+}
+
+/* 趋势图卡片 */
+.trend-card {
+  padding: 24rpx;
+}
+
+.trend-chart {
+  height: 240rpx;
+  margin-bottom: 16rpx;
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 200rpx;
+  padding: 0 8rpx;
+}
+
+.bar-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 8rpx;
+}
+
+.bar-fill {
+  width: 100%;
+  max-width: 48rpx;
+  background: linear-gradient(180deg, #059669 0%, #10b981 100%);
+  border-radius: 8rpx 8rpx 0 0;
+  transition: height 0.3s ease;
+}
+
+.bar-label {
+  font-size: 20rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+}
+
+.trend-legend {
+  display: flex;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  background-color: #059669;
+  border-radius: 4rpx;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 32rpx;
+}
+

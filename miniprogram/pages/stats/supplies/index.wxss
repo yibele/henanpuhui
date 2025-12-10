@@ -1,0 +1,295 @@
+/**
+ * 农资统计页面样式
+ */
+
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 24rpx;
+  padding-bottom: 160rpx;
+  box-sizing: border-box;
+}
+
+/* 页面标题 */
+.page-header {
+  margin-bottom: 24rpx;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1f2937;
+  display: block;
+}
+
+.page-subtitle {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 卡片通用 */
+.card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 总览卡片 */
+.overview-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.overview-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.overview-item {
+  width: 50%;
+  padding: 28rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.overview-item:nth-child(odd) {
+  border-right: 1rpx solid #f3f4f6;
+}
+
+.overview-item.full-width {
+  width: 100%;
+  border-right: none;
+  border-bottom: none;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.overview-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
+  background-color: #f0fdf4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.overview-icon-wrap.highlight {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.overview-content {
+  flex: 1;
+}
+
+.overview-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+  display: block;
+}
+
+.overview-value.large {
+  font-size: 44rpx;
+  color: #ffffff;
+}
+
+.overview-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.full-width .overview-label {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 进度卡片 */
+.progress-card {
+  padding: 24rpx;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.progress-title {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #374151;
+}
+
+.progress-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #059669;
+}
+
+.progress-bar-wrap {
+  margin-bottom: 12rpx;
+}
+
+.progress-bar-bg {
+  height: 16rpx;
+  background-color: #e5e7eb;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+  border-radius: 8rpx;
+  transition: width 0.3s ease;
+}
+
+.progress-desc {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* 区块标题行 */
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 0 4rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.section-detail-btn {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 26rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+/* 负责人统计卡片 */
+.salesman-card {
+  padding: 24rpx;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* 列宽 */
+.col-rank {
+  width: 48rpx;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.col-name {
+  flex: 1;
+  min-width: 120rpx;
+}
+
+.col-count {
+  width: 80rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.col-percent {
+  width: 80rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.col-amount {
+  width: 100rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.table-list {
+  max-height: 1000rpx;
+  overflow-y: auto;
+}
+
+.table-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.table-item:last-child {
+  border-bottom: none;
+}
+
+.item-rank {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.item-name {
+  font-size: 28rpx;
+  color: #374151;
+  font-weight: 500;
+}
+
+.item-count {
+  font-size: 26rpx;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.item-percent {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.item-amount {
+  font-size: 26rpx;
+  color: #059669;
+  font-weight: 600;
+}
+
+/* 展开按钮 */
+.expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 20rpx;
+  margin-top: 8rpx;
+  border-top: 1rpx solid #f3f4f6;
+  font-size: 26rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+.expand-btn:active {
+  background-color: #f0fdf4;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 32rpx;
+}
+

@@ -1,0 +1,104 @@
+<!--
+  农资统计页面
+  管理层查看公司农资使用数据
+-->
+<view class="page-container">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="page-title">农资统计</text>
+    <text class="page-subtitle">公司农资使用情况汇总</text>
+  </view>
+
+  <!-- 核心指标卡片 -->
+  <view class="card overview-card">
+    <view class="overview-grid">
+      <!-- 使用农资农户数 -->
+      <view class="overview-item">
+        <view class="overview-icon-wrap">
+          <t-icon name="user" size="40rpx" color="#059669" />
+        </view>
+        <view class="overview-content">
+          <text class="overview-value">{{overview.farmerCount}}</text>
+          <text class="overview-label">使用农资农户</text>
+        </view>
+      </view>
+      <!-- 占比 -->
+      <view class="overview-item">
+        <view class="overview-icon-wrap">
+          <t-icon name="chart-pie" size="40rpx" color="#059669" />
+        </view>
+        <view class="overview-content">
+          <text class="overview-value">{{overview.percent}}%</text>
+          <text class="overview-label">签约农户占比</text>
+        </view>
+      </view>
+      <!-- 销售金额 -->
+      <view class="overview-item full-width">
+        <view class="overview-icon-wrap highlight">
+          <t-icon name="wallet" size="40rpx" color="#ffffff" />
+        </view>
+        <view class="overview-content">
+          <text class="overview-value large">{{overview.totalAmount}}</text>
+          <text class="overview-label">农资销售总额</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 使用进度 -->
+  <view class="card progress-card">
+    <view class="progress-header">
+      <text class="progress-title">农资使用率</text>
+      <text class="progress-value">{{overview.percent}}%</text>
+    </view>
+    <view class="progress-bar-wrap">
+      <view class="progress-bar-bg">
+        <view class="progress-bar-fill" style="width: {{overview.percent}}%;"></view>
+      </view>
+    </view>
+    <view class="progress-desc">
+      <text>{{overview.usedFarmers}} / {{overview.totalFarmers}} 户农户使用公司农资</text>
+    </view>
+  </view>
+
+  <!-- 按负责人统计 -->
+  <view class="section-header-row">
+    <text class="section-title">按负责人统计</text>
+    <view class="section-detail-btn" bindtap="goDetail">
+      <text>详情</text>
+      <t-icon name="chevron-right" size="32rpx" color="#059669" />
+    </view>
+  </view>
+
+  <view class="card salesman-card">
+    <!-- 表头 -->
+    <view class="table-header">
+      <text class="col-rank">#</text>
+      <text class="col-name">负责人</text>
+      <text class="col-count">农户</text>
+      <text class="col-percent">占比</text>
+      <text class="col-amount">金额</text>
+    </view>
+
+    <!-- 列表 -->
+    <view class="table-list">
+      <view class="table-item" wx:for="{{displayList}}" wx:key="salesmanId">
+        <text class="col-rank item-rank">{{item.rank}}</text>
+        <text class="col-name item-name">{{item.salesmanName}}</text>
+        <text class="col-count item-count">{{item.farmerCount}}</text>
+        <text class="col-percent item-percent">{{item.percent}}%</text>
+        <text class="col-amount item-amount">{{item.formatAmount}}</text>
+      </view>
+    </view>
+
+    <!-- 查看更多 -->
+    <view class="expand-btn" bindtap="toggleExpand" wx:if="{{salesmanList.length > 5}}">
+      <text>{{expanded ? '收起' : '查看更多'}}</text>
+      <t-icon name="{{expanded ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#059669" />
+    </view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>
+

@@ -10,7 +10,9 @@
     "pages/operations/guide-add/index",
     "pages/operations/buy-add/index",
     "pages/finance/index/index",
-    "pages/ai/index/index"
+    "pages/ai/index/index",
+    "pages/stats/acquisition/index",
+    "pages/stats/supplies/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
@@ -45,6 +47,14 @@
       {
         "pagePath": "pages/ai/index/index",
         "text": "助手"
+      },
+      {
+        "pagePath": "pages/stats/acquisition/index",
+        "text": "收苗"
+      },
+      {
+        "pagePath": "pages/stats/supplies/index",
+        "text": "农资"
       }
     ]
   },
