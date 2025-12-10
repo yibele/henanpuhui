@@ -37,6 +37,18 @@ Page({
     // 当前角色信息（默认业务员）
     currentRoleName: '业务员',
     currentRoleKey: 'salesman',
+    
+    // ========== 业务员专属数据 ==========
+    // 我的业绩统计
+    myStats: {
+      farmerCount: 0,    // 我签约的农户数
+      acreage: 0,        // 我的农户总面积
+      seedCount: 0       // 我的发苗次数
+    },
+    // 最近签约的农户（显示3条）
+    recentFarmers: [] as any[],
+    
+    // ========== 管理层数据 ==========
     // 核心指标Tab（0:昨日, 1:全季度）
     overviewTab: 1,
     // 当前显示的核心指标
@@ -54,48 +66,18 @@ Page({
     },
     // 签约农户汇总
     farmerSummary: null as FarmerSummaryStats | null,
-    // 格式化后的定金总额
-    formatDeposit: '0',
-    // 格式化后的种植面积
-    formatAcreage: '0',
-    // 种苗发放统计 - 昨日
+    // 种苗发放统计
     seedYesterday: null as SeedDistributionStats | null,
-    // 种苗发放统计 - 年度累计
     seedYearTotal: null as SeedDistributionStats | null,
-    // 格式化后的发苗数据
-    seedYesterdayFormat: {
-      quantity: '0',
-      amount: '0',
-      paid: '0',
-      unpaid: '0'
-    },
-    seedYearFormat: {
-      quantity: '0',
-      amount: '0',
-      paid: '0',
-      unpaid: '0'
-    },
-    // 发苗统计当前Tab（0:昨日, 1:年度累计）
+    seedYesterdayFormat: { quantity: '0', amount: '0', paid: '0', unpaid: '0' },
+    seedYearFormat: { quantity: '0', amount: '0', paid: '0', unpaid: '0' },
     seedStatsTab: 0,
-    // 趋势图Tab（0:日, 1:周, 2:月）
-    trendTab: 0,
-    // 当前趋势数据
-    currentTrendData: [] as any[],
-    // 负责人统计数据
+    // 负责人统计
     salesmanStats: [] as any[],
-    // 显示的负责人列表（默认5个）
     displaySalesmanList: [] as any[],
-    // 是否展开全部负责人
     salesmanExpanded: false,
-    // 负责人统计Tab（0:昨日, 1:全季度）
     salesmanTab: 1,
-    // 快捷操作列表（统一绿色系）
-    quickActions: [
-      { icon: 'user-add', label: '录入农户', color: '#059669', bgColor: '#f0fdf4', page: '/pages/farmers/add/index' },
-      { icon: 'corn', label: '发放种苗', color: '#059669', bgColor: '#f0fdf4', page: '/pages/operations/seed-add/index' },
-      { icon: 'cart', label: '收苗登记', color: '#059669', bgColor: '#f0fdf4', page: '/pages/operations/buy-add/index' },
-      { icon: 'wallet', label: '结算支付', color: '#059669', bgColor: '#f0fdf4', page: '/pages/finance/index/index' }
-    ],
+    
     // 当前时间问候语
     greeting: '下午好'
   },
@@ -172,10 +154,11 @@ Page({
     app.setLoginStatus(token, nextRoleItem.user);
     
     // 更新页面显示
-    this.setData({
-      userName: nextRoleItem.user.name
-    });
+    this.setData({ userName: nextRoleItem.user.name });
     this.updateRoleDisplay(nextRoleItem.role);
+    
+    // 重新加载对应角色的数据
+    this.loadDashboardData();
     
     // 刷新底部导航栏
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
@@ -256,10 +239,59 @@ Page({
 
   /**
    * 加载仪表盘数据
-   * TODO: 替换为实际 API 调用
+   * 根据角色加载不同数据
    */
   loadDashboardData() {
-    // 使用 Mock 数据计算统计信息
+    const roleKey = this.data.currentRoleKey;
+    
+    // 业务员：只加载自己的数据
+    if (roleKey === 'salesman') {
+      this.loadSalesmanData();
+      return;
+    }
+    
+    // 管理层：加载全部统计数据
+    this.loadManagerData();
+  },
+  
+  /**
+   * 加载业务员专属数据
+   * 只展示自己签约的农户和发苗记录
+   */
+  loadSalesmanData() {
+    const currentUser = app.globalData.userInfo;
+    const currentUserId = currentUser?.id || 'dev_salesman_001';
+    
+    // 筛选当前业务员签约的农户
+    const myFarmers = MOCK_FARMERS.filter(f => f.salesmanId === currentUserId || f.salesmanId === 's001');
+    
+    // 计算我的业绩
+    const myStats = {
+      farmerCount: myFarmers.length,
+      acreage: myFarmers.reduce((sum, f) => sum + f.plantingArea, 0),
+      seedCount: myFarmers.reduce((sum, f) => sum + (f.seedDistributionCount || 0), 0)
+    };
+    
+    // 最近签约的农户（按签约日期倒序，取前3条）
+    const recentFarmers = myFarmers
+      .sort((a, b) => new Date(b.contractDate).getTime() - new Date(a.contractDate).getTime())
+      .slice(0, 3)
+      .map(f => ({
+        id: f.id,
+        name: f.name,
+        phone: f.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
+        acreage: f.plantingArea,
+        grade: f.grade,
+        contractDate: f.contractDate.slice(5) // 只显示月-日
+      }));
+    
+    this.setData({ myStats, recentFarmers });
+  },
+  
+  /**
+   * 加载管理层数据
+   */
+  loadManagerData() {
     const farmers = MOCK_FARMERS;
     const acquisitions = MOCK_ACQUISITIONS;
     const settlements = MOCK_SETTLEMENTS;
@@ -272,10 +304,6 @@ Page({
         .filter(s => s.status === 'unpaid')
         .reduce((sum, s) => sum + s.finalPayment, 0)
     };
-
-    // 格式化定金总额和种植面积
-    const formatDeposit = this.formatAmount(MOCK_FARMER_SUMMARY.totalDeposit);
-    const formatAcreage = this.formatAcreage(MOCK_FARMER_SUMMARY.totalAcreage);
 
     // 格式化昨日发苗数据
     const seedYesterdayFormat = {
@@ -293,28 +321,21 @@ Page({
       unpaid: this.formatAmount(MOCK_SEED_YEAR_TOTAL.unpaidAmount)
     };
 
-    // 生成趋势数据
-    const currentTrendData = this.generateTrendData(0);
-
-    // 处理负责人统计数据（根据 salesmanTab）
+    // 处理负责人统计数据
     const salesmanStats = this.getCurrentSalesmanStats(this.data.salesmanTab);
     const displaySalesmanList = salesmanStats.slice(0, 5);
 
-    // 计算当前核心指标（根据 overviewTab）
+    // 计算当前核心指标
     const currentOverview = this.getOverviewData(this.data.overviewTab);
     const farmerSummary = this.getCurrentFarmerSummary(this.data.overviewTab);
 
     this.setData({
       stats,
-      // 加载发苗统计数据
       farmerSummary,
-      formatDeposit,
-      formatAcreage,
       seedYesterday: MOCK_SEED_YESTERDAY,
       seedYearTotal: MOCK_SEED_YEAR_TOTAL,
       seedYesterdayFormat,
       seedYearFormat,
-      currentTrendData,
       salesmanStats,
       displaySalesmanList,
       salesmanExpanded: false,
@@ -567,15 +588,42 @@ Page({
     wx.scanCode({
       success: (res) => {
         console.log('扫码结果:', res);
-        // TODO: 处理扫码结果
-        wx.showToast({
-          title: '扫码成功',
-          icon: 'success'
-        });
+        wx.showToast({ title: '扫码成功', icon: 'success' });
       },
       fail: (err) => {
         console.error('扫码失败:', err);
       }
     });
+  },
+
+  // ========== 业务员专属方法 ==========
+  
+  /**
+   * 跳转：录入农户
+   */
+  goAddFarmer() {
+    wx.navigateTo({ url: '/pages/farmers/add/index' });
+  },
+  
+  /**
+   * 跳转：发苗登记
+   */
+  goAddSeed() {
+    wx.navigateTo({ url: '/pages/operations/seed-add/index' });
+  },
+  
+  /**
+   * 跳转：我的农户列表
+   */
+  goMyFarmers() {
+    wx.switchTab({ url: '/pages/farmers/list/index' });
+  },
+  
+  /**
+   * 跳转：农户详情
+   */
+  goFarmerDetail(e: WechatMiniprogram.TouchEvent) {
+    const { id } = e.currentTarget.dataset;
+    wx.navigateTo({ url: `/pages/farmers/detail/index?id=${id}` });
   }
 });

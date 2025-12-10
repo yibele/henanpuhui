@@ -1,6 +1,8 @@
 <!--
   首页 Dashboard
-  数据概览、快捷操作、业务趋势
+  根据角色显示不同内容：
+  - 业务员：我的工作（我的农户、我的发苗、快捷操作）
+  - 管理层：数据总览（全公司统计）
 -->
 <view class="dashboard-page">
   <!-- 开发测试：角色切换按钮 -->
@@ -12,406 +14,327 @@
     <text class="switch-hint">点击切换</text>
   </view>
 
-  <!-- 欢迎横幅 -->
-  <view class="welcome-banner">
-    <view class="banner-content">
-      <view class="banner-left">
-        <view class="banner-subtitle">数据总览</view>
-        <view class="banner-title">{{greeting}}，{{userName}}</view>
-      </view>
-      <view class="banner-right" bindtap="onScanTap">
-        <t-icon name="qrcode" size="48rpx" color="#ffffff" />
-      </view>
-    </view>
-  </view>
-
-  <!-- 核心指标卡片（签约农户汇总） -->
-  <view class="overview-cards" wx:if="{{farmerSummary}}">
-    <!-- Tab 切换：昨日 / 全季度 -->
-    <view class="overview-tab-bar">
-      <view class="overview-tab {{overviewTab === 0 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="0">
-        <text>昨日新增</text>
-      </view>
-      <view class="overview-tab {{overviewTab === 1 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="1">
-        <text>全年度累计</text>
+  <!-- ==================== 业务员视图 ==================== -->
+  <block wx:if="{{currentRoleKey === 'salesman'}}">
+    <!-- 欢迎横幅 -->
+    <view class="salesman-header">
+      <view class="header-greeting">
+        <text class="greeting-text">{{greeting}}，{{userName}}</text>
+        <text class="greeting-sub">今天也要加油哦 💪</text>
       </view>
     </view>
 
-    <view class="overview-row overview-row-3">
-      <view class="overview-card" data-type="farmers" bindtap="onStatTap">
-        <view class="overview-bg-icon">
-          <t-icon name="user" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
+    <!-- 我的业绩卡片 -->
+    <view class="my-stats-card">
+      <view class="my-stats-title">我的业绩</view>
+      <view class="my-stats-grid">
+        <view class="my-stat-item" bindtap="goMyFarmers">
+          <text class="my-stat-value">{{myStats.farmerCount}}</text>
+          <text class="my-stat-label">签约农户</text>
         </view>
-        <view class="overview-info">
-          <text class="overview-value">{{currentOverview.farmers}}</text>
-          <text class="overview-label">签约农户(户)</text>
+        <view class="my-stat-divider"></view>
+        <view class="my-stat-item">
+          <text class="my-stat-value">{{myStats.acreage}}</text>
+          <text class="my-stat-label">总面积(亩)</text>
         </view>
-      </view>
-      <view class="overview-card">
-        <view class="overview-bg-icon">
-          <t-icon name="location" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
-        </view>
-        <view class="overview-info">
-          <text class="overview-value">{{currentOverview.acreage}}</text>
-          <text class="overview-label">种植面积(亩)</text>
-        </view>
-      </view>
-      <view class="overview-card">
-        <view class="overview-bg-icon">
-          <t-icon name="money-circle" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
-        </view>
-        <view class="overview-info">
-          <text class="overview-value">{{currentOverview.deposit}}</text>
-          <text class="overview-label">定金总额(元)</text>
+        <view class="my-stat-divider"></view>
+        <view class="my-stat-item">
+          <text class="my-stat-value my-stat-orange">{{myStats.seedCount}}</text>
+          <text class="my-stat-label">发苗次数</text>
         </view>
       </view>
     </view>
 
-    <!-- 等级分布 -->
-    <view class="grade-chart-card">
-      <!-- 三个等级竖向排列 -->
-      <view class="grade-row">
-        <view class="grade-row-left">
-          <view class="grade-dot grade-dot-gold"></view>
-          <text class="grade-name">金牌</text>
-        </view>
-        <view class="grade-row-center">
-          <view class="grade-bar-bg">
-            <view class="grade-bar-fill grade-fill-gold" style="width: {{farmerSummary.gradeDistribution.goldPercent}}%;">
-              <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.goldPercent}}%</text>
-            </view>
+    <!-- 快捷操作 -->
+    <view class="quick-section">
+      <view class="quick-grid">
+        <view class="quick-btn quick-btn-primary" bindtap="goAddFarmer">
+          <view class="quick-btn-icon">
+            <t-icon name="user-add" size="56rpx" color="#ffffff" />
           </view>
+          <text class="quick-btn-text">录入农户</text>
         </view>
-        <text class="grade-count">{{farmerSummary.gradeDistribution.gold}}户</text>
-      </view>
-
-      <view class="grade-row">
-        <view class="grade-row-left">
-          <view class="grade-dot grade-dot-silver"></view>
-          <text class="grade-name">银牌</text>
-        </view>
-        <view class="grade-row-center">
-          <view class="grade-bar-bg">
-            <view class="grade-bar-fill grade-fill-silver" style="width: {{farmerSummary.gradeDistribution.silverPercent}}%;">
-              <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.silverPercent}}%</text>
-            </view>
+        <view class="quick-btn quick-btn-secondary" bindtap="goAddSeed">
+          <view class="quick-btn-icon">
+            <t-icon name="corn" size="56rpx" color="#059669" />
           </view>
-        </view>
-        <text class="grade-count">{{farmerSummary.gradeDistribution.silver}}户</text>
-      </view>
-
-      <view class="grade-row">
-        <view class="grade-row-left">
-          <view class="grade-dot grade-dot-bronze"></view>
-          <text class="grade-name">铜牌</text>
-        </view>
-        <view class="grade-row-center">
-          <view class="grade-bar-bg">
-            <view class="grade-bar-fill grade-fill-bronze" style="width: {{farmerSummary.gradeDistribution.bronzePercent}}%;">
-              <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.bronzePercent}}%</text>
-            </view>
-          </view>
-        </view>
-        <text class="grade-count">{{farmerSummary.gradeDistribution.bronze}}户</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 负责人统计（管理层显示） -->
-  <view class="section" wx:if="{{currentRoleKey === 'finance'}}">
-    <!-- 独立标题栏 -->
-    <view class="section-header-row">
-      <text class="section-title">负责人签约统计</text>
-      <view class="section-detail-btn" bindtap="goSalesmanDetail">
-        <text>详情</text>
-        <t-icon name="chevron-right" size="32rpx" color="#059669" />
-      </view>
-    </view>
-    
-    <!-- 负责人统计独立的 Tab 切换 -->
-    <view class="salesman-tab-bar">
-      <view class="salesman-tab {{salesmanTab === 0 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="0">
-        <text>昨日新增</text>
-      </view>
-      <view class="salesman-tab {{salesmanTab === 1 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="1">
-        <text>全年度</text>
-      </view>
-    </view>
-    
-    <!-- 列表卡片 -->
-    <view class="card salesman-card">
-      <!-- 有数据时显示表格 -->
-      <block wx:if="{{displaySalesmanList.length > 0}}">
-        <!-- 表头 -->
-        <view class="salesman-table-header">
-          <text class="col-rank">#</text>
-          <text class="col-name">负责人</text>
-          <text class="col-count">农户</text>
-          <text class="col-acreage">面积</text>
-          <text class="col-deposit">定金</text>
-        </view>
-        
-        <!-- 列表 -->
-        <view class="salesman-list">
-          <view class="salesman-item" wx:for="{{displaySalesmanList}}" wx:key="salesmanId">
-            <text class="col-rank item-rank">{{item.rank}}</text>
-            <text class="col-name item-name">{{item.salesmanName}}</text>
-            <text class="col-count item-count">{{item.farmerCount}}</text>
-            <text class="col-acreage item-acreage">{{item.formatAcreage}}</text>
-            <text class="col-deposit item-deposit">{{item.formatDeposit}}</text>
-          </view>
-        </view>
-        
-        <!-- 展开/收起按钮 -->
-        <view class="salesman-expand" bindtap="toggleSalesmanExpand" wx:if="{{salesmanStats.length > 5}}">
-          <text>{{salesmanExpanded ? '收起' : '查看更多'}}</text>
-          <t-icon name="{{salesmanExpanded ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#059669" />
-        </view>
-      </block>
-      
-      <!-- 无数据时显示空状态 -->
-      <view class="salesman-empty" wx:else>
-        <t-icon name="info-circle" size="64rpx" color="#d1d5db" />
-        <text class="empty-text">昨日暂无新增签约</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 快捷操作（非管理层显示） -->
-  <view class="section" wx:if="{{currentRoleKey !== 'finance'}}">
-    <view class="section-header">
-      <text class="section-title">常用功能</text>
-    </view>
-    <view class="quick-actions">
-      <view 
-        wx:for="{{quickActions}}" 
-        wx:key="label"
-        class="quick-action-item"
-        data-page="{{item.page}}"
-        bindtap="onQuickActionTap"
-      >
-        <view 
-          class="action-icon-wrapper" 
-          style="background-color: {{item.bgColor}};"
-        >
-          <t-icon name="{{item.icon}}" size="48rpx" color="{{item.color}}" />
-        </view>
-        <text class="action-label">{{item.label}}</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 发苗统计 -->
-  <view class="section" wx:if="{{seedYesterday && seedYearTotal}}">
-    <!-- 独立标题栏（管理层显示详情按钮） -->
-    <view class="section-header-row" wx:if="{{currentRoleKey === 'finance'}}">
-      <text class="section-title">发苗统计</text>
-      <view class="section-detail-btn" bindtap="goSeedDetail">
-        <text>详情</text>
-        <t-icon name="chevron-right" size="32rpx" color="#059669" />
-      </view>
-    </view>
-    
-    <view class="card seed-stats-card" bindtap="{{currentRoleKey === 'finance' ? 'goSeedDetail' : ''}}">
-      <!-- 标题和Tab切换 -->
-      <view class="seed-stats-header">
-        <view class="seed-stats-title">
-          <text>{{currentRoleKey === 'finance' ? '甜叶菊' : '发苗统计（甜叶菊）'}}</text>
-          <!-- 管理层显示点击提示 -->
-          <t-icon wx:if="{{currentRoleKey === 'finance'}}" name="chevron-right" size="28rpx" color="#9ca3af" />
-        </view>
-        <view class="seed-stats-tabs">
-          <view 
-            class="seed-tab {{seedStatsTab === 0 ? 'seed-tab-active' : ''}}" 
-            catchtap="onSeedStatsTabChange"
-            data-value="{{0}}"
-          >昨日</view>
-          <view 
-            class="seed-tab {{seedStatsTab === 1 ? 'seed-tab-active' : ''}}" 
-            catchtap="onSeedStatsTabChange"
-            data-value="{{1}}"
-          >年度累计</view>
-        </view>
-      </view>
-
-      <!-- 发放进度总览（始终显示） -->
-      <view class="seed-overview">
-        <view class="seed-overview-progress">
-          <view class="seed-overview-info">
-            <text class="seed-overview-label">发苗进度</text>
-            <text class="seed-overview-value">{{seedYearTotal.distributedFarmerCount}}/{{seedYearTotal.totalFarmerCount}}户</text>
-          </view>
-          <view class="seed-overview-percent">{{seedYearTotal.distributionPercent}}%</view>
-        </view>
-        <view class="seed-overview-bar">
-          <view class="seed-overview-fill" style="width: {{seedYearTotal.distributionPercent}}%;"></view>
-        </view>
-      </view>
-
-      <!-- 昨日数据 -->
-      <view class="seed-stats-content" wx:if="{{seedStatsTab === 0}}">
-        <!-- 核心指标 -->
-        <view class="seed-core-stats">
-          <view class="seed-core-item">
-            <text class="seed-core-value">{{seedYesterdayFormat.quantity}}</text>
-            <text class="seed-core-label">发放</text>
-          </view>
-          <view class="seed-core-divider"></view>
-          <view class="seed-core-item">
-            <text class="seed-core-value">{{seedYesterdayFormat.amount}}</text>
-            <text class="seed-core-label">金额</text>
-          </view>
-          <view class="seed-core-divider"></view>
-          <view class="seed-core-item">
-            <text class="seed-core-value seed-value-green">{{seedYesterdayFormat.paid}}</text>
-            <text class="seed-core-label">已收</text>
-          </view>
-          <view class="seed-core-divider"></view>
-          <view class="seed-core-item">
-            <text class="seed-core-value seed-value-orange">{{seedYesterdayFormat.unpaid}}</text>
-            <text class="seed-core-label">欠款</text>
-          </view>
-        </view>
-      </view>
-
-      <!-- 年度累计数据 -->
-      <view class="seed-stats-content" wx:if="{{seedStatsTab === 1}}">
-        <!-- 核心指标 -->
-        <view class="seed-core-stats">
-          <view class="seed-core-item">
-            <text class="seed-core-value">{{seedYearFormat.quantity}}</text>
-            <text class="seed-core-label">发放</text>
-          </view>
-          <view class="seed-core-divider"></view>
-          <view class="seed-core-item">
-            <text class="seed-core-value">{{seedYearFormat.amount}}</text>
-            <text class="seed-core-label">金额</text>
-          </view>
-          <view class="seed-core-divider"></view>
-          <view class="seed-core-item">
-            <text class="seed-core-value seed-value-green">{{seedYearFormat.paid}}</text>
-            <text class="seed-core-label">已收</text>
-          </view>
-          <view class="seed-core-divider"></view>
-          <view class="seed-core-item">
-            <text class="seed-core-value seed-value-orange">{{seedYearFormat.unpaid}}</text>
-            <text class="seed-core-label">欠款</text>
-          </view>
+          <text class="quick-btn-text">发苗登记</text>
         </view>
       </view>
     </view>
-  </view>
 
-  <!-- 业务趋势图表 -->
-  <view class="section">
-    <view class="card chart-card">
-      <view class="chart-header">
-        <text class="chart-title">业务趋势</text>
-        <view class="chart-tabs">
-          <view 
-            class="chart-tab {{trendTab === 0 ? 'chart-tab-active' : ''}}"
-            bindtap="onTrendTabChange"
-            data-value="{{0}}"
-          >日</view>
-          <view 
-            class="chart-tab {{trendTab === 1 ? 'chart-tab-active' : ''}}"
-            bindtap="onTrendTabChange"
-            data-value="{{1}}"
-          >周</view>
-          <view 
-            class="chart-tab {{trendTab === 2 ? 'chart-tab-active' : ''}}"
-            bindtap="onTrendTabChange"
-            data-value="{{2}}"
-          >月</view>
+    <!-- 最近签约 -->
+    <view class="recent-section">
+      <view class="section-header">
+        <text class="section-title">最近签约</text>
+        <view class="section-more" bindtap="goMyFarmers">
+          <text>查看全部</text>
+          <t-icon name="chevron-right" size="32rpx" color="#059669" />
         </view>
       </view>
       
-      <!-- 图表展示 -->
-      <view class="chart-container">
-        <view class="chart-bars">
-          <view 
-            wx:for="{{currentTrendData}}" 
-            wx:key="label"
-            class="chart-bar-group"
-          >
-            <view class="bar-wrapper">
-              <view 
-                class="bar bar-contract" 
-                style="height: {{item.contractHeight}}rpx;"
-              ></view>
-              <view 
-                class="bar bar-seed" 
-                style="height: {{item.seedHeight}}rpx;"
-              ></view>
+      <view class="recent-list" wx:if="{{recentFarmers.length > 0}}">
+        <view class="recent-item" wx:for="{{recentFarmers}}" wx:key="id" bindtap="goFarmerDetail" data-id="{{item.id}}">
+          <view class="recent-item-left">
+            <view class="recent-avatar grade-bar-{{item.grade}}">
+              <text>{{item.name[0]}}</text>
             </view>
-            <text class="bar-label">{{item.label}}</text>
+            <view class="recent-info">
+              <text class="recent-name">{{item.name}}</text>
+              <text class="recent-meta">{{item.acreage}}亩 · {{item.phone}}</text>
+            </view>
           </view>
+          <text class="recent-date">{{item.contractDate}}</text>
         </view>
-        
-        <!-- 图例 -->
-        <view class="chart-legend">
-          <view class="legend-item">
-            <view class="legend-dot legend-dot-green"></view>
-            <text class="legend-text">签约农户</text>
-          </view>
-          <view class="legend-item">
-            <view class="legend-dot legend-dot-light"></view>
-            <text class="legend-text">种苗发放</text>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 数据统计列表 -->
-  <view class="section">
-    <view class="card stats-card">
-      <view class="stats-header">
-        <text class="card-title">数据统计</text>
-        <text class="stats-update">实时更新</text>
       </view>
       
-      <!-- 统计项列表 -->
-      <view class="stats-list">
-        <view 
-          class="stats-item"
-          data-type="farmers"
-          bindtap="onStatTap"
-        >
-          <view class="stats-item-left">
-            <view class="stats-icon">
-              <t-icon name="user" size="32rpx" color="#059669" />
-            </view>
-            <text class="stats-item-label">总签约农户</text>
+      <view class="empty-recent" wx:else>
+        <text>暂无签约记录，快去录入吧~</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- ==================== 管理层视图 ==================== -->
+  <block wx:if="{{currentRoleKey === 'finance'}}">
+    <!-- 欢迎横幅 -->
+    <view class="welcome-banner">
+      <view class="banner-content">
+        <view class="banner-left">
+          <view class="banner-subtitle">数据总览</view>
+          <view class="banner-title">{{greeting}}，{{userName}}</view>
+        </view>
+        <view class="banner-right" bindtap="onScanTap">
+          <t-icon name="qrcode" size="48rpx" color="#ffffff" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 核心指标卡片 -->
+    <view class="overview-cards" wx:if="{{farmerSummary}}">
+      <view class="overview-tab-bar">
+        <view class="overview-tab {{overviewTab === 0 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="0">
+          <text>昨日新增</text>
+        </view>
+        <view class="overview-tab {{overviewTab === 1 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="1">
+          <text>全年度累计</text>
+        </view>
+      </view>
+
+      <view class="overview-row overview-row-3">
+        <view class="overview-card" data-type="farmers" bindtap="onStatTap">
+          <view class="overview-bg-icon">
+            <t-icon name="user" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
           </view>
-          <view class="stats-item-right">
-            <text class="stats-item-value">{{stats.totalFarmers}}</text>
-            <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
+          <view class="overview-info">
+            <text class="overview-value">{{currentOverview.farmers}}</text>
+            <text class="overview-label">签约农户(户)</text>
+          </view>
+        </view>
+        <view class="overview-card">
+          <view class="overview-bg-icon">
+            <t-icon name="location" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
+          </view>
+          <view class="overview-info">
+            <text class="overview-value">{{currentOverview.acreage}}</text>
+            <text class="overview-label">种植面积(亩)</text>
+          </view>
+        </view>
+        <view class="overview-card">
+          <view class="overview-bg-icon">
+            <t-icon name="money-circle" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
+          </view>
+          <view class="overview-info">
+            <text class="overview-value">{{currentOverview.deposit}}</text>
+            <text class="overview-label">定金总额(元)</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 等级分布 -->
+      <view class="grade-chart-card">
+        <view class="grade-row">
+          <view class="grade-row-left">
+            <view class="grade-dot grade-dot-gold"></view>
+            <text class="grade-name">金牌</text>
+          </view>
+          <view class="grade-row-center">
+            <view class="grade-bar-bg">
+              <view class="grade-bar-fill grade-fill-gold" style="width: {{farmerSummary.gradeDistribution.goldPercent}}%;">
+                <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.goldPercent}}%</text>
+              </view>
+            </view>
+          </view>
+          <text class="grade-count">{{farmerSummary.gradeDistribution.gold}}户</text>
+        </view>
+        <view class="grade-row">
+          <view class="grade-row-left">
+            <view class="grade-dot grade-dot-silver"></view>
+            <text class="grade-name">银牌</text>
+          </view>
+          <view class="grade-row-center">
+            <view class="grade-bar-bg">
+              <view class="grade-bar-fill grade-fill-silver" style="width: {{farmerSummary.gradeDistribution.silverPercent}}%;">
+                <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.silverPercent}}%</text>
+              </view>
+            </view>
+          </view>
+          <text class="grade-count">{{farmerSummary.gradeDistribution.silver}}户</text>
+        </view>
+        <view class="grade-row">
+          <view class="grade-row-left">
+            <view class="grade-dot grade-dot-bronze"></view>
+            <text class="grade-name">铜牌</text>
+          </view>
+          <view class="grade-row-center">
+            <view class="grade-bar-bg">
+              <view class="grade-bar-fill grade-fill-bronze" style="width: {{farmerSummary.gradeDistribution.bronzePercent}}%;">
+                <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.bronzePercent}}%</text>
+              </view>
+            </view>
+          </view>
+          <text class="grade-count">{{farmerSummary.gradeDistribution.bronze}}户</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 负责人统计 -->
+    <view class="section">
+      <view class="section-header-row">
+        <text class="section-title">负责人签约统计</text>
+        <view class="section-detail-btn" bindtap="goSalesmanDetail">
+          <text>详情</text>
+          <t-icon name="chevron-right" size="32rpx" color="#059669" />
+        </view>
+      </view>
+      
+      <view class="salesman-tab-bar">
+        <view class="salesman-tab {{salesmanTab === 0 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="0">
+          <text>昨日新增</text>
+        </view>
+        <view class="salesman-tab {{salesmanTab === 1 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="1">
+          <text>全年度</text>
+        </view>
+      </view>
+      
+      <view class="card salesman-card">
+        <block wx:if="{{displaySalesmanList.length > 0}}">
+          <view class="salesman-table-header">
+            <text class="col-rank">#</text>
+            <text class="col-name">负责人</text>
+            <text class="col-count">农户</text>
+            <text class="col-acreage">面积</text>
+            <text class="col-deposit">定金</text>
+          </view>
+          
+          <view class="salesman-list">
+            <view class="salesman-item" wx:for="{{displaySalesmanList}}" wx:key="salesmanId">
+              <text class="col-rank item-rank">{{item.rank}}</text>
+              <text class="col-name item-name">{{item.salesmanName}}</text>
+              <text class="col-count item-count">{{item.farmerCount}}</text>
+              <text class="col-acreage item-acreage">{{item.formatAcreage}}</text>
+              <text class="col-deposit item-deposit">{{item.formatDeposit}}</text>
+            </view>
+          </view>
+          
+          <view class="salesman-expand" bindtap="toggleSalesmanExpand" wx:if="{{salesmanStats.length > 5}}">
+            <text>{{salesmanExpanded ? '收起' : '查看更多'}}</text>
+            <t-icon name="{{salesmanExpanded ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#059669" />
+          </view>
+        </block>
+        
+        <view class="salesman-empty" wx:else>
+          <t-icon name="info-circle" size="64rpx" color="#d1d5db" />
+          <text class="empty-text">昨日暂无新增签约</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 发苗统计 -->
+    <view class="section" wx:if="{{seedYesterday && seedYearTotal}}">
+      <view class="section-header-row">
+        <text class="section-title">发苗统计</text>
+        <view class="section-detail-btn" bindtap="goSeedDetail">
+          <text>详情</text>
+          <t-icon name="chevron-right" size="32rpx" color="#059669" />
+        </view>
+      </view>
+      
+      <view class="card seed-stats-card" bindtap="goSeedDetail">
+        <view class="seed-stats-header">
+          <view class="seed-stats-title">
+            <text>甜叶菊</text>
+            <t-icon name="chevron-right" size="28rpx" color="#9ca3af" />
+          </view>
+          <view class="seed-stats-tabs">
+            <view class="seed-tab {{seedStatsTab === 0 ? 'seed-tab-active' : ''}}" catchtap="onSeedStatsTabChange" data-value="{{0}}">昨日</view>
+            <view class="seed-tab {{seedStatsTab === 1 ? 'seed-tab-active' : ''}}" catchtap="onSeedStatsTabChange" data-value="{{1}}">年度累计</view>
           </view>
         </view>
 
-        <view class="stats-divider"></view>
-
-        <view 
-          class="stats-item"
-          data-type="contracts"
-          bindtap="onStatTap"
-        >
-          <view class="stats-item-left">
-            <view class="stats-icon">
-              <t-icon name="file-attachment" size="32rpx" color="#059669" />
+        <view class="seed-overview">
+          <view class="seed-overview-progress">
+            <view class="seed-overview-info">
+              <text class="seed-overview-label">发苗进度</text>
+              <text class="seed-overview-value">{{seedYearTotal.distributedFarmerCount}}/{{seedYearTotal.totalFarmerCount}}户</text>
             </view>
-            <text class="stats-item-label">进行中合同</text>
+            <view class="seed-overview-percent">{{seedYearTotal.distributionPercent}}%</view>
           </view>
-          <view class="stats-item-right">
-            <text class="stats-item-value">{{stats.activeContracts}}</text>
-            <t-icon name="chevron-right" size="32rpx" color="#d1d5db" />
+          <view class="seed-overview-bar">
+            <view class="seed-overview-fill" style="width: {{seedYearTotal.distributionPercent}}%;"></view>
+          </view>
+        </view>
+
+        <view class="seed-stats-content" wx:if="{{seedStatsTab === 0}}">
+          <view class="seed-core-stats">
+            <view class="seed-core-item">
+              <text class="seed-core-value">{{seedYesterdayFormat.quantity}}</text>
+              <text class="seed-core-label">发放</text>
+            </view>
+            <view class="seed-core-divider"></view>
+            <view class="seed-core-item">
+              <text class="seed-core-value">{{seedYesterdayFormat.amount}}</text>
+              <text class="seed-core-label">金额</text>
+            </view>
+            <view class="seed-core-divider"></view>
+            <view class="seed-core-item">
+              <text class="seed-core-value seed-value-green">{{seedYesterdayFormat.paid}}</text>
+              <text class="seed-core-label">已收</text>
+            </view>
+            <view class="seed-core-divider"></view>
+            <view class="seed-core-item">
+              <text class="seed-core-value seed-value-orange">{{seedYesterdayFormat.unpaid}}</text>
+              <text class="seed-core-label">欠款</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="seed-stats-content" wx:if="{{seedStatsTab === 1}}">
+          <view class="seed-core-stats">
+            <view class="seed-core-item">
+              <text class="seed-core-value">{{seedYearFormat.quantity}}</text>
+              <text class="seed-core-label">发放</text>
+            </view>
+            <view class="seed-core-divider"></view>
+            <view class="seed-core-item">
+              <text class="seed-core-value">{{seedYearFormat.amount}}</text>
+              <text class="seed-core-label">金额</text>
+            </view>
+            <view class="seed-core-divider"></view>
+            <view class="seed-core-item">
+              <text class="seed-core-value seed-value-green">{{seedYearFormat.paid}}</text>
+              <text class="seed-core-label">已收</text>
+            </view>
+            <view class="seed-core-divider"></view>
+            <view class="seed-core-item">
+              <text class="seed-core-value seed-value-orange">{{seedYearFormat.unpaid}}</text>
+              <text class="seed-core-label">欠款</text>
+            </view>
           </view>
         </view>
       </view>
     </view>
-  </view>
+  </block>
 
-  <!-- 底部间距（为 TabBar 留出空间） -->
+  <!-- 底部间距 -->
   <view class="bottom-space"></view>
 </view>
