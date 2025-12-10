@@ -1,0 +1,320 @@
+<!--
+  结算详情页面
+  流程：待审核 -> 会计审核 -> 待支付 -> 出纳分批支付 -> 已完成
+-->
+<view class="detail-page" wx:if="{{settlement}}">
+  <!-- 状态卡片 -->
+  <view class="status-card status-card-{{statusConfig.color}}">
+    <view class="status-header">
+      <view class="status-badge status-badge-{{statusConfig.color}}">
+        <text>{{statusConfig.label}}</text>
+      </view>
+      <text class="status-date">{{settlement.date}}</text>
+    </view>
+    <text class="status-desc">{{statusConfig.desc}}</text>
+  </view>
+
+  <!-- 农户信息 -->
+  <view class="section">
+    <view class="section-title">农户信息</view>
+    <view class="info-card">
+      <view class="info-row">
+        <text class="info-label">农户姓名</text>
+        <text class="info-value">{{settlement.farmerName}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">联系电话</text>
+        <text class="info-value">{{settlement.farmerPhone}}</text>
+      </view>
+      <view class="info-row" wx:if="{{settlement.auditor}}">
+        <text class="info-label">审核人</text>
+        <text class="info-value">{{settlement.auditor}}</text>
+      </view>
+      <view class="info-row" wx:if="{{settlement.auditTime}}">
+        <text class="info-label">审核时间</text>
+        <text class="info-value">{{settlement.auditTime}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 金额计算区 -->
+  <view class="section">
+    <view class="section-title">金额明细</view>
+    <view class="calc-card">
+      <!-- 收购总额 -->
+      <view class="calc-row calc-row-main">
+        <text class="calc-label">收购总额</text>
+        <text class="calc-value">¥{{formatted.totalAcquisition}}</text>
+      </view>
+      
+      <!-- 扣款明细 -->
+      <view class="calc-group">
+        <view class="calc-group-title">扣款明细</view>
+        <view class="calc-row calc-row-sub">
+          <text class="calc-label">种苗扣款</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.seedDeduction}}</text>
+        </view>
+        <view class="calc-row calc-row-sub">
+          <text class="calc-label">农资扣款</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.fertilizerDeduction}}</text>
+        </view>
+        <view class="calc-row calc-row-sub">
+          <text class="calc-label">其他扣款</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.otherDeduction}}</text>
+        </view>
+        <view class="calc-row calc-row-total">
+          <text class="calc-label">扣款合计</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.totalDeduction}}</text>
+        </view>
+      </view>
+      
+      <!-- 计算结果 -->
+      <view class="calc-divider"></view>
+      <view class="calc-row calc-row-result">
+        <text class="calc-label">系统计算应付</text>
+        <text class="calc-value">¥{{formatted.calculatedPayment}}</text>
+      </view>
+      
+      <!-- 调整后金额（待审核时可编辑） -->
+      <view class="calc-row calc-row-adjust" wx:if="{{canAudit}}">
+        <text class="calc-label">调整后金额</text>
+        <view class="adjust-input-wrap">
+          <text class="adjust-prefix">¥</text>
+          <input 
+            class="adjust-input" 
+            type="digit" 
+            value="{{adjustAmount}}"
+            bindinput="onAdjustAmountChange"
+            placeholder="输入调整金额"
+          />
+        </view>
+      </view>
+      
+      <!-- 最终应付（已审核显示） -->
+      <view class="calc-row calc-row-final" wx:if="{{!canAudit}}">
+        <text class="calc-label">最终应付</text>
+        <text class="calc-value calc-value-green">¥{{formatted.finalPayment}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 预付款记录 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">预付款记录</text>
+      <view class="section-action" bindtap="onAddPrepayment" wx:if="{{canAudit}}">
+        <t-icon name="add" size="32rpx" color="#059669" />
+        <text>添加</text>
+      </view>
+    </view>
+    
+    <view class="prepay-card" wx:if="{{settlement.prepayments.length > 0}}">
+      <view class="prepay-total">
+        <text class="prepay-total-label">预付款合计</text>
+        <text class="prepay-total-value">¥{{formatted.totalPrepaid}}</text>
+      </view>
+      <view class="prepay-list">
+        <view class="prepay-item" wx:for="{{settlement.prepayments}}" wx:key="id">
+          <view class="prepay-info">
+            <text class="prepay-amount">¥{{item.amount}}</text>
+            <text class="prepay-remark">{{item.remark || '预付款'}}</text>
+          </view>
+          <view class="prepay-meta">
+            <text>{{item.paymentTime}}</text>
+            <text>{{item.operator}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <view class="empty-tip" wx:else>
+      <text>暂无预付款记录</text>
+    </view>
+  </view>
+
+  <!-- 会计审核区（待审核状态显示） -->
+  <view class="section" wx:if="{{canAudit}}">
+    <view class="section-title">会计审核</view>
+    <view class="audit-card">
+      <view class="audit-tip">
+        <t-icon name="info-circle" size="32rpx" color="#f59e0b" />
+        <text>请核对金额后确认审核，审核后将推送给出纳进行支付</text>
+      </view>
+      
+      <view class="audit-form">
+        <view class="form-item">
+          <text class="form-label">审核备注</text>
+          <textarea 
+            class="form-textarea"
+            placeholder="请输入审核备注（选填）"
+            value="{{auditRemark}}"
+            bindinput="onAuditRemarkChange"
+            maxlength="200"
+          />
+        </view>
+      </view>
+      
+      <view class="audit-actions">
+        <t-button theme="primary" block bindtap="onAuditApprove">
+          确认审核通过
+        </t-button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付记录区 -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">支付记录</text>
+      <view class="section-badge">
+        <text>{{settlement.payments.length}}/{{maxPayments}}笔</text>
+      </view>
+    </view>
+    
+    <!-- 支付进度 -->
+    <view class="payment-progress-card" wx:if="{{settlement.auditStatus !== 'pending'}}">
+      <view class="progress-header">
+        <text class="progress-label">支付进度</text>
+        <text class="progress-percent">{{paymentProgress}}%</text>
+      </view>
+      <view class="progress-bar-wrap">
+        <view class="progress-bar-fill" style="width: {{paymentProgress}}%;"></view>
+      </view>
+      <view class="progress-amounts">
+        <view class="progress-amount">
+          <text class="amount-label">已支付</text>
+          <text class="amount-value amount-value-green">¥{{formatted.totalPaid}}</text>
+        </view>
+        <view class="progress-amount">
+          <text class="amount-label">待支付</text>
+          <text class="amount-value amount-value-orange">¥{{formatted.remainingPayment}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 支付列表 -->
+    <view class="payment-list" wx:if="{{settlement.payments.length > 0}}">
+      <view class="payment-item" wx:for="{{settlement.payments}}" wx:key="id">
+        <view class="payment-index">{{index + 1}}</view>
+        <view class="payment-content">
+          <view class="payment-main">
+            <text class="payment-amount">¥{{item.amount}}</text>
+            <text class="payment-method">{{item.paymentMethod}}</text>
+          </view>
+          <view class="payment-sub">
+            <text>{{item.paymentTime}}</text>
+            <text>{{item.operator}}</text>
+            <text wx:if="{{item.remark}}">{{item.remark}}</text>
+          </view>
+        </view>
+        <t-icon name="check-circle-filled" size="40rpx" color="#059669" />
+      </view>
+    </view>
+    
+    <view class="empty-tip" wx:elif="{{settlement.auditStatus === 'pending'}}">
+      <text>审核通过后可进行支付</text>
+    </view>
+    
+    <view class="empty-tip" wx:else>
+      <text>暂无支付记录</text>
+    </view>
+    
+    <!-- 添加支付按钮 -->
+    <view class="add-payment-btn" wx:if="{{canPay}}">
+      <t-button theme="primary" variant="outline" block bindtap="onAddPayment">
+        <t-icon name="add" size="36rpx" />
+        <text>添加支付（第{{settlement.payments.length + 1}}笔）</text>
+      </t-button>
+    </view>
+  </view>
+
+  <!-- 审核备注（已审核显示） -->
+  <view class="section" wx:if="{{settlement.auditRemark && !canAudit}}">
+    <view class="section-title">审核备注</view>
+    <view class="remark-card">
+      <text>{{settlement.auditRemark}}</text>
+    </view>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-space"></view>
+</view>
+
+<!-- 审核确认弹窗 -->
+<t-dialog
+  visible="{{showAuditDialog}}"
+  title="确认审核"
+  content="确认将该结算记录审核通过？审核后金额为 ¥{{adjustAmount}}，将推送给出纳进行支付。"
+  confirm-btn="确认"
+  cancel-btn="取消"
+  bind:confirm="onConfirmAudit"
+  bind:cancel="onCancelAudit"
+/>
+
+<!-- 添加预付款弹窗 -->
+<t-dialog
+  visible="{{showPrepayDialog}}"
+  title="添加预付款"
+  confirm-btn="确认"
+  cancel-btn="取消"
+  bind:confirm="onConfirmPrepay"
+  bind:cancel="onCancelPrepay"
+>
+  <view class="dialog-form">
+    <view class="dialog-form-item">
+      <text class="dialog-label">预付金额</text>
+      <input 
+        class="dialog-input" 
+        type="digit" 
+        placeholder="请输入金额"
+        value="{{newPrepayAmount}}"
+        bindinput="onPrepayAmountChange"
+      />
+    </view>
+    <view class="dialog-form-item">
+      <text class="dialog-label">备注</text>
+      <input 
+        class="dialog-input" 
+        placeholder="请输入备注（选填）"
+        value="{{newPrepayRemark}}"
+        bindinput="onPrepayRemarkChange"
+      />
+    </view>
+  </view>
+</t-dialog>
+
+<!-- 添加支付弹窗 -->
+<t-dialog
+  visible="{{showPayDialog}}"
+  title="添加支付"
+  confirm-btn="确认支付"
+  cancel-btn="取消"
+  bind:confirm="onConfirmPay"
+  bind:cancel="onCancelPay"
+>
+  <view class="dialog-form">
+    <view class="dialog-tip">
+      <text>待支付金额：¥{{formatted.remainingPayment}}</text>
+    </view>
+    <view class="dialog-form-item">
+      <text class="dialog-label">支付金额</text>
+      <input 
+        class="dialog-input" 
+        type="digit" 
+        placeholder="请输入金额"
+        value="{{newPayAmount}}"
+        bindinput="onPayAmountChange"
+      />
+    </view>
+    <view class="dialog-form-item">
+      <text class="dialog-label">备注</text>
+      <input 
+        class="dialog-input" 
+        placeholder="请输入备注（选填）"
+        value="{{newPayRemark}}"
+        bindinput="onPayRemarkChange"
+      />
+    </view>
+  </view>
+</t-dialog>
+

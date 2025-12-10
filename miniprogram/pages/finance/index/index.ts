@@ -211,10 +211,8 @@ Page({
    */
   onSettlementTap(e: WechatMiniprogram.TouchEvent) {
     const id = e.currentTarget.dataset.id;
-    // TODO: 跳转到详情页
-    wx.showToast({
-      title: '详情页开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: `/pages/finance/detail/index?id=${id}`
     });
   },
 

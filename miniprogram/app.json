@@ -10,6 +10,7 @@
     "pages/operations/guide-add/index",
     "pages/operations/buy-add/index",
     "pages/finance/index/index",
+    "pages/finance/detail/index",
     "pages/ai/index/index",
     "pages/stats/acquisition/index",
     "pages/stats/supplies/index",
