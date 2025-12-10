@@ -40,8 +40,18 @@ Page({
    * TODO: 替换为实际 API 调用
    */
   loadFarmers() {
-    // 使用 Mock 数据
-    const farmers = MOCK_FARMERS;
+    // 等级文本映射
+    const gradeTextMap: Record<string, string> = {
+      gold: '金牌',
+      silver: '银牌',
+      bronze: '铜牌'
+    };
+    
+    // 使用 Mock 数据，添加 gradeText 字段
+    const farmers = MOCK_FARMERS.map(f => ({
+      ...f,
+      gradeText: gradeTextMap[f.grade] || '铜牌'
+    }));
     
     // 计算统计数据
     const totalAcreage = farmers.reduce((sum, f) => sum + (f.acreage || 0), 0);

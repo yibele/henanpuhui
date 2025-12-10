@@ -1,6 +1,7 @@
 <!--
   农户列表页面
   展示签约农户列表
+  设计原则：关键信息（亩数、定金）放在显眼位置
 -->
 <view class="farmer-list-page">
   <!-- 顶部统计卡片 -->
@@ -54,55 +55,41 @@
         data-id="{{item.id}}"
         bindtap="onFarmerTap"
       >
+        <!-- 左侧等级色条 -->
+        <view class="grade-bar grade-bar-{{item.grade}}"></view>
+        
         <view class="farmer-card-content">
-          <!-- 头像和基本信息 -->
-          <view class="farmer-info">
-            <view class="farmer-avatar farmer-avatar-{{item.grade}}">
-              <!-- 根据等级显示不同图标 -->
-              <text wx:if="{{item.grade === 'gold'}}" class="grade-emoji">🥇</text>
-              <text wx:elif="{{item.grade === 'silver'}}" class="grade-emoji">🥈</text>
-              <text wx:else class="grade-emoji">🥉</text>
+          <!-- 第一行：姓名 | 等级 | 电话 -->
+          <view class="farmer-row-1">
+            <view class="farmer-name-area">
+              <text class="farmer-name">{{item.name}}</text>
+              <text class="grade-line">|</text>
+              <text class="grade-text grade-text-{{item.grade}}">{{item.gradeText}}</text>
             </view>
-            <view class="farmer-details">
-              <view class="farmer-header">
-                <text class="farmer-name">{{item.name}}</text>
-                <view class="grade-tag grade-tag-{{item.grade}}">
-                  <text wx:if="{{item.grade === 'gold'}}">金牌</text>
-                  <text wx:elif="{{item.grade === 'silver'}}">银牌</text>
-                  <text wx:else>铜牌</text>
-                </view>
-              </view>
-              <!-- 客户编码 -->
-              <view class="customer-code">
-                <text>{{item.customerCode}}</text>
-              </view>
-              <view class="farmer-meta">
-                <view class="meta-item">
-                  <t-icon name="call" size="28rpx" color="#9ca3af" />
-                  <text>{{item.phone}}</text>
-                </view>
-                <view class="meta-item">
-                  <t-icon name="location" size="28rpx" color="#9ca3af" />
-                  <text class="truncate">{{item.addressText || item.address.village}}</text>
-                </view>
-              </view>
-            </view>
+            <text class="farmer-phone">{{item.phone}}</text>
           </view>
           
-          <!-- 底部信息 -->
-          <view class="farmer-footer">
-            <view class="footer-left">
-              <text class="contract-date">签约: {{item.contractDate}}</text>
-            </view>
-            <view class="footer-right">
-              <view class="info-chip info-chip-blue">
-                <text>{{item.acreage}} 亩</text>
+          <!-- 第二行：核心数据 - 亩数 + 定金（突出显示） -->
+          <view class="farmer-row-2">
+            <view class="core-data">
+              <view class="data-item">
+                <text class="data-value">{{item.acreage}}</text>
+                <text class="data-unit">亩</text>
               </view>
-              <view class="info-chip info-chip-orange" wx:if="{{item.deposit > 0}}">
-                <text>¥{{item.deposit}}</text>
+              <view class="data-divider"></view>
+              <view class="data-item">
+                <text class="data-label">定金</text>
+                <text class="data-value data-value-orange">¥{{item.deposit || 0}}</text>
               </view>
-              <t-icon name="chevron-right" size="32rpx" color="#059669" />
             </view>
+            <t-icon name="chevron-right" size="36rpx" color="#d1d5db" />
+          </view>
+          
+          <!-- 第三行：次要信息 - 客户编码 + 地址 + 签约日期 -->
+          <view class="farmer-row-3">
+            <text class="sub-info code">{{item.customerCode}}</text>
+            <text class="sub-info">{{item.addressText || item.address.village}}</text>
+            <text class="sub-info">签约 {{item.contractDate}}</text>
           </view>
         </view>
       </view>

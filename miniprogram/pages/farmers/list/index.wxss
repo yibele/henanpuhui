@@ -1,5 +1,6 @@
 /**
  * 农户列表页面样式
+ * 设计原则：关键信息（亩数、定金）放在显眼位置
  */
 
 .farmer-list-page {
@@ -100,65 +101,56 @@
 }
 
 .farmer-card {
+  display: flex;
   background-color: #ffffff;
-  border-radius: 24rpx;
+  border-radius: 16rpx;
   margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
 .farmer-card:active {
-  transform: scale(0.99);
   background-color: #fafafa;
 }
 
-.farmer-card-content {
-  padding: 24rpx;
-}
-
-/* 农户信息 */
-.farmer-info {
-  display: flex;
-  gap: 20rpx;
-}
-
-.farmer-avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* 左侧等级色条 */
+.grade-bar {
+  width: 8rpx;
   flex-shrink: 0;
 }
 
-/* 根据等级显示不同背景色 */
-.farmer-avatar-gold {
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+.grade-bar-gold {
+  background: linear-gradient(180deg, #f59e0b, #d97706);
 }
 
-.farmer-avatar-silver {
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+.grade-bar-silver {
+  background: linear-gradient(180deg, #9ca3af, #6b7280);
 }
 
-.farmer-avatar-bronze {
-  background: linear-gradient(135deg, #ffedd5, #fed7aa);
+.grade-bar-bronze {
+  background: linear-gradient(180deg, #f97316, #ea580c);
 }
 
-.grade-emoji {
-  font-size: 36rpx;
-}
-
-.farmer-details {
+/* 卡片内容 */
+.farmer-card-content {
   flex: 1;
-  min-width: 0;
+  padding: 20rpx 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
 }
 
-.farmer-header {
+/* 第一行：姓名 | 等级 | 电话 */
+.farmer-row-1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 4rpx;
+}
+
+.farmer-name-area {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
 }
 
 .farmer-name {
@@ -167,108 +159,101 @@
   color: #1f2937;
 }
 
-/* 等级标签 */
-.grade-tag {
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  font-size: 20rpx;
+.grade-line {
+  font-size: 24rpx;
+  color: #d1d5db;
+}
+
+.grade-text {
+  font-size: 24rpx;
   font-weight: 600;
 }
 
-.grade-tag-gold {
-  background-color: #fef3c7;
+.grade-text-gold {
   color: #d97706;
 }
 
-.grade-tag-silver {
-  background-color: #f3f4f6;
+.grade-text-silver {
   color: #6b7280;
 }
 
-.grade-tag-bronze {
-  background-color: #ffedd5;
+.grade-text-bronze {
   color: #ea580c;
 }
 
-/* 客户编码 */
-.customer-code {
-  margin-bottom: 8rpx;
+.farmer-phone {
+  font-size: 26rpx;
+  color: #6b7280;
 }
 
-.customer-code text {
-  font-size: 22rpx;
-  color: #8b5cf6;
-  font-family: 'SF Mono', monospace;
-  background-color: #f3e8ff;
-  padding: 2rpx 10rpx;
-  border-radius: 6rpx;
-}
-
-/* 联系信息 */
-.farmer-meta {
+/* 第二行：核心数据 - 亩数 + 定金（突出显示） */
+.farmer-row-2 {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f9fafb;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+}
+
+.core-data {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.data-item {
+  display: flex;
+  align-items: baseline;
   gap: 4rpx;
 }
 
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
+.data-label {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-right: 4rpx;
+}
+
+.data-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #059669;
+}
+
+.data-value-orange {
+  color: #ea580c;
+}
+
+.data-unit {
   font-size: 24rpx;
   color: #6b7280;
 }
 
-.meta-item .truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 300rpx;
+.data-divider {
+  width: 1rpx;
+  height: 32rpx;
+  background-color: #e5e7eb;
 }
 
-/* 底部信息 */
-.farmer-footer {
+/* 第三行：次要信息 */
+.farmer-row-3 {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #f3f4f6;
+  gap: 16rpx;
+  flex-wrap: wrap;
 }
 
-.footer-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-}
-
-.contract-date {
+.sub-info {
   font-size: 22rpx;
   color: #9ca3af;
 }
 
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-}
-
-/* 信息标签 */
-.info-chip {
-  padding: 6rpx 14rpx;
-  border-radius: 10rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-}
-
-.info-chip-blue {
-  background-color: #dbeafe;
-  color: #3b82f6;
-}
-
-.info-chip-orange {
-  background-color: #ffedd5;
-  color: #ea580c;
+.sub-info.code {
+  color: #8b5cf6;
+  background-color: #f3e8ff;
+  padding: 2rpx 8rpx;
+  border-radius: 4rpx;
+  font-family: 'SF Mono', monospace;
 }
 
 /* ==================== 空状态 ==================== */
