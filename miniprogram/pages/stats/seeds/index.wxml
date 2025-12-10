@@ -76,6 +76,48 @@
     </view>
   </view>
 
+  <!-- 发放趋势图 -->
+  <view class="card trend-card">
+    <view class="trend-header">
+      <text class="trend-title">发放趋势</text>
+      <view class="trend-tabs">
+        <view class="trend-tab {{trendTab === 0 ? 'active' : ''}}" bindtap="switchTrendTab" data-tab="0">
+          <text>日</text>
+        </view>
+        <view class="trend-tab {{trendTab === 1 ? 'active' : ''}}" bindtap="switchTrendTab" data-tab="1">
+          <text>周</text>
+        </view>
+        <view class="trend-tab {{trendTab === 2 ? 'active' : ''}}" bindtap="switchTrendTab" data-tab="2">
+          <text>月</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 柱状图 -->
+    <view class="chart-container">
+      <view class="chart-bars">
+        <view class="bar-item" wx:for="{{trendData}}" wx:key="label">
+          <view class="bar-value">{{item.displayValue}}</view>
+          <view class="bar-fill-wrap">
+            <view class="bar-fill" style="height: {{item.heightPercent}}%;"></view>
+          </view>
+          <view class="bar-label">{{item.label}}</view>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 图例 -->
+    <view class="chart-legend">
+      <view class="legend-item">
+        <view class="legend-dot"></view>
+        <text>发放量(kg)</text>
+      </view>
+      <view class="legend-summary">
+        <text>{{trendTabName}}发放：{{trendTotal}}</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 筛选条件 -->
   <view class="filter-row">
     <!-- 负责人筛选 -->

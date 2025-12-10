@@ -119,12 +119,18 @@ Page({
     loading: false,
     // 弹窗
     showSalesmanPopup: false,
-    showPaymentPopup: false
+    showPaymentPopup: false,
+    // 趋势图
+    trendTab: 0, // 0:日, 1:周, 2:月
+    trendTabName: '本周',
+    trendData: [] as any[],
+    trendTotal: '0'
   },
 
   onLoad() {
     this.initSalesmanList();
     this.loadData();
+    this.loadTrendData(0);
   },
 
   onShow() {
@@ -303,6 +309,70 @@ Page({
     wx.showToast({
       title: '详情页开发中',
       icon: 'none'
+    });
+  },
+
+  // 切换趋势图Tab
+  switchTrendTab(e: any) {
+    const tab = parseInt(e.currentTarget.dataset.tab);
+    this.loadTrendData(tab);
+  },
+
+  // 加载趋势数据
+  loadTrendData(tab: number) {
+    let data: any[] = [];
+    let tabName = '';
+    let total = 0;
+
+    if (tab === 0) {
+      // 本周七天（按日）
+      tabName = '本周';
+      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+      data = days.map((day, i) => {
+        const value = Math.floor(Math.random() * 800) + 200; // 200-1000kg
+        total += value;
+        return { label: day, value };
+      });
+    } else if (tab === 1) {
+      // 本月（按周）
+      tabName = '本月';
+      const weeks = ['第1周', '第2周', '第3周', '第4周'];
+      data = weeks.map((week, i) => {
+        const value = Math.floor(Math.random() * 5000) + 2000; // 2000-7000kg
+        total += value;
+        return { label: week, value };
+      });
+    } else {
+      // 今年（按月）
+      tabName = '今年';
+      const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+      data = months.map((month, i) => {
+        // 模拟季节性变化，春秋多
+        let base = 30000;
+        if (i >= 2 && i <= 4) base = 50000; // 春季
+        if (i >= 8 && i <= 10) base = 45000; // 秋季
+        const value = Math.floor(Math.random() * 10000) + base;
+        total += value;
+        return { label: month, value };
+      });
+    }
+
+    // 计算高度百分比
+    const maxValue = Math.max(...data.map(d => d.value));
+    const trendData = data.map(d => ({
+      ...d,
+      heightPercent: Math.round((d.value / maxValue) * 100),
+      displayValue: d.value >= 1000 ? (d.value / 1000).toFixed(1) + '吨' : d.value + 'kg'
+    }));
+
+    // 格式化总量
+    const trendTotal = total >= 1000 ? (total / 1000).toFixed(1) + '吨' : total + 'kg';
+
+    this.setData({
+      trendTab: tab,
+      trendTabName: tabName,
+      trendData,
+      trendTotal
     });
   }
 });
