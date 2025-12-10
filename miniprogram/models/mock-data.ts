@@ -80,146 +80,100 @@ export const MOCK_USER: User = MOCK_USER_FINANCE;
 
 // ==================== 农户数据 ====================
 
-export const MOCK_FARMERS: Farmer[] = [
-  {
-    id: '1',
-    customerCode: 'S001-13800138000',
-    name: '张三',
-    phone: '13800138000',
-    idCard: '510100197001011234',
-    address: {
-      county: '新都区',
-      township: '石板滩',
-      town: '石板滩镇',
-      village: '幸福村3组'
-    },
-    addressText: '新都区石板滩石板滩镇幸福村3组',
-    acreage: 15.5,
-    grade: 'gold',
-    deposit: 5000,
-    manager: '张三',
-    contractDate: '2023-01-15',
-    status: 'active',
-    salesmanId: 'S001',
-    salesmanName: '业务员小王',
-    createTime: '2023-01-15'
-  },
-  {
-    id: '2',
-    customerCode: 'S001-13900139000',
-    name: '李四',
-    phone: '13900139000',
-    idCard: '510100198205056789',
-    address: {
-      county: '新都区',
-      township: '石板滩',
-      town: '石板滩镇',
-      village: '幸福村5组'
-    },
-    addressText: '新都区石板滩石板滩镇幸福村5组',
-    acreage: 8.2,
-    grade: 'silver',
-    deposit: 2000,
-    manager: '李四',
-    contractDate: '2023-02-10',
-    status: 'active',
-    salesmanId: 'S001',
-    salesmanName: '业务员小王',
-    createTime: '2023-02-10'
-  },
-  {
-    id: '3',
-    customerCode: 'S001-13700137000',
-    name: '王五',
-    phone: '13700137000',
-    idCard: '510100197809091122',
-    address: {
-      county: '新都区',
-      township: '新繁',
-      town: '新繁镇',
-      village: '向阳村1组'
-    },
-    addressText: '新都区新繁新繁镇向阳村1组',
-    acreage: 20.0,
-    grade: 'gold',
-    deposit: 8000,
-    manager: '王五',
-    contractDate: '2023-03-05',
-    status: 'active',
-    salesmanId: 'S001',
-    salesmanName: '业务员小王',
-    createTime: '2023-03-05'
-  },
-  {
-    id: '4',
-    customerCode: 'S002-13600136000',
-    name: '赵六',
-    phone: '13600136000',
-    idCard: '510100198512121234',
-    address: {
-      county: '新都区',
-      township: '新繁',
-      town: '新繁镇',
-      village: '向阳村2组'
-    },
-    addressText: '新都区新繁新繁镇向阳村2组',
-    acreage: 5.0,
-    grade: 'bronze',
-    deposit: 1000,
-    manager: '赵六',
-    contractDate: '2023-03-12',
-    status: 'pending',
-    salesmanId: 'S002',
-    salesmanName: '业务员小李',
-    createTime: '2023-03-12'
-  },
-  {
-    id: '5',
-    customerCode: 'S002-13500135000',
-    name: '钱七',
-    phone: '13500135000',
-    idCard: '510100199001011234',
-    address: {
-      county: '新都区',
-      township: '大丰',
-      town: '大丰街道',
-      village: '光明村4组'
-    },
-    addressText: '新都区大丰大丰街道光明村4组',
-    acreage: 12.3,
-    grade: 'silver',
-    deposit: 3000,
-    manager: '钱七',
-    contractDate: '2023-04-01',
-    status: 'active',
-    salesmanId: 'S002',
-    salesmanName: '业务员小李',
-    createTime: '2023-04-01'
-  },
-  {
-    id: '6',
-    customerCode: 'S002-13400134000',
-    name: '孙八',
-    phone: '13400134000',
-    idCard: '510100198808081234',
-    address: {
-      county: '新都区',
-      township: '大丰',
-      town: '大丰街道',
-      village: '光明村6组'
-    },
-    addressText: '新都区大丰大丰街道光明村6组',
-    acreage: 6.8,
-    grade: 'bronze',
-    deposit: 500,
-    manager: '孙八',
-    contractDate: '2023-04-15',
-    status: 'inactive',
-    salesmanId: 'S002',
-    salesmanName: '业务员小李',
-    createTime: '2023-04-15'
+// 生成农户数据的辅助函数
+function generateFarmers(): Farmer[] {
+  const baseNames = [
+    '张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十',
+    '郑伟', '王芳', '陈明', '刘洋', '杨丽', '黄强', '周婷', '吴军',
+    '赵敏', '钱龙', '孙凤', '李华', '王磊', '张静', '刘伟', '陈红',
+    '林涛', '何芳', '罗强', '郭明', '高华', '马丽', '梁军', '谢伟',
+    '宋婷', '唐龙', '韩凤', '冯华', '董磊', '萧静', '程伟', '曹红',
+    '袁涛', '邓芳', '许强', '傅明', '沈华', '曾丽', '彭军', '吕伟',
+    '苏婷', '卢龙', '蒋凤', '蔡华', '贾磊', '丁静', '魏伟', '薛红'
+  ];
+  
+  const townships = [
+    { township: '石板滩', town: '石板滩镇', villages: ['幸福村', '和平村', '新民村', '团结村'] },
+    { township: '新繁', town: '新繁镇', villages: ['向阳村', '光华村', '民主村', '建设村'] },
+    { township: '大丰', town: '大丰街道', villages: ['光明村', '红星村', '胜利村', '前进村'] },
+    { township: '清流', town: '清流镇', villages: ['清泉村', '龙泉村', '凤凰村', '金龙村'] },
+    { township: '斑竹园', town: '斑竹园街道', villages: ['竹园村', '翠竹村', '青竹村', '紫竹村'] }
+  ];
+  
+  const salesmen = [
+    { id: 'S001', name: '王建国' }, { id: 'S002', name: '李明辉' },
+    { id: 'S003', name: '张伟东' }, { id: 'S004', name: '刘志强' },
+    { id: 'S005', name: '陈晓峰' }, { id: 'S006', name: '杨志军' },
+    { id: 'S007', name: '周文斌' }, { id: 'S008', name: '吴海涛' },
+    { id: 'S009', name: '郑国华' }, { id: 'S010', name: '黄德才' },
+    { id: 'S011', name: '赵立民' }, { id: 'S012', name: '孙宏伟' },
+    { id: 'S013', name: '马俊杰' }, { id: 'S014', name: '朱永康' },
+    { id: 'S015', name: '胡建军' }, { id: 'S016', name: '林国栋' },
+    { id: 'S017', name: '何志勇' }, { id: 'S018', name: '罗文华' },
+    { id: 'S019', name: '郭振兴' }, { id: 'S020', name: '曹德明' }
+  ];
+  
+  const grades: Array<'gold' | 'silver' | 'bronze'> = ['gold', 'silver', 'bronze'];
+  const gradeWeights = [0.18, 0.42, 0.40]; // 金银铜比例
+  
+  const farmers: Farmer[] = [];
+  
+  // 生成200条农户数据
+  for (let i = 0; i < 200; i++) {
+    // 根据权重随机选择等级
+    const rand = Math.random();
+    let grade: 'gold' | 'silver' | 'bronze' = 'bronze';
+    if (rand < gradeWeights[0]) {
+      grade = 'gold';
+    } else if (rand < gradeWeights[0] + gradeWeights[1]) {
+      grade = 'silver';
+    }
+    
+    const nameIndex = i % baseNames.length;
+    const nameSuffix = i >= baseNames.length ? Math.floor(i / baseNames.length).toString() : '';
+    const name = baseNames[nameIndex] + nameSuffix;
+    
+    const townshipInfo = townships[i % townships.length];
+    const village = townshipInfo.villages[i % townshipInfo.villages.length];
+    const group = (i % 10) + 1;
+    
+    const salesman = salesmen[i % salesmen.length];
+    const acreage = Math.round((Math.random() * 30 + 5) * 10) / 10; // 5-35亩
+    const deposit = Math.round(acreage * 400); // 每亩400元定金
+    
+    const month = String((i % 12) + 1).padStart(2, '0');
+    const day = String((i % 28) + 1).padStart(2, '0');
+    const phone = `138${String(10000000 + i).slice(-8)}`;
+    
+    farmers.push({
+      id: String(i + 1),
+      customerCode: `${salesman.id}-${phone}`,
+      name,
+      phone,
+      idCard: `510100${1970 + (i % 30)}${month}${day}${String(1000 + i).slice(-4)}`,
+      address: {
+        county: '新都区',
+        township: townshipInfo.township,
+        town: townshipInfo.town,
+        village: `${village}${group}组`
+      },
+      addressText: `新都区${townshipInfo.township}${townshipInfo.town}${village}${group}组`,
+      acreage,
+      grade,
+      deposit,
+      manager: name,
+      contractDate: `2024-${month}-${day}`,
+      status: i % 10 === 0 ? 'pending' : 'active',
+      salesmanId: salesman.id,
+      salesmanName: salesman.name,
+      createTime: `2024-${month}-${day}`
+    });
   }
-];
+  
+  return farmers;
+}
+
+export const MOCK_FARMERS: Farmer[] = generateFarmers();
 
 // ==================== 种苗发放数据 ====================
 

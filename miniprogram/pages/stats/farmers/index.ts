@@ -6,8 +6,10 @@
 import { 
   MOCK_FARMER_SUMMARY, 
   MOCK_FARMER_SUMMARY_YESTERDAY,
-  MOCK_SALESMAN_STATS
+  MOCK_SALESMAN_STATS,
+  MOCK_FARMERS
 } from '../../../models/mock-data';
+import type { Farmer } from '../../../models/types';
 
 // 格式化金额
 function formatAmount(amount: number): string {
@@ -36,51 +38,28 @@ const GRADE_TEXT: Record<string, string> = {
   bronze: '铜牌'
 };
 
-// Mock 农户列表（全年度）
-const MOCK_FARMER_LIST = generateMockFarmers(200);
-
-// 生成 Mock 农户数据
-function generateMockFarmers(count: number) {
-  const names = ['张三', '李四', '王五', '赵六', '钱七', '孙八', '周九', '吴十', 
-                 '郑伟', '王芳', '陈明', '刘洋', '杨丽', '黄强', '周婷', '吴军',
-                 '赵敏', '钱龙', '孙凤', '李华', '王磊', '张静', '刘伟', '陈红'];
-  const managers = MOCK_SALESMAN_STATS.map(s => s.salesmanName);
-  const grades = ['gold', 'silver', 'bronze'];
-  const gradeWeights = [0.18, 0.42, 0.40]; // 金银铜比例
-  
-  const farmers = [];
-  for (let i = 0; i < count; i++) {
-    // 根据权重随机选择等级
-    const rand = Math.random();
-    let grade = 'bronze';
-    if (rand < gradeWeights[0]) {
-      grade = 'gold';
-    } else if (rand < gradeWeights[0] + gradeWeights[1]) {
-      grade = 'silver';
-    }
-    
-    const acreage = Math.floor(Math.random() * 30) + 5; // 5-35亩
-    const deposit = acreage * 400; // 每亩400元定金
-    
-    farmers.push({
-      id: `farmer_${i + 1}`,
-      name: names[i % names.length] + (i >= names.length ? Math.floor(i / names.length) : ''),
-      phone: `138${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-      grade,
-      gradeText: GRADE_TEXT[grade],
-      acreage,
-      deposit,
-      manager: managers[i % managers.length],
-      contractDate: `2024-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`
-    });
-  }
-  return farmers;
+// 转换农户数据为列表格式
+function formatFarmerForList(farmer: Farmer) {
+  return {
+    id: farmer.id,
+    name: farmer.name,
+    phone: farmer.phone,
+    grade: farmer.grade,
+    gradeText: GRADE_TEXT[farmer.grade] || '铜牌',
+    acreage: farmer.acreage,
+    deposit: farmer.deposit || 0,
+    manager: farmer.salesmanName || farmer.manager || '未分配',
+    contractDate: farmer.contractDate || farmer.createTime,
+    addressText: farmer.addressText || ''
+  };
 }
 
-// Mock 昨日新增农户
-const MOCK_FARMER_LIST_YESTERDAY = generateMockFarmers(28).map((f, i) => ({
-  ...f,
-  id: `farmer_yesterday_${i + 1}`,
+// 使用真实的 MOCK_FARMERS 数据
+const MOCK_FARMER_LIST = MOCK_FARMERS.map(formatFarmerForList);
+
+// Mock 昨日新增农户（取前28条模拟）
+const MOCK_FARMER_LIST_YESTERDAY = MOCK_FARMERS.slice(0, 28).map(f => ({
+  ...formatFarmerForList(f),
   contractDate: '2024-12-09'
 }));
 
