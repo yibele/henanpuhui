@@ -14,19 +14,69 @@ import type {
   DashboardStats,
   TrendDataPoint,
   ChatMessage,
-  UserRole
+  SeedDistributionStats,
+  FarmerSummaryStats,
+  SalesmanFarmerStats,
+  SettlementSummaryStats
 } from './types';
+import { UserRole } from './types';
 
 // ==================== 用户数据 ====================
 
-export const MOCK_USER: User = {
-  id: 'user_001',
-  phone: '13800138000',
-  name: '管理员',
-  role: 'ADMIN' as UserRole,
+/** 业务员用户（默认测试账号） */
+export const MOCK_USER_SALESMAN: User = {
+  id: 'user_salesman_001',
+  phone: '13800138001',
+  name: '业务员小王',
+  role: UserRole.SALESMAN,
   avatar: '',
   createTime: '2023-01-01'
 };
+
+/** 仓库管理员用户 */
+export const MOCK_USER_WAREHOUSE: User = {
+  id: 'user_warehouse_001',
+  phone: '13800138002',
+  name: '仓管老李',
+  role: UserRole.WAREHOUSE_MANAGER,
+  avatar: '',
+  createTime: '2023-01-01'
+};
+
+/** 财务/管理层用户 */
+export const MOCK_USER_FINANCE: User = {
+  id: 'user_finance_001',
+  phone: '13800138003',
+  name: '财务张姐',
+  role: UserRole.FINANCE_ADMIN,
+  avatar: '',
+  createTime: '2023-01-01'
+};
+
+/** 所有测试用户列表 */
+export const MOCK_USERS: User[] = [
+  MOCK_USER_SALESMAN,
+  MOCK_USER_WAREHOUSE,
+  MOCK_USER_FINANCE
+];
+
+/** 根据手机号获取用户 */
+export function getMockUserByPhone(phone: string): User | null {
+  // 手机号后缀映射到不同角色
+  if (phone.endsWith('1') || phone.endsWith('4') || phone.endsWith('7')) {
+    return { ...MOCK_USER_SALESMAN, phone };
+  }
+  if (phone.endsWith('2') || phone.endsWith('5') || phone.endsWith('8')) {
+    return { ...MOCK_USER_WAREHOUSE, phone };
+  }
+  if (phone.endsWith('3') || phone.endsWith('6') || phone.endsWith('9') || phone.endsWith('0')) {
+    return { ...MOCK_USER_FINANCE, phone };
+  }
+  return MOCK_USER_SALESMAN;
+}
+
+/** 兼容旧代码的默认用户（使用财务管理员，拥有最多权限） */
+export const MOCK_USER: User = MOCK_USER_FINANCE;
 
 // ==================== 农户数据 ====================
 
@@ -180,8 +230,13 @@ export const MOCK_SEED_RECORDS: SeedRecord[] = [
     farmerName: '张三',
     seedType: '优质稻谷A',
     quantity: 50,
-    date: '2023-04-01',
-    distributor: '管理员'
+    pricePerKg: 12,
+    totalAmount: 600,
+    paidAmount: 600,
+    unpaidAmount: 0,
+    date: '2024-12-09',
+    distributor: '业务员小王',
+    distributorId: 'S001'
   },
   {
     id: '102',
@@ -189,8 +244,13 @@ export const MOCK_SEED_RECORDS: SeedRecord[] = [
     farmerName: '李四',
     seedType: '玉米B号',
     quantity: 20,
-    date: '2023-04-02',
-    distributor: '管理员'
+    pricePerKg: 8,
+    totalAmount: 160,
+    paidAmount: 100,
+    unpaidAmount: 60,
+    date: '2024-12-09',
+    distributor: '业务员小王',
+    distributorId: 'S001'
   },
   {
     id: '103',
@@ -198,8 +258,13 @@ export const MOCK_SEED_RECORDS: SeedRecord[] = [
     farmerName: '王五',
     seedType: '优质稻谷A',
     quantity: 60,
-    date: '2023-04-05',
-    distributor: '管理员'
+    pricePerKg: 12,
+    totalAmount: 720,
+    paidAmount: 720,
+    unpaidAmount: 0,
+    date: '2024-12-08',
+    distributor: '业务员小王',
+    distributorId: 'S001'
   },
   {
     id: '104',
@@ -207,8 +272,41 @@ export const MOCK_SEED_RECORDS: SeedRecord[] = [
     farmerName: '钱七',
     seedType: '土豆C系',
     quantity: 35,
-    date: '2023-04-10',
-    distributor: '管理员'
+    pricePerKg: 15,
+    totalAmount: 525,
+    paidAmount: 300,
+    unpaidAmount: 225,
+    date: '2024-12-08',
+    distributor: '业务员小李',
+    distributorId: 'S002'
+  },
+  {
+    id: '105',
+    farmerId: '4',
+    farmerName: '赵六',
+    seedType: '玉米B号',
+    quantity: 25,
+    pricePerKg: 8,
+    totalAmount: 200,
+    paidAmount: 0,
+    unpaidAmount: 200,
+    date: '2024-11-20',
+    distributor: '业务员小李',
+    distributorId: 'S002'
+  },
+  {
+    id: '106',
+    farmerId: '6',
+    farmerName: '孙八',
+    seedType: '油菜籽D型',
+    quantity: 18,
+    pricePerKg: 20,
+    totalAmount: 360,
+    paidAmount: 360,
+    unpaidAmount: 0,
+    date: '2024-10-15',
+    distributor: '业务员小李',
+    distributorId: 'S002'
   }
 ];
 
@@ -431,6 +529,98 @@ export const MOCK_TREND_DATA: TrendDataPoint[] = [
   { month: '5月', acquisition: 1890, distribution: 480 },
   { month: '6月', acquisition: 2390, distribution: 380 }
 ];
+
+// ==================== 财务/管理层统计数据 ====================
+
+/** 签约农户汇总统计 */
+export const MOCK_FARMER_SUMMARY: FarmerSummaryStats = {
+  totalFarmers: 7000,
+  totalAcreage: 85600,
+  totalDeposit: 28560000,
+  gradeDistribution: {
+    gold: 1260,
+    silver: 2940,
+    bronze: 2800,
+    goldPercent: 18,
+    silverPercent: 42,
+    bronzePercent: 40
+  }
+};
+
+/** 按负责人统计的签约数据（20个业务员） */
+export const MOCK_SALESMAN_STATS: SalesmanFarmerStats[] = [
+  { salesmanId: 'S001', salesmanName: '王建国', farmerCount: 520, totalAcreage: 6240, totalDeposit: 2080000, gradeDistribution: { gold: 94, silver: 218, bronze: 208, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S002', salesmanName: '李明辉', farmerCount: 485, totalAcreage: 5820, totalDeposit: 1940000, gradeDistribution: { gold: 87, silver: 204, bronze: 194, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S003', salesmanName: '张伟东', farmerCount: 456, totalAcreage: 5472, totalDeposit: 1824000, gradeDistribution: { gold: 82, silver: 191, bronze: 183, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S004', salesmanName: '刘志强', farmerCount: 428, totalAcreage: 5136, totalDeposit: 1712000, gradeDistribution: { gold: 77, silver: 180, bronze: 171, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S005', salesmanName: '陈晓峰', farmerCount: 412, totalAcreage: 4944, totalDeposit: 1648000, gradeDistribution: { gold: 74, silver: 173, bronze: 165, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S006', salesmanName: '杨志军', farmerCount: 398, totalAcreage: 4776, totalDeposit: 1592000, gradeDistribution: { gold: 72, silver: 167, bronze: 159, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S007', salesmanName: '周文斌', farmerCount: 385, totalAcreage: 4620, totalDeposit: 1540000, gradeDistribution: { gold: 69, silver: 162, bronze: 154, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S008', salesmanName: '吴海涛', farmerCount: 372, totalAcreage: 4464, totalDeposit: 1488000, gradeDistribution: { gold: 67, silver: 156, bronze: 149, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S009', salesmanName: '郑国华', farmerCount: 358, totalAcreage: 4296, totalDeposit: 1432000, gradeDistribution: { gold: 64, silver: 150, bronze: 144, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S010', salesmanName: '黄德才', farmerCount: 345, totalAcreage: 4140, totalDeposit: 1380000, gradeDistribution: { gold: 62, silver: 145, bronze: 138, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S011', salesmanName: '赵立民', farmerCount: 332, totalAcreage: 3984, totalDeposit: 1328000, gradeDistribution: { gold: 60, silver: 139, bronze: 133, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S012', salesmanName: '孙宏伟', farmerCount: 318, totalAcreage: 3816, totalDeposit: 1272000, gradeDistribution: { gold: 57, silver: 134, bronze: 127, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S013', salesmanName: '马俊杰', farmerCount: 305, totalAcreage: 3660, totalDeposit: 1220000, gradeDistribution: { gold: 55, silver: 128, bronze: 122, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S014', salesmanName: '朱永康', farmerCount: 292, totalAcreage: 3504, totalDeposit: 1168000, gradeDistribution: { gold: 53, silver: 123, bronze: 116, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S015', salesmanName: '胡建军', farmerCount: 278, totalAcreage: 3336, totalDeposit: 1112000, gradeDistribution: { gold: 50, silver: 117, bronze: 111, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S016', salesmanName: '林国栋', farmerCount: 265, totalAcreage: 3180, totalDeposit: 1060000, gradeDistribution: { gold: 48, silver: 111, bronze: 106, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S017', salesmanName: '何志勇', farmerCount: 252, totalAcreage: 3024, totalDeposit: 1008000, gradeDistribution: { gold: 45, silver: 106, bronze: 101, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S018', salesmanName: '罗文华', farmerCount: 238, totalAcreage: 2856, totalDeposit: 952000, gradeDistribution: { gold: 43, silver: 100, bronze: 95, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S019', salesmanName: '郭振兴', farmerCount: 225, totalAcreage: 2700, totalDeposit: 900000, gradeDistribution: { gold: 41, silver: 95, bronze: 89, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
+  { salesmanId: 'S020', salesmanName: '曹德明', farmerCount: 236, totalAcreage: 2832, totalDeposit: 944000, gradeDistribution: { gold: 42, silver: 99, bronze: 95, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } }
+];
+
+/** 种苗发放统计 - 昨日数据 */
+export const MOCK_SEED_YESTERDAY: SeedDistributionStats = {
+  totalQuantity: 8560,
+  totalAmount: 102720,
+  paidAmount: 95280,
+  unpaidAmount: 7440,
+  byType: [
+    {
+      seedType: '甜叶菊',
+      quantity: 8560,
+      totalAmount: 102720,
+      pricePerKg: 12,
+      paidAmount: 95280,
+      unpaidAmount: 7440
+    }
+  ],
+  distributedFarmerCount: 156,
+  totalFarmerCount: 7000,
+  distributionPercent: 2.2
+};
+
+/** 种苗发放统计 - 年度累计数据 */
+export const MOCK_SEED_YEAR_TOTAL: SeedDistributionStats = {
+  totalQuantity: 428000,
+  totalAmount: 5136000,
+  paidAmount: 4365600,
+  unpaidAmount: 770400,
+  byType: [
+    {
+      seedType: '甜叶菊',
+      quantity: 428000,
+      totalAmount: 5136000,
+      pricePerKg: 12,
+      paidAmount: 4365600,
+      unpaidAmount: 770400
+    }
+  ],
+  distributedFarmerCount: 5810,
+  totalFarmerCount: 7000,
+  distributionPercent: 83
+};
+
+/** 结算汇总统计 */
+export const MOCK_SETTLEMENT_SUMMARY: SettlementSummaryStats = {
+  settledFarmerCount: 4280,
+  totalPayable: 12560000,
+  totalPaid: 9850000,
+  totalPending: 2710000,
+  pendingFarmerCount: 1530
+};
 
 // ==================== AI聊天数据 ====================
 

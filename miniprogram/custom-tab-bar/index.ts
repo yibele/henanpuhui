@@ -1,57 +1,65 @@
 /**
  * 自定义底部导航栏组件
- * @description 使用 TDesign TabBar 实现 5 个主要功能入口
+ * @description 根据用户角色动态显示不同的导航栏
  */
+
+import { getTabBarConfig, type TabBarItem } from '../models/permission';
+import { UserRole } from '../models/types';
+
+// 获取应用实例
+const app = getApp<IAppOption>();
+
+// 默认导航栏配置（未登录时或角色未知时使用）
+const DEFAULT_TAB_LIST: TabBarItem[] = [
+  { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
+  { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
+];
 
 Component({
   data: {
     // 当前选中的 tab 索引
     value: 0,
-    // 导航栏配置
-    list: [
-      {
-        icon: 'home',
-        text: '首页',
-        pagePath: '/pages/index/index'
-      },
-      {
-        icon: 'user',
-        text: '农户',
-        pagePath: '/pages/farmers/list/index'
-      },
-      {
-        icon: 'tree',
-        text: '作业',
-        pagePath: '/pages/operations/index/index'
-      },
-      {
-        icon: 'wallet',
-        text: '结算',
-        pagePath: '/pages/finance/index/index'
-      },
-      {
-        icon: 'chat',
-        text: '助手',
-        pagePath: '/pages/ai/index/index'
-      }
-    ]
+    // 导航栏配置（根据角色动态变化）
+    list: DEFAULT_TAB_LIST as TabBarItem[]
   },
 
   lifetimes: {
     attached() {
-      // 组件挂载时更新选中状态
-      this.updateSelected();
+      // 组件挂载时初始化导航栏
+      this.initTabBar();
     }
   },
 
   pageLifetimes: {
     show() {
-      // 页面显示时更新选中状态
-      this.updateSelected();
+      // 页面显示时更新导航栏和选中状态
+      this.initTabBar();
     }
   },
 
   methods: {
+    /**
+     * 初始化导航栏
+     * 根据用户角色获取对应的导航配置
+     */
+    initTabBar() {
+      const userRole = app.globalData.userRole;
+      
+      // 根据角色获取导航栏配置
+      let tabList: TabBarItem[];
+      if (userRole) {
+        tabList = getTabBarConfig(userRole);
+      } else {
+        tabList = DEFAULT_TAB_LIST;
+      }
+      
+      // 更新导航栏配置
+      this.setData({ list: tabList });
+      
+      // 更新选中状态
+      this.updateSelected();
+    },
+
     /**
      * 更新当前选中的 tab
      * 根据当前页面路径匹配对应的 tab 索引
@@ -64,7 +72,7 @@ Component({
       const currentPath = '/' + currentPage.route;
       
       const index = this.data.list.findIndex(
-        item => item.pagePath === currentPath
+        (item: TabBarItem) => item.pagePath === currentPath
       );
       
       if (index !== -1 && index !== this.data.value) {
@@ -78,9 +86,19 @@ Component({
      */
     onChange(e: WechatMiniprogram.CustomEvent) {
       const index = e.detail.value;
-      const item = this.data.list[index];
+      const item = this.data.list[index] as TabBarItem;
       
       if (item && item.pagePath) {
+        // 检查页面访问权限
+        if (!app.canAccessPage(item.pagePath)) {
+          wx.showToast({
+            title: app.getNoPermissionMessage(),
+            icon: 'none',
+            duration: 2000
+          });
+          return;
+        }
+        
         wx.switchTab({
           url: item.pagePath,
           fail: (err) => {

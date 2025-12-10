@@ -240,3 +240,20 @@
   font-size: 22rpx;
   color: #d1d5db;
 }
+
+/* 角色提示（开发阶段） */
+.role-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-top: 32rpx;
+  padding: 16rpx 24rpx;
+  background-color: #f9fafb;
+  border-radius: 16rpx;
+}
+
+.role-hint-text {
+  font-size: 22rpx;
+  color: #9ca3af;
+}

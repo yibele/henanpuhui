@@ -7,8 +7,51 @@
 
 /** 用户角色枚举 */
 export enum UserRole {
-  ADMIN = 'ADMIN',   // 管理员
-  STAFF = 'STAFF'    // 普通员工
+  SALESMAN = 'SALESMAN',                    // 业务员：负责用户签约和种苗发放
+  WAREHOUSE_MANAGER = 'WAREHOUSE_MANAGER',  // 仓库管理员：负责收苗入库、出库管理
+  FINANCE_ADMIN = 'FINANCE_ADMIN'           // 财务/管理层：系统总览、多维度查询、结算
+}
+
+/** 角色显示名称 */
+export const UserRoleNames: Record<UserRole, string> = {
+  [UserRole.SALESMAN]: '业务员',
+  [UserRole.WAREHOUSE_MANAGER]: '仓库管理员',
+  [UserRole.FINANCE_ADMIN]: '财务/管理层'
+};
+
+/** 权限类型枚举 */
+export enum Permission {
+  // 农户管理
+  FARMER_CREATE = 'FARMER_CREATE',      // 新增农户
+  FARMER_VIEW_OWN = 'FARMER_VIEW_OWN',  // 查看自己的农户
+  FARMER_VIEW_ALL = 'FARMER_VIEW_ALL',  // 查看所有农户
+  
+  // 种苗发放
+  SEED_DISTRIBUTE = 'SEED_DISTRIBUTE',  // 种苗发放操作
+  SEED_VIEW = 'SEED_VIEW',              // 查看种苗发放记录
+  
+  // 种植指导
+  GUIDE_CREATE = 'GUIDE_CREATE',        // 添加种植指导
+  GUIDE_VIEW = 'GUIDE_VIEW',            // 查看种植指导记录
+  
+  // 收苗管理
+  ACQUISITION_CREATE = 'ACQUISITION_CREATE',  // 收苗登记
+  ACQUISITION_VIEW = 'ACQUISITION_VIEW',      // 查看收苗记录
+  
+  // 仓库管理
+  INVENTORY_IN = 'INVENTORY_IN',        // 入库操作
+  INVENTORY_OUT = 'INVENTORY_OUT',      // 出库操作
+  INVENTORY_VIEW = 'INVENTORY_VIEW',    // 查看库存
+  
+  // 结算管理
+  SETTLEMENT_VIEW = 'SETTLEMENT_VIEW',  // 查看结算列表
+  SETTLEMENT_PAY = 'SETTLEMENT_PAY',    // 执行结算支付
+  
+  // 数据统计
+  STATS_OWN = 'STATS_OWN',              // 查看自己的统计数据
+  STATS_WAREHOUSE = 'STATS_WAREHOUSE',  // 查看仓库统计数据
+  STATS_ALL = 'STATS_ALL',              // 查看全部统计数据
+  QUERY_MULTI = 'QUERY_MULTI'           // 多维度查询
 }
 
 /** 用户信息 */
@@ -93,8 +136,13 @@ export interface SeedRecord {
   farmerName: string;      // 农户姓名
   seedType: string;        // 种苗品类
   quantity: number;        // 发放数量（kg）
+  pricePerKg: number;      // 单价（元/kg）
+  totalAmount: number;     // 总金额（元）
+  paidAmount: number;      // 已收款金额（元）
+  unpaidAmount: number;    // 欠款金额（元）
   date: string;            // 发放日期
   distributor: string;     // 发放人
+  distributorId: string;   // 发放人ID（业务员ID）
   remark?: string;         // 备注
 }
 
@@ -103,6 +151,8 @@ export interface AddSeedRecordParams {
   farmerId: string;
   seedType: string;
   quantity: number;
+  pricePerKg: number;
+  paidAmount?: number;
   remark?: string;
 }
 
@@ -227,7 +277,7 @@ export interface ChatResponse {
 
 // ==================== 统计数据相关 ====================
 
-/** 首页统计数据 */
+/** 首页统计数据（旧版，保留兼容） */
 export interface DashboardStats {
   totalFarmers: number;       // 总签约农户数
   activeContracts: number;    // 进行中合同数
@@ -240,6 +290,107 @@ export interface TrendDataPoint {
   month: string;           // 月份
   acquisition: number;     // 收购量
   distribution: number;    // 发放量
+}
+
+// ==================== 财务/管理层统计类型 ====================
+
+/** 签约农户汇总统计 */
+export interface FarmerSummaryStats {
+  totalFarmers: number;        // 签约农户总数（户）
+  totalAcreage: number;        // 签约种植总面积（亩）
+  totalDeposit: number;        // 定金总额（元）
+  gradeDistribution: {         // 等级分布
+    gold: number;              // 金牌农户数
+    silver: number;            // 银牌农户数
+    bronze: number;            // 铜牌农户数
+    goldPercent: number;       // 金牌占比（%）
+    silverPercent: number;     // 银牌占比（%）
+    bronzePercent: number;     // 铜牌占比（%）
+  };
+}
+
+/** 按负责人统计的签约数据 */
+export interface SalesmanFarmerStats {
+  salesmanId: string;          // 负责人ID
+  salesmanName: string;        // 负责人姓名
+  farmerCount: number;         // 签约农户数（户）
+  totalAcreage: number;        // 种植面积（亩）
+  totalDeposit: number;        // 定金总额（元）
+  gradeDistribution: {         // 等级分布
+    gold: number;
+    silver: number;
+    bronze: number;
+    goldPercent: number;
+    silverPercent: number;
+    bronzePercent: number;
+  };
+}
+
+/** 按品种统计的种苗数据 */
+export interface SeedTypeStats {
+  seedType: string;            // 品种名称
+  quantity: number;            // 发放数量（kg）
+  totalAmount: number;         // 总金额（元）
+  pricePerKg: number;          // 单价（元/kg）
+  paidAmount: number;          // 已收款（元）
+  unpaidAmount: number;        // 欠款（元）
+}
+
+/** 种苗发放统计（昨日/累计通用） */
+export interface SeedDistributionStats {
+  totalQuantity: number;       // 发放总数量（kg）
+  totalAmount: number;         // 总金额（元）
+  paidAmount: number;          // 已收款金额（元）
+  unpaidAmount: number;        // 欠款金额（元）
+  byType: SeedTypeStats[];     // 按品种统计明细
+  distributedFarmerCount: number;  // 已发放农户数
+  totalFarmerCount: number;    // 签约农户总数
+  distributionPercent: number; // 发放进度（%）
+}
+
+/** 收苗统计（今日/累计通用） */
+export interface AcquisitionStats {
+  totalQuantity: number;       // 收购总重量（kg）
+  totalAmount: number;         // 总金额（元）
+  avgPricePerKg: number;       // 平均单价（元/kg）
+  farmerCount: number;         // 已卖叶子农户数
+  byWarehouse: WarehouseAcquisitionStats[];  // 按仓库统计
+}
+
+/** 按仓库统计的收苗数据 */
+export interface WarehouseAcquisitionStats {
+  warehouseId: string;         // 仓库ID
+  warehouseName: string;       // 仓库名称
+  totalQuantity: number;       // 收购总重量（kg）
+  totalAmount: number;         // 总金额（元）
+  avgPricePerKg: number;       // 平均单价（元/kg）
+}
+
+/** 结算汇总统计 */
+export interface SettlementSummaryStats {
+  settledFarmerCount: number;  // 已结算农户数
+  totalPayable: number;        // 应付款总额（元）
+  totalPaid: number;           // 已付款总额（元）
+  totalPending: number;        // 待付款总额（元）
+  pendingFarmerCount: number;  // 待结算农户数
+}
+
+/** 财务/管理层首页完整统计 */
+export interface FinanceAdminDashboard {
+  // 签约农户汇总
+  farmerSummary: FarmerSummaryStats;
+  // 按负责人统计
+  bySalesman: SalesmanFarmerStats[];
+  // 种苗发放 - 昨日
+  seedYesterday: SeedDistributionStats;
+  // 种苗发放 - 年度累计
+  seedYearTotal: SeedDistributionStats;
+  // 收苗 - 今日
+  acquisitionToday: AcquisitionStats;
+  // 收苗 - 累计
+  acquisitionTotal: AcquisitionStats;
+  // 结算汇总
+  settlementSummary: SettlementSummaryStats;
 }
 
 // ==================== 通用响应 ====================

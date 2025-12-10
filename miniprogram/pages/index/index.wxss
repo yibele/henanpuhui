@@ -11,15 +11,59 @@
   box-sizing: border-box;
 }
 
+/* ==================== 开发测试：角色切换器 ==================== */
+
+.dev-role-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx;
+  background-color: #1f2937;
+  border-radius: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.role-badge {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 10rpx 20rpx;
+  border-radius: 12rpx;
+}
+
+.role-badge-salesman {
+  background-color: #3b82f6;
+}
+
+.role-badge-warehouse {
+  background-color: #f97316;
+}
+
+.role-badge-finance {
+  background-color: #8b5cf6;
+}
+
+.role-badge-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.switch-hint {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
 /* ==================== 欢迎横幅 ==================== */
 
 .welcome-banner {
   background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
   border-radius: 40rpx;
   padding: 40rpx;
+  padding-bottom: 80rpx;
   color: #ffffff;
   box-shadow: 0 16rpx 40rpx rgba(5, 150, 105, 0.3);
-  margin-bottom: 32rpx;
+  margin-bottom: 0;
 }
 
 .banner-content {
@@ -50,30 +94,332 @@
   backdrop-filter: blur(10rpx);
 }
 
-.banner-stats {
+/* ==================== 核心指标卡片 ==================== */
+
+.overview-cards {
+  margin-top: -40rpx;
+  margin-bottom: 32rpx;
+  position: relative;
+  z-index: 2;
+}
+
+.overview-row {
   display: flex;
-  margin-top: 48rpx;
-  gap: 48rpx;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
 }
 
-.banner-stat-item {
+.overview-card {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: #ffffff;
+  padding: 20rpx 16rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  border: 1rpx solid #f0f0f0;
 }
 
-.stat-label {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.75);
-  margin-bottom: 8rpx;
+.overview-card:active {
+  transform: scale(0.98);
+  background-color: #fafafa;
 }
 
-.stat-value {
-  font-size: 44rpx;
+/* 背景装饰图标 */
+.overview-bg-icon {
+  position: absolute;
+  right: -10rpx;
+  bottom: -10rpx;
+  opacity: 1;
+  pointer-events: none;
+}
+
+.overview-info {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.overview-value {
+  font-size: 36rpx;
   font-weight: 700;
+  color: #1f2937;
 }
 
-.banner-stat-divider {
-  width: 1rpx;
-  background-color: rgba(255, 255, 255, 0.2);
+.overview-label {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+/* 等级分布图表卡片 */
+.grade-chart-card {
+  background-color: #ffffff;
+  padding: 20rpx 24rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  border: 1rpx solid #f0f0f0;
+}
+
+/* 等级行 */
+.grade-row {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 0;
+}
+
+.grade-row:not(:last-child) {
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.grade-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  width: 90rpx;
+  flex-shrink: 0;
+}
+
+.grade-dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 3rpx;
+}
+
+.grade-dot-gold {
+  background-color: #f59e0b;
+}
+
+.grade-dot-silver {
+  background-color: #9ca3af;
+}
+
+.grade-dot-bronze {
+  background-color: #d97706;
+}
+
+.grade-name {
+  font-size: 26rpx;
+  color: #374151;
+}
+
+.grade-row-center {
+  flex: 1;
+  padding: 0 16rpx;
+}
+
+.grade-bar-bg {
+  height: 28rpx;
+  background-color: #f3f4f6;
+  border-radius: 14rpx;
+  overflow: hidden;
+  position: relative;
+}
+
+.grade-bar-fill {
+  height: 100%;
+  border-radius: 14rpx;
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8rpx;
+  min-width: 60rpx;
+}
+
+.grade-bar-percent {
+  font-size: 20rpx;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.grade-fill-gold {
+  background-color: #f59e0b;
+}
+
+.grade-fill-silver {
+  background-color: #9ca3af;
+}
+
+.grade-fill-bronze {
+  background-color: #d97706;
+}
+
+.grade-count {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2937;
+  min-width: 100rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ==================== 区块标题行 ==================== */
+
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 0;
+}
+
+.section-detail-btn {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  font-size: 26rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+.section-detail-btn:active {
+  opacity: 0.7;
+}
+
+/* ==================== 负责人统计 ==================== */
+
+.salesman-card {
+  padding: 0;
+  overflow: hidden;
+  margin-left: -24rpx;
+  margin-right: -24rpx;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+}
+
+.salesman-table-header {
+  display: flex;
+  align-items: center;
+  padding: 12rpx 16rpx;
+  background-color: #f9fafb;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+/* 列宽定义 */
+.col-rank {
+  width: 36rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.col-name {
+  width: 100rpx;
+  flex-shrink: 0;
+}
+
+.col-count {
+  width: 70rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.col-acreage {
+  width: 80rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.col-deposit {
+  width: 90rpx;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.col-grade {
+  flex: 1;
+  min-width: 100rpx;
+  padding-left: 12rpx;
+}
+
+.salesman-list {
+  max-height: 800rpx;
+  overflow-y: auto;
+}
+
+.salesman-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 16rpx;
+  border-bottom: 1rpx solid #f5f5f5;
+}
+
+.salesman-item:last-child {
+  border-bottom: none;
+}
+
+.item-rank {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+.item-name {
+  font-size: 26rpx;
+  color: #374151;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-count {
+  font-size: 26rpx;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.item-acreage {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.item-deposit {
+  font-size: 24rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+.item-grade-bar {
+  display: flex;
+  height: 12rpx;
+  border-radius: 6rpx;
+  overflow: hidden;
+  background-color: #f3f4f6;
+}
+
+.grade-seg {
+  height: 100%;
+}
+
+.grade-seg-gold {
+  background-color: #f59e0b;
+}
+
+.grade-seg-silver {
+  background-color: #9ca3af;
+}
+
+.grade-seg-bronze {
+  background-color: #d97706;
+}
+
+.salesman-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 16rpx;
+  border-top: 1rpx solid #f3f4f6;
+  font-size: 26rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+.salesman-expand:active {
+  background-color: #f0fdf4;
 }
 
 /* ==================== 区块通用样式 ==================== */
@@ -198,12 +544,48 @@
   transition: height 0.3s ease;
 }
 
-.bar-acquisition {
-  background: linear-gradient(180deg, #34d399, #059669);
+.bar-contract {
+  background: linear-gradient(180deg, #059669, #047857);
 }
 
-.bar-distribution {
-  background: linear-gradient(180deg, #fbbf24, #f97316);
+.bar-seed {
+  background: linear-gradient(180deg, #6ee7b7, #34d399);
+}
+
+/* 图表头部 */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.chart-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.chart-tabs {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 10rpx;
+  padding: 4rpx;
+}
+
+.chart-tab {
+  padding: 10rpx 20rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  border-radius: 8rpx;
+  transition: all 0.2s;
+}
+
+.chart-tab-active {
+  background-color: #ffffff;
+  color: #059669;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
 
 .bar-label {
@@ -237,8 +619,8 @@
   background-color: #059669;
 }
 
-.legend-dot-orange {
-  background-color: #f97316;
+.legend-dot-light {
+  background-color: #6ee7b7;
 }
 
 .legend-text {
@@ -294,14 +676,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.stats-icon-blue {
-  background-color: #dbeafe;
-}
-
-.stats-icon-green {
-  background-color: #d1fae5;
+  background-color: #f0fdf4;
 }
 
 .stats-item-label {
@@ -326,6 +701,253 @@
   height: 1rpx;
   background-color: #f3f4f6;
   margin-left: 116rpx;
+}
+
+/* ==================== 发苗统计卡片 ==================== */
+
+.seed-stats-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.seed-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.seed-stats-title {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.seed-stats-tabs {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 12rpx;
+  padding: 4rpx;
+}
+
+.seed-tab {
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  border-radius: 10rpx;
+  transition: all 0.2s;
+}
+
+.seed-tab-active {
+  background-color: #ffffff;
+  color: #059669;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 发放进度总览 */
+.seed-overview {
+  padding: 20rpx 24rpx;
+  background-color: #f0fdf4;
+  border-bottom: 1rpx solid #d1fae5;
+}
+
+.seed-overview-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.seed-overview-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.seed-overview-label {
+  font-size: 26rpx;
+  color: #374151;
+  font-weight: 500;
+}
+
+.seed-overview-value {
+  font-size: 26rpx;
+  color: #059669;
+  font-weight: 600;
+}
+
+.seed-overview-percent {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #059669;
+}
+
+.seed-overview-bar {
+  height: 12rpx;
+  background-color: #d1fae5;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.seed-overview-fill {
+  height: 100%;
+  background-color: #059669;
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+.seed-stats-content {
+  padding: 20rpx 24rpx 24rpx;
+}
+
+/* 核心指标 */
+.seed-core-stats {
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border-radius: 16rpx;
+  padding: 24rpx 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.seed-core-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.seed-core-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.seed-value-green {
+  color: #059669;
+}
+
+.seed-value-orange {
+  color: #dc2626;
+}
+
+.seed-core-label {
+  font-size: 20rpx;
+  color: #6b7280;
+}
+
+.seed-core-divider {
+  width: 1rpx;
+  height: 50rpx;
+  background-color: #e5e7eb;
+}
+
+/* 发放进度 */
+.seed-progress-section {
+  margin-bottom: 24rpx;
+  padding: 20rpx 24rpx;
+  background-color: #fafafa;
+  border-radius: 16rpx;
+}
+
+.seed-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.seed-progress-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.seed-progress-text {
+  font-size: 24rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+.seed-progress-bar {
+  height: 16rpx;
+  background-color: #e5e7eb;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.seed-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #059669);
+  border-radius: 8rpx;
+  transition: width 0.3s ease;
+}
+
+/* 品种明细 */
+.seed-type-list {
+  background-color: #fafafa;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.seed-type-header {
+  padding: 16rpx 24rpx;
+  border-bottom: 1rpx solid #e5e7eb;
+}
+
+.seed-type-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.seed-type-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.seed-type-item:last-child {
+  border-bottom: none;
+}
+
+.seed-type-name {
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #374151;
+}
+
+.seed-type-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.seed-type-qty {
+  font-size: 24rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+.seed-type-price {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+.seed-type-amount {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #1f2937;
+  min-width: 100rpx;
+  text-align: right;
 }
 
 /* ==================== 底部间距 ==================== */

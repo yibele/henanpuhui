@@ -91,6 +91,12 @@
           <t-icon wx:if="{{!logging}}" name="chevron-right" size="40rpx" color="#ffffff" />
         </button>
       </view>
+
+      <!-- 角色提示（开发阶段） -->
+      <view class="role-hint">
+        <t-icon name="info-circle" size="28rpx" color="#9ca3af" />
+        <text class="role-hint-text">{{roleHint}}</text>
+      </view>
     </view>
 
   </view>

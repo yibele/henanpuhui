@@ -1,6 +1,7 @@
 <!--
   自定义底部导航栏
   使用 TDesign t-tab-bar 组件
+  根据用户角色动态显示不同的导航项
 -->
 <t-tab-bar 
   value="{{value}}" 
@@ -10,34 +11,12 @@
   theme="normal"
   split="{{false}}"
 >
-  <!-- 首页 -->
+  <!-- 动态渲染导航项 -->
   <t-tab-bar-item 
-    icon="home" 
-    value="0"
-  >首页</t-tab-bar-item>
-
-  <!-- 农户 -->
-  <t-tab-bar-item 
-    icon="user" 
-    value="1"
-  >农户</t-tab-bar-item>
-
-  <!-- 作业 -->
-  <t-tab-bar-item 
-    icon="tools" 
-    value="2"
-  >作业</t-tab-bar-item>
-
-  <!-- 结算 -->
-  <t-tab-bar-item 
-    icon="wallet" 
-    value="3"
-  >结算</t-tab-bar-item>
-
-  <!-- 助手 -->
-  <t-tab-bar-item 
-    icon="chat" 
-    value="4"
-  >助手</t-tab-bar-item>
+    wx:for="{{list}}"
+    wx:key="pagePath"
+    icon="{{item.icon}}" 
+    value="{{index}}"
+  >{{item.text}}</t-tab-bar-item>
 </t-tab-bar>
 

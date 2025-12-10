@@ -1,9 +1,10 @@
 /**
  * 登录页面
- * @description 手机号验证码登录
+ * @description 手机号验证码登录，支持根据手机号识别用户角色
  */
 
-import { MOCK_USER } from '../../models/mock-data';
+import { getMockUserByPhone } from '../../models/mock-data';
+import { UserRoleNames } from '../../models/types';
 
 // 获取应用实例
 const app = getApp<IAppOption>();
@@ -24,7 +25,9 @@ Page({
     agreed: true,
     // Toast 显示控制
     toastVisible: false,
-    toastMessage: ''
+    toastMessage: '',
+    // 角色提示信息
+    roleHint: '手机尾号 1/4/7 为业务员，2/5/8 为仓管，3/6/9/0 为财务'
   },
 
   /**
@@ -105,6 +108,7 @@ Page({
 
   /**
    * 登录
+   * 根据手机号末位识别用户角色
    */
   async handleLogin() {
     const { phone, code, agreed, logging } = this.data;
@@ -133,27 +137,34 @@ Page({
     this.setData({ logging: true });
 
     // TODO: 调用后端 API 进行登录验证
-    // 这里使用 Mock 数据模拟登录成功
+    // 这里使用 Mock 数据模拟登录成功，根据手机号末位分配角色
     setTimeout(() => {
-      // 模拟登录成功
+      // 根据手机号获取用户信息（包含角色）
+      const mockUser = getMockUserByPhone(phone);
+      if (!mockUser) {
+        this.setData({ logging: false });
+        this.showToast('用户不存在');
+        return;
+      }
+
+      // 生成 token
       const mockToken = 'mock_token_' + Date.now();
-      const mockUser = {
-        ...MOCK_USER,
-        phone: phone
-      };
 
       // 保存登录状态
       app.setLoginStatus(mockToken, mockUser);
 
       this.setData({ logging: false });
-      this.showToast('登录成功');
+      
+      // 显示角色信息
+      const roleName = UserRoleNames[mockUser.role];
+      this.showToast(`登录成功，您的角色：${roleName}`);
 
       // 延迟跳转到首页
       setTimeout(() => {
         wx.switchTab({
           url: '/pages/index/index'
         });
-      }, 500);
+      }, 1000);
     }, 1500);
   },
 

@@ -3,11 +3,16 @@
  * @description 全局应用配置和生命周期管理
  */
 
+import { UserRole, Permission } from './models/types';
+import { hasPermission, canAccessPage, getNoPermissionMessage, getTabBarConfig } from './models/permission';
+import type { User } from './models/types';
+
 // 定义全局数据接口
 interface IGlobalData {
-  userInfo: WechatMiniprogram.UserInfo | null;
-  isLoggedIn: boolean;
-  token: string;
+  userInfo: User | null;          // 用户信息
+  isLoggedIn: boolean;            // 是否已登录
+  token: string;                  // 访问令牌
+  userRole: UserRole | null;      // 用户角色
 }
 
 // 应用实例
@@ -15,7 +20,8 @@ App<IAppOption>({
   globalData: {
     userInfo: null,
     isLoggedIn: false,
-    token: ''
+    token: '',
+    userRole: null
   } as IGlobalData,
 
   onLaunch() {
@@ -29,25 +35,28 @@ App<IAppOption>({
 
   /**
    * 检查登录状态
-   * 从本地存储读取 token 验证登录状态
+   * 从本地存储读取 token 和用户信息验证登录状态
    */
   checkLoginStatus() {
     try {
       const token = wx.getStorageSync('token');
-      const userInfo = wx.getStorageSync('userInfo');
+      const userInfo = wx.getStorageSync('userInfo') as User | null;
       
       if (token && userInfo) {
         this.globalData.isLoggedIn = true;
         this.globalData.token = token;
         this.globalData.userInfo = userInfo;
-        console.log('已登录用户:', userInfo.nickName || userInfo.name);
+        this.globalData.userRole = userInfo.role;
+        console.log('已登录用户:', userInfo.name, '角色:', userInfo.role);
       } else {
         this.globalData.isLoggedIn = false;
+        this.globalData.userRole = null;
         console.log('用户未登录');
       }
     } catch (e) {
       console.error('检查登录状态失败:', e);
       this.globalData.isLoggedIn = false;
+      this.globalData.userRole = null;
     }
   },
 
@@ -56,14 +65,67 @@ App<IAppOption>({
    * @param token 访问令牌
    * @param userInfo 用户信息
    */
-  setLoginStatus(token: string, userInfo: any) {
+  setLoginStatus(token: string, userInfo: User) {
     this.globalData.isLoggedIn = true;
     this.globalData.token = token;
     this.globalData.userInfo = userInfo;
+    this.globalData.userRole = userInfo.role;
     
     // 持久化存储
     wx.setStorageSync('token', token);
     wx.setStorageSync('userInfo', userInfo);
+    
+    console.log('登录成功，角色:', userInfo.role);
+  },
+
+  /**
+   * 获取当前用户角色
+   * @returns 用户角色
+   */
+  getUserRole(): UserRole | null {
+    return this.globalData.userRole;
+  },
+
+  /**
+   * 检查用户是否拥有指定权限
+   * @param permission 需要检查的权限
+   * @returns 是否拥有权限
+   */
+  checkPermission(permission: Permission): boolean {
+    const role = this.globalData.userRole;
+    if (!role) return false;
+    return hasPermission(role, permission);
+  },
+
+  /**
+   * 检查用户是否可以访问指定页面
+   * @param pagePath 页面路径
+   * @returns 是否可以访问
+   */
+  canAccessPage(pagePath: string): boolean {
+    const role = this.globalData.userRole;
+    if (!role) return false;
+    return canAccessPage(role, pagePath);
+  },
+
+  /**
+   * 获取无权限提示信息
+   * @returns 提示信息
+   */
+  getNoPermissionMessage(): string {
+    const role = this.globalData.userRole;
+    if (!role) return '请先登录';
+    return getNoPermissionMessage(role);
+  },
+
+  /**
+   * 获取当前用户的导航栏配置
+   * @returns 导航栏配置
+   */
+  getTabBarConfig() {
+    const role = this.globalData.userRole;
+    if (!role) return [];
+    return getTabBarConfig(role);
   },
 
   /**
@@ -73,6 +135,7 @@ App<IAppOption>({
     this.globalData.isLoggedIn = false;
     this.globalData.token = '';
     this.globalData.userInfo = null;
+    this.globalData.userRole = null;
     
     // 清除本地存储
     wx.removeStorageSync('token');
