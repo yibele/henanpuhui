@@ -6,27 +6,19 @@
   <!-- 汇总统计卡片 -->
   <view class="overview-card">
     <view class="overview-title">结算汇总</view>
-    <!-- 金额统计 2x2 布局 -->
-    <view class="overview-stats-grid">
-      <view class="overview-row">
-        <view class="overview-stat-item">
-          <text class="stat-value stat-value-blue">{{formattedOverview.totalPayable}}</text>
-          <text class="stat-label">应付款</text>
-        </view>
-        <view class="overview-stat-item">
-          <text class="stat-value stat-value-green">{{formattedOverview.totalPaid}}</text>
-          <text class="stat-label">已付款</text>
-        </view>
+    <!-- 金额统计 3列布局 -->
+    <view class="overview-stats">
+      <view class="overview-stat-item">
+        <text class="stat-value stat-value-blue">{{formattedOverview.totalPayable}}</text>
+        <text class="stat-label">应付款</text>
       </view>
-      <view class="overview-row">
-        <view class="overview-stat-item">
-          <text class="stat-value stat-value-orange">{{formattedOverview.totalPending}}</text>
-          <text class="stat-label">待付款</text>
-        </view>
-        <view class="overview-stat-item">
-          <text class="stat-value stat-value-purple">{{formattedOverview.totalPrepaid}}</text>
-          <text class="stat-label">预付款</text>
-        </view>
+      <view class="overview-stat-item">
+        <text class="stat-value stat-value-green">{{formattedOverview.totalPaid}}</text>
+        <text class="stat-label">已付款</text>
+      </view>
+      <view class="overview-stat-item">
+        <text class="stat-value stat-value-orange">{{formattedOverview.totalPending}}</text>
+        <text class="stat-label">待付款</text>
       </view>
     </view>
     

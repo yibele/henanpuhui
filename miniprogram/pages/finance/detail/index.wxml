@@ -90,29 +90,6 @@
     </view>
   </view>
 
-  <!-- 预付款记录 -->
-  <view class="section" wx:if="{{settlement.prepayments.length > 0}}">
-    <view class="section-title">预付款记录</view>
-    <view class="prepay-card">
-      <view class="prepay-total">
-        <text class="prepay-total-label">预付款合计</text>
-        <text class="prepay-total-value">¥{{formatted.totalPrepaid}}</text>
-      </view>
-      <view class="prepay-list">
-        <view class="prepay-item" wx:for="{{settlement.prepayments}}" wx:key="id">
-          <view class="prepay-info">
-            <text class="prepay-amount">¥{{item.amount}}</text>
-            <text class="prepay-remark">{{item.remark || '预付款'}}</text>
-          </view>
-          <view class="prepay-meta">
-            <text>{{item.paymentTime}}</text>
-            <text>{{item.operator}}</text>
-          </view>
-        </view>
-      </view>
-    </view>
-  </view>
-
   <!-- 支付进度与记录 -->
   <view class="section">
     <view class="section-header">
