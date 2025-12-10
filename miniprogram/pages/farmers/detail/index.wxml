@@ -136,8 +136,8 @@
       </view>
     </view>
 
-    <!-- 定金与面积管理 -->
-    <view class="section">
+    <!-- 定金与面积管理（管理层不显示） -->
+    <view class="section" wx:if="{{!isFinanceAdmin}}">
       <view class="section-title">定金与面积管理</view>
       <view class="manage-card">
         <view class="manage-row">
