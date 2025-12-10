@@ -151,12 +151,12 @@ function generateFarmers(): Farmer[] {
       name,
       phone,
       idCard: `510100${1970 + (i % 30)}${month}${day}${String(1000 + i).slice(-4)}`,
-      address: {
-        county: '新都区',
+    address: {
+      county: '新都区',
         township: townshipInfo.township,
         town: townshipInfo.town,
         village: `${village}${group}组`
-      },
+    },
       addressText: `新都区${townshipInfo.township}${townshipInfo.town}${village}${group}组`,
       acreage,
       grade,

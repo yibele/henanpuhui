@@ -136,16 +136,17 @@
       </view>
     </view>
 
-    <!-- 定金与面积管理（管理层不显示） -->
-    <view class="section" wx:if="{{!isFinanceAdmin}}">
-      <view class="section-title">定金与面积管理</view>
+    <!-- 定金与面积信息 -->
+    <view class="section">
+      <view class="section-title">{{isFinanceAdmin ? '定金与面积' : '定金与面积管理'}}</view>
       <view class="manage-card">
         <view class="manage-row">
           <view class="manage-info">
             <text class="manage-label">当前定金</text>
             <text class="manage-value manage-value-orange">¥{{farmer.deposit || 0}}</text>
           </view>
-          <view class="manage-actions">
+          <!-- 操作按钮（管理层不显示） -->
+          <view class="manage-actions" wx:if="{{!isFinanceAdmin}}">
             <button class="manage-btn manage-btn-add" bindtap="onAddDeposit">
               <t-icon name="add" size="28rpx" color="#059669" />
             </button>
@@ -160,7 +161,8 @@
             <text class="manage-label">种植面积</text>
             <text class="manage-value manage-value-blue">{{farmer.acreage}} 亩</text>
           </view>
-          <button class="manage-btn-text" bindtap="onUpdateAcreage">
+          <!-- 调整按钮（管理层不显示） -->
+          <button class="manage-btn-text" bindtap="onUpdateAcreage" wx:if="{{!isFinanceAdmin}}">
             <t-icon name="edit" size="28rpx" color="#3b82f6" />
             <text>调整</text>
           </button>
