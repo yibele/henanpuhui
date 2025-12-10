@@ -12,7 +12,8 @@
     "pages/finance/index/index",
     "pages/ai/index/index",
     "pages/stats/acquisition/index",
-    "pages/stats/supplies/index"
+    "pages/stats/supplies/index",
+    "pages/stats/farmers/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

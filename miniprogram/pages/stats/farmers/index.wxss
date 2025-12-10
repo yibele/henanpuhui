@@ -1,0 +1,452 @@
+/**
+ * 签约农户统计详情页样式
+ */
+
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 24rpx;
+  padding-bottom: 160rpx;
+  box-sizing: border-box;
+}
+
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1f2937;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-clear {
+  padding: 4rpx;
+}
+
+.search-btn {
+  padding: 16rpx 28rpx;
+  background-color: #059669;
+  border-radius: 16rpx;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.search-btn:active {
+  background-color: #047857;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+  color: #6b7280;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.tab-item.active {
+  background-color: #059669;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* 卡片通用 */
+.card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 汇总统计卡片 */
+.summary-card {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.summary-item {
+  text-align: center;
+  flex: 1;
+}
+
+.summary-item:not(:last-child) {
+  border-right: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.summary-value.highlight {
+  color: #fef08a;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 等级分布 */
+.grade-distribution {
+  padding-top: 20rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.grade-bar-wrap {
+  display: flex;
+  height: 24rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+}
+
+.grade-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18rpx;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.grade-gold {
+  background-color: #f59e0b;
+}
+
+.grade-silver {
+  background-color: #9ca3af;
+}
+
+.grade-bronze {
+  background-color: #d97706;
+}
+
+.grade-legend {
+  display: flex;
+  justify-content: space-between;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 4rpx;
+}
+
+.legend-gold {
+  background-color: #f59e0b;
+}
+
+.legend-silver {
+  background-color: #9ca3af;
+}
+
+.legend-bronze {
+  background-color: #d97706;
+}
+
+/* 筛选条件 */
+.filter-bar {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 12rpx 20rpx;
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.filter-item.active {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.filter-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+}
+
+.filter-gold {
+  background-color: #f59e0b;
+}
+
+.filter-silver {
+  background-color: #9ca3af;
+}
+
+.filter-bronze {
+  background-color: #d97706;
+}
+
+.filter-item.active .filter-dot {
+  border: 2rpx solid #ffffff;
+}
+
+/* 负责人筛选 */
+.salesman-filter {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.salesman-filter-label {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.salesman-filter-value {
+  flex: 1;
+  font-size: 26rpx;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+/* 列表标题 */
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.list-count {
+  font-size: 24rpx;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+/* 农户列表 */
+.farmer-list {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.farmer-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.farmer-item:last-child {
+  border-bottom: none;
+}
+
+.farmer-item:active {
+  background-color: #f9fafb;
+}
+
+.farmer-info {
+  flex: 1;
+}
+
+.farmer-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.farmer-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.grade-tag-gold,
+.grade-tag-silver,
+.grade-tag-bronze {
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.grade-tag-gold {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.grade-tag-silver {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.grade-tag-bronze {
+  background-color: #ffedd5;
+  color: #c2410c;
+}
+
+.farmer-detail {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.farmer-divider {
+  color: #e5e7eb;
+}
+
+.farmer-deposit {
+  color: #059669;
+  font-weight: 500;
+}
+
+.farmer-extra {
+  display: flex;
+  justify-content: space-between;
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 24rpx;
+  font-size: 26rpx;
+  color: #059669;
+}
+
+.load-more:active {
+  background-color: #f0fdf4;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 24rpx;
+  gap: 16rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #9ca3af;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 32rpx;
+}
+
+/* 负责人选择弹窗 */
+.salesman-popup {
+  background-color: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  max-height: 70vh;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.popup-close {
+  padding: 8rpx;
+}
+
+.popup-content {
+  max-height: 60vh;
+  padding: 0 24rpx;
+}
+
+.popup-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+  font-size: 28rpx;
+  color: #374151;
+}
+
+.popup-item:last-child {
+  border-bottom: none;
+}
+
+.popup-item.active {
+  color: #059669;
+  font-weight: 500;
+}
+

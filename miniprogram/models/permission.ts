@@ -161,6 +161,7 @@ export const PagePermissions: Record<string, Permission[]> = {
   // 统计页面 - 仅管理层可访问
   '/pages/stats/acquisition/index': [Permission.STATS_ALL],
   '/pages/stats/supplies/index': [Permission.STATS_ALL],
+  '/pages/stats/farmers/index': [Permission.STATS_ALL],
   
   // AI助手 - 所有角色可访问
   '/pages/ai/index/index': [],

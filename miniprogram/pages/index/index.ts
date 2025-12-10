@@ -524,9 +524,16 @@ Page({
    */
   onStatTap(e: WechatMiniprogram.TouchEvent) {
     const { type } = e.currentTarget.dataset;
+    const { currentRoleKey } = this.data;
+    
     switch (type) {
       case 'farmers':
-        wx.switchTab({ url: '/pages/farmers/list/index' });
+        // 管理层跳转到统计详情页，其他角色跳转到农户列表
+        if (currentRoleKey === 'finance') {
+          wx.navigateTo({ url: '/pages/stats/farmers/index' });
+        } else {
+          wx.switchTab({ url: '/pages/farmers/list/index' });
+        }
         break;
       case 'contracts':
         wx.switchTab({ url: '/pages/farmers/list/index' });
