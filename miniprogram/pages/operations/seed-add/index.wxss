@@ -1,31 +1,103 @@
 /**
- * 表单页面通用样式
+ * 发放种苗页面样式
  */
 
-.form-page {
+.seed-add-page {
   min-height: 100vh;
   background-color: #f5f5f5;
-  padding: 24rpx;
   padding-bottom: 200rpx;
 }
 
+/* 页面标题 */
+.page-header {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  padding: 40rpx 32rpx;
+  color: #ffffff;
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.page-subtitle {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 表单区块 */
+.form-section {
+  padding: 0 24rpx;
+  margin-top: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.section-indicator {
+  width: 8rpx;
+  height: 32rpx;
+  border-radius: 4rpx;
+  margin-right: 12rpx;
+}
+
+.indicator-green {
+  background-color: #059669;
+}
+
+.indicator-blue {
+  background-color: #2563eb;
+}
+
+.indicator-orange {
+  background-color: #ea580c;
+}
+
+.indicator-purple {
+  background-color: #8b5cf6;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* 表单卡片 */
 .form-card {
   background-color: #ffffff;
-  border-radius: 28rpx;
-  padding: 8rpx 24rpx;
+  border-radius: 20rpx;
+  padding: 0 24rpx;
   box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
 }
 
 .form-item {
-  padding: 28rpx 0;
+  padding: 24rpx 0;
 }
 
 .form-label {
   display: block;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: 26rpx;
+  font-weight: 500;
   color: #6b7280;
   margin-bottom: 12rpx;
+}
+
+.form-label.required::before {
+  content: '*';
+  color: #dc2626;
+  margin-right: 4rpx;
+}
+
+.form-divider {
+  height: 1rpx;
+  background-color: #f3f4f6;
 }
 
 .form-value-row {
@@ -35,38 +107,188 @@
 }
 
 .form-value {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 32rpx;
+  color: #1f2937;
+}
+
+.form-input::placeholder {
+  color: #d1d5db;
+}
+
+/* 带单位的输入框 */
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+}
+
+.input-with-unit .form-input {
+  background: transparent;
+}
+
+.input-unit {
+  font-size: 26rpx;
+  color: #9ca3af;
+  margin-left: 8rpx;
+}
+
+/* 自动计算金额显示 */
+.auto-calc-value {
+  display: flex;
+  flex-direction: column;
+}
+
+.calc-amount {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #059669;
+}
+
+.calc-formula {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 4rpx;
+}
+
+.calc-hint {
+  font-size: 24rpx;
+  color: #d1d5db;
+}
+
+/* 农户选择卡片 */
+.farmer-select-row {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.farmer-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.farmer-name {
   font-size: 34rpx;
   font-weight: 700;
   color: #1f2937;
 }
 
-.form-placeholder {
-  color: #9ca3af;
-  font-weight: 400;
+.farmer-phone {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
 }
 
-.form-divider {
-  height: 1rpx;
-  background-color: #f3f4f6;
+.farmer-record-count {
+  display: flex;
+  align-items: center;
+  margin-top: 8rpx;
 }
 
-.quantity-input {
-  width: 100%;
-  height: 80rpx;
-  font-size: 56rpx;
-  font-weight: 700;
-  color: #059669;
-}
-
-.quantity-input::placeholder {
-  color: #e5e7eb;
-}
-
-.form-tip {
-  margin-top: 24rpx;
-  padding: 0 16rpx;
+.record-label {
   font-size: 24rpx;
   color: #9ca3af;
+  margin-right: 8rpx;
+}
+
+.record-value {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #059669;
+  background-color: #d1fae5;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.record-value.full {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
+.farmer-placeholder {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx 0;
+  color: #9ca3af;
+  font-size: 28rpx;
+}
+
+.farmer-placeholder t-icon {
+  margin-bottom: 12rpx;
+}
+
+/* 上限警告 */
+.limit-warning {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx;
+  background-color: #fef2f2;
+  border-radius: 12rpx;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #dc2626;
+}
+
+/* 负责人信息 */
+.manager-info {
+  padding: 20rpx 0;
+}
+
+.manager-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.manager-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.manager-tag {
+  font-size: 22rpx;
+  color: #8b5cf6;
+  background-color: #f3e8ff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.manager-hint {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* 提示信息 */
+.tips {
+  padding: 24rpx 32rpx;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-bottom: 8rpx;
 }
 
 /* 底部按钮 */
@@ -87,9 +309,9 @@
 .btn {
   flex: 1;
   height: 96rpx;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,11 +333,16 @@
   box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.3);
 }
 
+.btn-submit.btn-disabled {
+  background: #d1d5db;
+  box-shadow: none;
+}
+
 /* 农户选择弹窗 */
 .farmer-popup {
   background-color: #ffffff;
   border-radius: 32rpx 32rpx 0 0;
-  max-height: 80vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
 }
@@ -138,43 +365,162 @@
   padding: 8rpx;
 }
 
+/* 搜索栏 */
 .popup-search {
   padding: 16rpx 24rpx;
   background-color: #f9fafb;
 }
 
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  margin-left: 12rpx;
+  color: #374151;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-clear {
+  padding: 4rpx;
+}
+
+/* 农户列表 */
 .farmer-list {
   flex: 1;
-  max-height: 60vh;
-  padding: 0 24rpx;
+  max-height: 65vh;
 }
 
 .farmer-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx 16rpx;
+  padding: 20rpx 24rpx;
   border-bottom: 1rpx solid #f3f4f6;
+  transition: background-color 0.2s ease;
 }
 
 .farmer-item:active {
-  background-color: #d1fae5;
+  background-color: #f0fdf4;
+}
+
+.farmer-item.selected {
+  background-color: #f0fdf4;
+}
+
+.farmer-item-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.farmer-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+
+.farmer-avatar text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .farmer-item-info {
+  flex: 1;
+}
+
+.farmer-item-name-row {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
 }
 
 .farmer-item-name {
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: 30rpx;
+  font-weight: 600;
   color: #1f2937;
 }
 
-.farmer-item-addr {
+.grade-badge {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 6rpx;
+}
+
+.grade-badge.grade-gold {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.grade-badge.grade-silver {
+  background-color: #e5e7eb;
+  color: #6b7280;
+}
+
+.grade-badge.grade-bronze {
+  background-color: #fce7f3;
+  color: #db2777;
+}
+
+.farmer-item-phone {
   font-size: 26rpx;
   color: #6b7280;
   margin-top: 4rpx;
+  display: block;
 }
 
+.farmer-item-addr {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 2rpx;
+  display: block;
+}
+
+.farmer-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8rpx;
+}
+
+.item-record-count {
+  font-size: 22rpx;
+  color: #059669;
+  background-color: #d1fae5;
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
+}
+
+.item-record-count.full {
+  color: #dc2626;
+  background-color: #fee2e2;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+  color: #9ca3af;
+  font-size: 28rpx;
+}
+
+.empty-state t-icon {
+  margin-bottom: 16rpx;
+}

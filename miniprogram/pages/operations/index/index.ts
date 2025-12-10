@@ -1,34 +1,27 @@
 /**
- * 农事作业页面
- * @description 种苗发放、种植指导、收购管理、库存查询
+ * 发苗管理页面（业务员）
+ * @description 显示种苗发放记录列表
  */
 
-import { 
-  MOCK_SEED_RECORDS, 
-  MOCK_GUIDANCE_RECORDS, 
-  MOCK_ACQUISITIONS, 
-  MOCK_INVENTORY 
-} from '../../../models/mock-data';
+import { MOCK_SEED_RECORDS } from '../../../models/mock-data';
+
+// 格式化数量
+function formatQuantity(quantity: number): string {
+  if (quantity >= 1000) {
+    return (quantity / 1000).toFixed(1) + '吨';
+  }
+  return quantity + 'kg';
+}
 
 Page({
   data: {
-    // 当前选中的 Tab
-    activeTab: 0,
-    // Tab 配置
-    tabs: [
-      { label: '种苗发放' },
-      { label: '种植指导' },
-      { label: '收购管理' },
-      { label: '库存查询' }
-    ],
+    // 发苗统计
+    stats: {
+      totalCount: '0',
+      totalQuantity: '0'
+    },
     // 种苗发放记录
-    seedRecords: [] as any[],
-    // 种植指导记录
-    guidanceRecords: [] as any[],
-    // 收购记录
-    acquisitions: [] as any[],
-    // 库存列表
-    inventory: [] as any[]
+    seedRecords: [] as any[]
   },
 
   onLoad() {
@@ -38,7 +31,7 @@ Page({
   onShow() {
     // 更新 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ value: 2 });
+      this.getTabBar().initTabBar();
     }
     // 刷新数据
     this.loadData();
@@ -48,19 +41,23 @@ Page({
    * 加载数据
    */
   loadData() {
+    const records = MOCK_SEED_RECORDS.map(r => ({
+      ...r,
+      // 计算金额（如果没有的话）
+      amount: r.amount || (r.quantity * 12).toFixed(0)
+    }));
+    
+    // 计算统计数据
+    const totalCount = records.length;
+    const totalQuantity = records.reduce((sum, r) => sum + r.quantity, 0);
+    
     this.setData({
-      seedRecords: MOCK_SEED_RECORDS,
-      guidanceRecords: MOCK_GUIDANCE_RECORDS,
-      acquisitions: MOCK_ACQUISITIONS,
-      inventory: MOCK_INVENTORY
+      seedRecords: records,
+      stats: {
+        totalCount: totalCount.toString(),
+        totalQuantity: formatQuantity(totalQuantity)
+      }
     });
-  },
-
-  /**
-   * 切换 Tab
-   */
-  onTabChange(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ activeTab: e.detail.value });
   },
 
   /**
@@ -73,50 +70,6 @@ Page({
   },
 
   /**
-   * 新增种植指导
-   */
-  onAddGuidance() {
-    wx.navigateTo({
-      url: '/pages/operations/guide-add/index'
-    });
-  },
-
-  /**
-   * 新增收购记录
-   */
-  onAddAcquisition() {
-    wx.navigateTo({
-      url: '/pages/operations/buy-add/index'
-    });
-  },
-
-  /**
-   * 获取指导类型文本
-   */
-  getGuidanceTypeText(type: string): string {
-    const map: Record<string, string> = {
-      fertilizer: '施肥指导',
-      pesticide: '病害防治',
-      technical: '技术指导',
-      other: '其他'
-    };
-    return map[type] || type;
-  },
-
-  /**
-   * 获取库存类别图标颜色
-   */
-  getCategoryColor(category: string): string {
-    const map: Record<string, string> = {
-      seed: '#059669',
-      fertilizer: '#3b82f6',
-      crop: '#f97316',
-      other: '#8b5cf6'
-    };
-    return map[category] || '#6b7280';
-  },
-
-  /**
    * 下拉刷新
    */
   onPullDownRefresh() {
@@ -124,4 +77,3 @@ Page({
     wx.stopPullDownRefresh();
   }
 });
-

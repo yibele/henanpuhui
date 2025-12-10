@@ -1,363 +1,223 @@
 /**
- * 农事作业页面样式
+ * 发苗管理页面样式
  */
 
-.operations-page {
+.seed-page {
   min-height: 100vh;
   background-color: #f5f5f5;
-  padding-bottom: 160rpx;
+  padding-bottom: 180rpx;
 }
 
-/* ==================== Tab 样式 ==================== */
-
-.tab-wrapper {
-  background-color: #ffffff;
-  padding: 16rpx 24rpx;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+/* 页面头部 */
+.page-header {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  padding: 40rpx 32rpx;
+  color: #ffffff;
 }
 
-.custom-tabs {
-  --td-tab-track-color: #059669;
-  --td-tab-item-active-color: #059669;
+.header-content {
+  margin-bottom: 32rpx;
 }
 
-/* ==================== 内容区域 ==================== */
+.header-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  display: block;
+}
 
-.content-area {
+.header-subtitle {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+  display: block;
+}
+
+.header-stats {
+  display: flex;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 16rpx;
   padding: 24rpx;
 }
 
-.panel-content {
-  min-height: 60vh;
+.stat-item {
+  flex: 1;
+  text-align: center;
 }
 
+.stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+  display: block;
+}
+
+.stat-divider {
+  width: 1rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+  margin: 0 16rpx;
+}
+
+/* 记录区块 */
+.record-section {
+  padding: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.section-count {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* 记录列表 */
 .record-list {
   display: flex;
   flex-direction: column;
   gap: 16rpx;
 }
 
-/* ==================== 记录卡片通用样式 ==================== */
-
 .record-card {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   background-color: #ffffff;
+  border-radius: 16rpx;
   padding: 24rpx;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-  gap: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
-.record-icon {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 20rpx;
+.record-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.record-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  margin-right: 20rpx;
 }
 
-.record-icon-green {
-  background-color: #d1fae5;
-}
-
-.record-icon-orange {
-  background-color: #ffedd5;
-}
-
-.record-icon-blue {
-  background-color: #dbeafe;
+.record-avatar text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .record-info {
-  flex: 1;
-  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.record-title {
-  display: block;
-  font-size: 32rpx;
-  font-weight: 700;
+.record-name {
+  font-size: 30rpx;
+  font-weight: 600;
   color: #1f2937;
-  margin-bottom: 4rpx;
 }
 
-.record-desc {
-  display: block;
+.record-detail {
   font-size: 26rpx;
   color: #6b7280;
+  margin-top: 4rpx;
 }
 
 .record-date {
   font-size: 24rpx;
   color: #9ca3af;
-  background-color: #f9fafb;
-  padding: 8rpx 16rpx;
-  border-radius: 12rpx;
+  margin-top: 4rpx;
 }
 
-/* ==================== 指导卡片样式 ==================== */
-
-.guidance-card {
-  background-color: #ffffff;
-  padding: 24rpx;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-}
-
-.guidance-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.guidance-type {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.type-dot {
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-}
-
-.type-dot-blue {
-  background-color: #3b82f6;
-}
-
-.type-dot-red {
-  background-color: #ef4444;
-}
-
-.guidance-date {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-.guidance-content {
-  font-size: 28rpx;
-  color: #4b5563;
-  background-color: #f9fafb;
-  padding: 20rpx;
-  border-radius: 16rpx;
-  margin-bottom: 16rpx;
-  line-height: 1.6;
-}
-
-.guidance-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.guidance-farmer {
-  font-size: 24rpx;
-  font-weight: 500;
-  color: #059669;
-  background-color: #d1fae5;
-  padding: 6rpx 16rpx;
-  border-radius: 12rpx;
-}
-
-.guidance-tech {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-/* ==================== 收购卡片样式 ==================== */
-
-.acquisition-card {
-  background-color: #ffffff;
-  padding: 24rpx;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-}
-
-.acquisition-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16rpx;
-}
-
-.acquisition-info {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-}
-
-.acquisition-amount {
+.record-right {
   text-align: right;
 }
 
-.amount-value {
-  display: block;
-  font-size: 36rpx;
+.record-amount {
+  font-size: 32rpx;
   font-weight: 700;
-  color: #f97316;
-}
-
-.status-tag {
-  display: inline-block;
-  font-size: 20rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  margin-top: 8rpx;
-}
-
-.status-tag-settled {
-  background-color: #d1fae5;
   color: #059669;
 }
 
-.status-tag-pending {
-  background-color: #f3f4f6;
-  color: #9ca3af;
-}
-
-.acquisition-detail {
-  display: flex;
-  justify-content: space-between;
-  font-size: 24rpx;
-  color: #6b7280;
-  background-color: #f9fafb;
-  padding: 16rpx;
-  border-radius: 12rpx;
-}
-
-/* ==================== 库存网格样式 ==================== */
-
-.inventory-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16rpx;
-}
-
-.inventory-card {
-  background-color: #ffffff;
-  padding: 20rpx;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+/* 空状态 */
+.empty-state {
   display: flex;
   flex-direction: column;
-  height: 220rpx;
+  align-items: center;
+  padding: 80rpx 0;
+  background-color: #ffffff;
+  border-radius: 16rpx;
 }
 
-.inventory-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.inventory-icon {
-  width: 48rpx;
-  height: 48rpx;
-  background-color: #ede9fe;
-  border-radius: 12rpx;
+.empty-icon {
+  width: 120rpx;
+  height: 120rpx;
+  background-color: #f3f4f6;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 24rpx;
 }
 
-.inventory-unit {
-  font-size: 24rpx;
-  color: #9ca3af;
-  font-family: monospace;
-}
-
-.inventory-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-}
-
-.inventory-quantity {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #1f2937;
-}
-
-.inventory-name {
-  font-size: 24rpx;
-  font-weight: 500;
+.empty-text {
+  font-size: 30rpx;
   color: #6b7280;
-  margin-bottom: 8rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 500;
 }
 
-.inventory-location {
-  display: flex;
-  align-items: center;
-  gap: 4rpx;
-  font-size: 20rpx;
+.empty-hint {
+  font-size: 26rpx;
   color: #9ca3af;
+  margin-top: 8rpx;
 }
 
-/* ==================== 添加按钮 ==================== */
-
-.add-btn-wrapper {
-  margin-top: 24rpx;
-}
-
-.add-btn {
+/* 底部添加按钮 */
+.add-btn-fixed {
+  position: fixed;
+  left: 32rpx;
+  right: 32rpx;
+  bottom: calc(180rpx + constant(safe-area-inset-bottom));
+  bottom: calc(180rpx + env(safe-area-inset-bottom));
+  height: 100rpx;
+  background: linear-gradient(135deg, #34d399, #059669);
+  border-radius: 50rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12rpx;
-  width: 100%;
-  height: 88rpx;
-  background-color: #ffffff;
-  border-radius: 24rpx;
-  font-size: 30rpx;
-  font-weight: 500;
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 32rpx rgba(5, 150, 105, 0.4);
 }
 
-.add-btn::after {
-  border: none;
-}
-
-.add-btn-green {
-  border: 2rpx dashed #a7f3d0;
-  color: #059669;
-}
-
-.add-btn-blue {
-  border: 2rpx dashed #93c5fd;
-  color: #3b82f6;
-}
-
-.add-btn-orange {
-  border: 2rpx dashed #fed7aa;
-  color: #f97316;
-}
-
-.add-btn:active {
+.add-btn-fixed:active {
   transform: scale(0.98);
   opacity: 0.9;
 }
 
-/* ==================== 空状态 ==================== */
-
-.empty-state {
-  padding: 80rpx 0;
+/* 底部安全区 */
+.safe-bottom {
+  height: 100rpx;
 }
-
-/* ==================== 底部间距 ==================== */
-
-.bottom-space {
-  height: 40rpx;
-}
-

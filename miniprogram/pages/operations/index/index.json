@@ -1,11 +1,6 @@
 {
-  "navigationBarTitleText": "农事作业",
+  "navigationBarTitleText": "发苗管理",
   "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-tabs": "tdesign-miniprogram/tabs/tabs",
-    "t-tab-panel": "tdesign-miniprogram/tab-panel/tab-panel",
-    "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-empty": "tdesign-miniprogram/empty/empty"
+    "t-icon": "tdesign-miniprogram/icon/icon"
   }
 }
-

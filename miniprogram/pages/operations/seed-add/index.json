@@ -1,12 +1,8 @@
 {
-  "navigationBarTitleText": "发放种苗",
+  "navigationBarTitleText": "种苗发放登记",
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-cell": "tdesign-miniprogram/cell/cell",
-    "t-picker": "tdesign-miniprogram/picker/picker",
     "t-popup": "tdesign-miniprogram/popup/popup",
-    "t-search": "tdesign-miniprogram/search/search",
-    "t-toast": "tdesign-miniprogram/toast/toast"
+    "t-date-time-picker": "tdesign-miniprogram/date-time-picker/date-time-picker"
   }
 }
-

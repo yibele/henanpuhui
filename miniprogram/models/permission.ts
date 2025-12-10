@@ -59,7 +59,7 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
   [UserRole.SALESMAN]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
     { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' },
-    { icon: 'tree', text: '发苗', pagePath: '/pages/operations/index/index' },
+    { icon: 'corn', text: '发苗', pagePath: '/pages/operations/index/index' },
     { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
   ],
 
@@ -75,7 +75,7 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
   [UserRole.FINANCE_ADMIN]: [
     { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
     { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
-    { icon: 'tree', text: '发苗', pagePath: '/pages/stats/seeds/index' },
+    { icon: 'corn', text: '发苗', pagePath: '/pages/stats/seeds/index' },
     { icon: 'cart', text: '收苗', pagePath: '/pages/stats/acquisition/index' },
     { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
   ]

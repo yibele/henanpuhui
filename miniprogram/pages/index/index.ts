@@ -92,7 +92,7 @@ Page({
     // 快捷操作列表（统一绿色系）
     quickActions: [
       { icon: 'user-add', label: '录入农户', color: '#059669', bgColor: '#f0fdf4', page: '/pages/farmers/add/index' },
-      { icon: 'tree', label: '发放种苗', color: '#059669', bgColor: '#f0fdf4', page: '/pages/operations/seed-add/index' },
+      { icon: 'corn', label: '发放种苗', color: '#059669', bgColor: '#f0fdf4', page: '/pages/operations/seed-add/index' },
       { icon: 'cart', label: '收苗登记', color: '#059669', bgColor: '#f0fdf4', page: '/pages/operations/buy-add/index' },
       { icon: 'wallet', label: '结算支付', color: '#059669', bgColor: '#f0fdf4', page: '/pages/finance/index/index' }
     ],

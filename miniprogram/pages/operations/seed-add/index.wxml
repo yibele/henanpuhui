@@ -1,120 +1,273 @@
 <!--
   发放种苗页面
+  业务员录入种苗发放信息
+  每个农户支持10次录入
 -->
-<view class="form-page">
-  <view class="form-card">
-    <!-- 选择农户 -->
-    <view class="form-item" bindtap="showFarmerSelect">
-      <text class="form-label">接收农户</text>
-      <view class="form-value-row">
-        <text class="form-value {{selectedFarmer ? '' : 'form-placeholder'}}">
-          {{selectedFarmer.name || '点击选择农户'}}
-        </text>
+<view class="seed-add-page">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="page-title">种苗发放登记</text>
+    <text class="page-subtitle">录入农户领取种苗信息</text>
+  </view>
+
+  <!-- 选择农户卡片 -->
+  <view class="form-section">
+    <view class="section-header">
+      <view class="section-indicator indicator-green"></view>
+      <text class="section-title">选择农户</text>
+    </view>
+    
+    <view class="form-card" bindtap="showFarmerSelect">
+      <view class="farmer-select-row">
+        <view class="farmer-info" wx:if="{{selectedFarmer}}">
+          <text class="farmer-name">{{selectedFarmer.name}}</text>
+          <text class="farmer-phone">{{selectedFarmer.phone}}</text>
+          <view class="farmer-record-count">
+            <text class="record-label">已发放</text>
+            <text class="record-value {{recordCount >= 10 ? 'full' : ''}}">{{recordCount}}/10次</text>
+          </view>
+        </view>
+        <view class="farmer-placeholder" wx:else>
+          <t-icon name="user-add" size="48rpx" color="#9ca3af" />
+          <text>点击选择农户</text>
+        </view>
         <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
       </view>
-    </view>
-
-    <view class="form-divider"></view>
-
-    <!-- 选择种苗 -->
-    <view class="form-item" bindtap="showSeedSelect">
-      <text class="form-label">种苗品类</text>
-      <view class="form-value-row">
-        <text class="form-value">{{seedOptions[seedIndex]}}</text>
-        <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
+      
+      <!-- 已达上限提示 -->
+      <view class="limit-warning" wx:if="{{selectedFarmer && recordCount >= 10}}">
+        <t-icon name="error-circle" size="32rpx" color="#dc2626" />
+        <text>该农户已达到10次发放上限</text>
       </view>
-    </view>
-
-    <view class="form-divider"></view>
-
-    <!-- 发放数量 -->
-    <view class="form-item">
-      <text class="form-label">发放数量 (kg)</text>
-      <input 
-        class="quantity-input"
-        type="digit"
-        placeholder="0.00"
-        value="{{quantity}}"
-        bindinput="onQuantityInput"
-      />
     </view>
   </view>
 
-  <view class="form-tip">
-    * 提交后系统将自动扣减库存并生成农户领取记录。
+  <!-- 发放信息 -->
+  <view class="form-section">
+    <view class="section-header">
+      <view class="section-indicator indicator-blue"></view>
+      <text class="section-title">发放信息</text>
+    </view>
+    
+    <view class="form-card">
+      <!-- 发放时间 -->
+      <view class="form-item" bindtap="showDatePicker">
+        <text class="form-label required">发放时间</text>
+        <view class="form-value-row">
+          <text class="form-value">{{form.distributeTime || '选择日期时间'}}</text>
+          <t-icon name="calendar" size="40rpx" color="#9ca3af" />
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 发放数量 -->
+      <view class="form-item">
+        <text class="form-label required">发放数量（kg）</text>
+        <view class="input-with-unit">
+          <input 
+            class="form-input"
+            type="digit"
+            placeholder="输入数量"
+            value="{{form.quantity}}"
+            bindinput="onQuantityInput"
+          />
+          <text class="input-unit">kg</text>
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 单价 -->
+      <view class="form-item">
+        <text class="form-label required">单价（元/kg）</text>
+        <view class="input-with-unit">
+          <input 
+            class="form-input"
+            type="digit"
+            placeholder="输入单价"
+            value="{{form.unitPrice}}"
+            bindinput="onUnitPriceInput"
+          />
+          <text class="input-unit">元/kg</text>
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 苗款金额（自动计算） -->
+      <view class="form-item">
+        <text class="form-label">苗款金额</text>
+        <view class="auto-calc-value">
+          <text class="calc-amount">¥{{calculatedAmount}}</text>
+          <text class="calc-formula" wx:if="{{form.quantity && form.unitPrice}}">({{form.quantity}}kg × {{form.unitPrice}}元)</text>
+          <text class="calc-hint" wx:else>自动计算：数量 × 单价</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 领取信息 -->
+  <view class="form-section">
+    <view class="section-header">
+      <view class="section-indicator indicator-orange"></view>
+      <text class="section-title">领取信息</text>
+    </view>
+    
+    <view class="form-card">
+      <!-- 领取人 -->
+      <view class="form-item">
+        <text class="form-label required">领取人</text>
+        <input 
+          class="form-input"
+          placeholder="输入领取人姓名"
+          value="{{form.receiverName}}"
+          bindinput="onReceiverNameInput"
+        />
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 领取地点 -->
+      <view class="form-item">
+        <text class="form-label required">领取地点</text>
+        <input 
+          class="form-input"
+          placeholder="输入领取地点"
+          value="{{form.receiveLocation}}"
+          bindinput="onReceiveLocationInput"
+        />
+      </view>
+    </view>
+  </view>
+
+  <!-- 负责人信息 -->
+  <view class="form-section">
+    <view class="section-header">
+      <view class="section-indicator indicator-purple"></view>
+      <text class="section-title">发苗负责人</text>
+    </view>
+    
+    <view class="form-card">
+      <view class="manager-info">
+        <view class="manager-row">
+          <t-icon name="user-circle" size="44rpx" color="#8b5cf6" />
+          <text class="manager-name">{{managerName}}</text>
+          <view class="manager-tag">当前账号</view>
+        </view>
+        <view class="manager-hint">
+          <t-icon name="info-circle" size="28rpx" color="#9ca3af" />
+          <text>发苗负责人已自动绑定为当前登录账号</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 提示信息 -->
+  <view class="tips">
+    <view class="tip-item">
+      <t-icon name="info-circle-filled" size="28rpx" color="#059669" />
+      <text>每个农户最多支持10次种苗发放记录</text>
+    </view>
+    <view class="tip-item">
+      <t-icon name="info-circle-filled" size="28rpx" color="#059669" />
+      <text>苗款金额将自动计算：发放数量 × 单价</text>
+    </view>
   </view>
 
   <!-- 底部按钮 -->
   <view class="bottom-actions">
     <button class="btn btn-cancel" bindtap="onCancel">取消</button>
     <button 
-      class="btn btn-submit" 
+      class="btn btn-submit {{!canSubmit ? 'btn-disabled' : ''}}" 
       bindtap="onSubmit"
       loading="{{submitting}}"
-    >提交</button>
+      disabled="{{!canSubmit}}"
+    >确认发放</button>
   </view>
+</view>
 
-  <!-- 农户选择弹窗 -->
-  <t-popup 
-    visible="{{showFarmerPopup}}" 
-    placement="bottom"
-    bind:visible-change="closeFarmerPopup"
-  >
-    <view class="farmer-popup">
-      <view class="popup-header">
-        <text class="popup-title">选择农户</text>
-        <view class="popup-close" bindtap="closeFarmerPopup">
-          <t-icon name="close" size="40rpx" color="#6b7280" />
-        </view>
+<!-- 农户选择弹窗 -->
+<t-popup 
+  visible="{{showFarmerPopup}}" 
+  placement="bottom"
+  bind:visible-change="onFarmerPopupChange"
+>
+  <view class="farmer-popup">
+    <view class="popup-header">
+      <text class="popup-title">选择农户</text>
+      <view class="popup-close" bindtap="closeFarmerPopup">
+        <t-icon name="close" size="44rpx" color="#6b7280" />
       </view>
-      <view class="popup-search">
-        <t-search
+    </view>
+    
+    <!-- 搜索栏 -->
+    <view class="popup-search">
+      <view class="search-input-wrap">
+        <t-icon name="search" size="36rpx" color="#9ca3af" />
+        <input 
+          class="search-input"
           placeholder="搜索姓名或手机号"
           value="{{searchValue}}"
-          bind:change="onSearchFarmer"
+          bindinput="onSearchFarmer"
         />
+        <view class="search-clear" wx:if="{{searchValue}}" bindtap="clearSearch">
+          <t-icon name="close-circle-filled" size="32rpx" color="#d1d5db" />
+        </view>
       </view>
-      <scroll-view class="farmer-list" scroll-y>
-        <view 
-          wx:for="{{filteredFarmers}}" 
-          wx:key="id"
-          class="farmer-item"
-          data-id="{{item.id}}"
-          bindtap="onSelectFarmer"
-        >
+    </view>
+    
+    <!-- 农户列表 -->
+    <scroll-view class="farmer-list" scroll-y>
+      <view 
+        wx:for="{{filteredFarmers}}" 
+        wx:key="id"
+        class="farmer-item {{selectedFarmer.id === item.id ? 'selected' : ''}}"
+        data-farmer="{{item}}"
+        bindtap="onSelectFarmer"
+      >
+        <view class="farmer-item-left">
+          <view class="farmer-avatar">
+            <text>{{item.name[0]}}</text>
+          </view>
           <view class="farmer-item-info">
-            <text class="farmer-item-name">{{item.name}}</text>
-            <text class="farmer-item-addr">{{item.address}}</text>
+            <view class="farmer-item-name-row">
+              <text class="farmer-item-name">{{item.name}}</text>
+              <view class="grade-badge grade-{{item.grade}}">{{item.gradeText}}</view>
+            </view>
+            <text class="farmer-item-phone">{{item.phone}}</text>
+            <text class="farmer-item-addr">{{item.addressText}}</text>
+          </view>
+        </view>
+        <view class="farmer-item-right">
+          <view class="item-record-count {{item.seedRecordCount >= 10 ? 'full' : ''}}">
+            {{item.seedRecordCount || 0}}/10次
           </view>
           <t-icon 
             wx:if="{{selectedFarmer.id === item.id}}" 
-            name="check" 
-            size="40rpx" 
+            name="check-circle-filled" 
+            size="44rpx" 
             color="#059669" 
           />
         </view>
-      </scroll-view>
-    </view>
-  </t-popup>
+      </view>
+      
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{filteredFarmers.length === 0}}">
+        <t-icon name="search" size="80rpx" color="#d1d5db" />
+        <text>未找到匹配的农户</text>
+      </view>
+    </scroll-view>
+  </view>
+</t-popup>
 
-  <!-- 种苗选择器 -->
-  <t-picker
-    visible="{{showSeedPicker}}"
-    value="{{[seedIndex]}}"
-    title="选择种苗品类"
-    cancelBtn="取消"
-    confirmBtn="确认"
-    bind:confirm="onSeedConfirm"
-    bind:cancel="onSeedCancel"
-  >
-    <t-picker-item options="{{seedOptions}}" />
-  </t-picker>
-
-  <!-- Toast -->
-  <t-toast 
-    visible="{{toastVisible}}" 
-    message="{{toastMessage}}"
-    bind:close="onToastClose"
-  />
-</view>
-
+<!-- 日期时间选择器 -->
+<t-date-time-picker
+  visible="{{showDatePicker}}"
+  mode="minute"
+  value="{{datePickerValue}}"
+  format="YYYY-MM-DD HH:mm"
+  title="选择发放时间"
+  bind:confirm="onDateConfirm"
+  bind:cancel="onDateCancel"
+/>

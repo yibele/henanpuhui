@@ -143,6 +143,11 @@
 .warehouse-item {
   padding: 24rpx;
   border-bottom: 1rpx solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.warehouse-item:active {
+  background-color: #f9fafb;
 }
 
 .warehouse-item:last-child {
@@ -165,10 +170,76 @@
   color: #374151;
 }
 
-.warehouse-percent {
-  font-size: 28rpx;
+.warehouse-type-badge {
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  border-radius: 6rpx;
+}
+
+.warehouse-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.capacity-badge {
+  font-size: 24rpx;
   font-weight: 600;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.capacity-badge.capacity-normal {
+  background-color: #d1fae5;
   color: #059669;
+}
+
+.capacity-badge.capacity-warning {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.capacity-badge.capacity-full {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+/* 容量进度条 */
+.capacity-progress {
+  height: 12rpx;
+  background-color: #e5e7eb;
+  border-radius: 6rpx;
+  overflow: hidden;
+  margin-bottom: 8rpx;
+}
+
+.capacity-bar {
+  height: 100%;
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+.capacity-bar-normal {
+  background: linear-gradient(90deg, #059669 0%, #10b981 100%);
+}
+
+.capacity-bar-warning {
+  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.capacity-bar-full {
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 100%);
+}
+
+.capacity-info {
+  margin-bottom: 12rpx;
+}
+
+.capacity-text {
+  font-size: 22rpx;
+  color: #9ca3af;
 }
 
 .warehouse-progress {

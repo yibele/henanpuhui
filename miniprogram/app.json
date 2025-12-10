@@ -15,7 +15,8 @@
     "pages/stats/acquisition/index",
     "pages/stats/supplies/index",
     "pages/stats/farmers/index",
-    "pages/stats/seeds/index"
+    "pages/stats/seeds/index",
+    "pages/stats/warehouse-detail/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
