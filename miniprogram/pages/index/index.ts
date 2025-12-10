@@ -214,18 +214,18 @@ Page({
    * 格式化金额显示
    * @param amount 金额（元）
    * @param withSymbol 是否带¥符号
-   * @returns 格式化后的字符串，如 1.95万
+   * @returns 格式化后的字符串，如 2856.00万（精确到百分位）
    */
   formatAmount(amount: number, withSymbol: boolean = false): string {
     let result = '';
     if (amount >= 100000000) {
-      result = (amount / 100000000).toFixed(2).replace(/\.?0+$/, '') + '亿';
+      result = (amount / 100000000).toFixed(2) + '亿';
     } else if (amount >= 10000) {
-      result = (amount / 10000).toFixed(2).replace(/\.?0+$/, '') + '万';
+      result = (amount / 10000).toFixed(2) + '万';
     } else if (amount >= 1000) {
-      result = (amount / 1000).toFixed(1).replace(/\.?0+$/, '') + '千';
+      result = (amount / 1000).toFixed(2) + '千';
     } else {
-      result = amount.toString();
+      result = amount.toFixed(2);
     }
     return withSymbol ? '¥' + result : result;
   },
@@ -247,15 +247,11 @@ Page({
   /**
    * 格式化面积显示（亩）
    * @param acreage 面积（亩）
-   * @returns 格式化后的字符串，如 8.56万
+   * @returns 格式化后的字符串，直接显示亩数
    */
   formatAcreage(acreage: number): string {
-    if (acreage >= 10000) {
-      return (acreage / 10000).toFixed(2).replace(/\.?0+$/, '') + '万';
-    } else if (acreage >= 1000) {
-      return (acreage / 1000).toFixed(2).replace(/\.?0+$/, '') + '千';
-    }
-    return acreage.toString();
+    // 直接显示亩数，不转换为万
+    return acreage.toString() + '亩';
   },
 
   /**

@@ -56,8 +56,8 @@
       </view>
     </view>
 
-    <!-- 作业操作按钮 -->
-    <view class="section">
+    <!-- 作业操作按钮（管理层不显示） -->
+    <view class="section" wx:if="{{!isFinanceAdmin}}">
       <view class="section-title">作业操作</view>
       <view class="action-grid">
         <view class="action-card action-card-green" bindtap="onOpenSeedPopup">

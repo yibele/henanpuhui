@@ -5,6 +5,7 @@
 
 import { MOCK_FARMERS } from '../../../models/mock-data';
 import type { Farmer } from '../../../models/types';
+import { UserRole } from '../../../models/types';
 
 // 获取应用实例
 const app = getApp<IAppOption>();
@@ -23,6 +24,8 @@ Page({
     farmer: null as Farmer | null,
     // 当前用户（负责人）
     currentUser: '业务员',
+    // 是否为管理层（管理层不显示作业操作）
+    isFinanceAdmin: false,
     // 业务记录
     businessRecords: [] as any[],
 
@@ -94,6 +97,7 @@ Page({
       this.loadFarmerDetail(id);
     }
     this.loadCurrentUser();
+    this.checkUserRole();
   },
 
   /**
@@ -104,6 +108,15 @@ Page({
     if (userInfo) {
       this.setData({ currentUser: userInfo.nickName || '业务员' });
     }
+  },
+
+  /**
+   * 检查用户角色（管理层不显示作业操作）
+   */
+  checkUserRole() {
+    const userRole = app.globalData.userRole;
+    const isFinanceAdmin = userRole === UserRole.FINANCE_ADMIN;
+    this.setData({ isFinanceAdmin });
   },
 
   /**
