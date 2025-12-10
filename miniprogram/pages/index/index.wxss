@@ -304,6 +304,32 @@
   opacity: 0.7;
 }
 
+/* 负责人统计 Tab 切换 */
+.salesman-tab-bar {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 12rpx;
+  padding: 6rpx;
+  margin-bottom: 16rpx;
+}
+
+.salesman-tab {
+  flex: 1;
+  text-align: center;
+  padding: 14rpx 0;
+  font-size: 24rpx;
+  color: #6b7280;
+  border-radius: 8rpx;
+  transition: all 0.3s ease;
+}
+
+.salesman-tab.active {
+  background-color: #ffffff;
+  color: #059669;
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.06);
+}
+
 /* ==================== 负责人统计 ==================== */
 
 .salesman-card {
@@ -442,6 +468,21 @@
 
 .salesman-expand:active {
   background-color: #f0fdf4;
+}
+
+/* 负责人统计空状态 */
+.salesman-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 24rpx;
+  gap: 16rpx;
+}
+
+.empty-text {
+  font-size: 26rpx;
+  color: #9ca3af;
 }
 
 /* ==================== 区块通用样式 ==================== */

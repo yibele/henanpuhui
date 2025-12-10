@@ -87,6 +87,8 @@ Page({
     displaySalesmanList: [] as any[],
     // 是否展开全部负责人
     salesmanExpanded: false,
+    // 负责人统计Tab（0:昨日, 1:全季度）
+    salesmanTab: 1,
     // 快捷操作列表（统一绿色系）
     quickActions: [
       { icon: 'user-add', label: '录入农户', color: '#059669', bgColor: '#f0fdf4', page: '/pages/farmers/add/index' },
@@ -298,17 +300,18 @@ Page({
     // 生成趋势数据
     const currentTrendData = this.generateTrendData(0);
 
-    // 处理负责人统计数据（按农户数排序）
-    const salesmanStats = this.processSalesmanStats(MOCK_SALESMAN_STATS);
+    // 处理负责人统计数据（根据 salesmanTab）
+    const salesmanStats = this.getCurrentSalesmanStats(this.data.salesmanTab);
     const displaySalesmanList = salesmanStats.slice(0, 5);
 
-    // 计算当前核心指标（根据 tab）
+    // 计算当前核心指标（根据 overviewTab）
     const currentOverview = this.getOverviewData(this.data.overviewTab);
+    const farmerSummary = this.getCurrentFarmerSummary(this.data.overviewTab);
 
     this.setData({
       stats,
       // 加载发苗统计数据
-      farmerSummary: MOCK_FARMER_SUMMARY,
+      farmerSummary,
       formatDeposit,
       formatAcreage,
       seedYesterday: MOCK_SEED_YESTERDAY,
@@ -352,12 +355,25 @@ Page({
   },
 
   /**
-   * 切换核心指标 Tab
+   * 切换核心指标 Tab（只影响核心指标和等级分布）
    */
   switchOverviewTab(e: any) {
     const tab = parseInt(e.currentTarget.dataset.tab);
     const currentOverview = this.getOverviewData(tab);
     const farmerSummary = this.getCurrentFarmerSummary(tab);
+
+    this.setData({
+      overviewTab: tab,
+      currentOverview,
+      farmerSummary
+    });
+  },
+
+  /**
+   * 切换负责人统计 Tab
+   */
+  switchSalesmanTab(e: any) {
+    const tab = parseInt(e.currentTarget.dataset.tab);
     const salesmanStats = this.getCurrentSalesmanStats(tab);
     // 昨日数据过滤掉0户的负责人
     const filteredStats = tab === 0 
@@ -366,9 +382,7 @@ Page({
     const displaySalesmanList = filteredStats.slice(0, 5);
 
     this.setData({
-      overviewTab: tab,
-      currentOverview,
-      farmerSummary,
+      salesmanTab: tab,
       salesmanStats: filteredStats,
       displaySalesmanList,
       salesmanExpanded: false

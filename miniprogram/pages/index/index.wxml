@@ -118,50 +118,69 @@
   </view>
 
   <!-- 负责人统计（管理层显示） -->
-  <view class="section" wx:if="{{currentRoleKey === 'finance' && displaySalesmanList.length > 0}}">
+  <view class="section" wx:if="{{currentRoleKey === 'finance'}}">
     <!-- 独立标题栏 -->
     <view class="section-header-row">
-      <text class="section-title">{{overviewTab === 0 ? '昨日新增' : '全季度'}} · 负责人统计</text>
+      <text class="section-title">负责人签约统计</text>
       <view class="section-detail-btn" bindtap="goSalesmanDetail">
         <text>详情</text>
         <t-icon name="chevron-right" size="32rpx" color="#059669" />
       </view>
     </view>
     
+    <!-- 负责人统计独立的 Tab 切换 -->
+    <view class="salesman-tab-bar">
+      <view class="salesman-tab {{salesmanTab === 0 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="0">
+        <text>昨日新增</text>
+      </view>
+      <view class="salesman-tab {{salesmanTab === 1 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="1">
+        <text>全季度</text>
+      </view>
+    </view>
+    
     <!-- 列表卡片 -->
     <view class="card salesman-card">
-      <!-- 表头 -->
-      <view class="salesman-table-header">
-        <text class="col-rank">#</text>
-        <text class="col-name">负责人</text>
-        <text class="col-count">农户</text>
-        <text class="col-acreage">面积</text>
-        <text class="col-deposit">定金</text>
-        <text class="col-grade">等级</text>
-      </view>
-      
-      <!-- 列表 -->
-      <view class="salesman-list">
-        <view class="salesman-item" wx:for="{{displaySalesmanList}}" wx:key="salesmanId">
-          <text class="col-rank item-rank">{{item.rank}}</text>
-          <text class="col-name item-name">{{item.salesmanName}}</text>
-          <text class="col-count item-count">{{item.farmerCount}}</text>
-          <text class="col-acreage item-acreage">{{item.formatAcreage}}</text>
-          <text class="col-deposit item-deposit">{{item.formatDeposit}}</text>
-          <view class="col-grade item-grade">
-            <view class="item-grade-bar">
-              <view class="grade-seg grade-seg-gold" style="width: {{item.gradeDistribution.goldPercent}}%;"></view>
-              <view class="grade-seg grade-seg-silver" style="width: {{item.gradeDistribution.silverPercent}}%;"></view>
-              <view class="grade-seg grade-seg-bronze" style="width: {{item.gradeDistribution.bronzePercent}}%;"></view>
+      <!-- 有数据时显示表格 -->
+      <block wx:if="{{displaySalesmanList.length > 0}}">
+        <!-- 表头 -->
+        <view class="salesman-table-header">
+          <text class="col-rank">#</text>
+          <text class="col-name">负责人</text>
+          <text class="col-count">农户</text>
+          <text class="col-acreage">面积</text>
+          <text class="col-deposit">定金</text>
+          <text class="col-grade">等级</text>
+        </view>
+        
+        <!-- 列表 -->
+        <view class="salesman-list">
+          <view class="salesman-item" wx:for="{{displaySalesmanList}}" wx:key="salesmanId">
+            <text class="col-rank item-rank">{{item.rank}}</text>
+            <text class="col-name item-name">{{item.salesmanName}}</text>
+            <text class="col-count item-count">{{item.farmerCount}}</text>
+            <text class="col-acreage item-acreage">{{item.formatAcreage}}</text>
+            <text class="col-deposit item-deposit">{{item.formatDeposit}}</text>
+            <view class="col-grade item-grade">
+              <view class="item-grade-bar">
+                <view class="grade-seg grade-seg-gold" style="width: {{item.gradeDistribution.goldPercent}}%;"></view>
+                <view class="grade-seg grade-seg-silver" style="width: {{item.gradeDistribution.silverPercent}}%;"></view>
+                <view class="grade-seg grade-seg-bronze" style="width: {{item.gradeDistribution.bronzePercent}}%;"></view>
+              </view>
             </view>
           </view>
         </view>
-      </view>
+        
+        <!-- 展开/收起按钮 -->
+        <view class="salesman-expand" bindtap="toggleSalesmanExpand" wx:if="{{salesmanStats.length > 5}}">
+          <text>{{salesmanExpanded ? '收起' : '查看更多'}}</text>
+          <t-icon name="{{salesmanExpanded ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#059669" />
+        </view>
+      </block>
       
-      <!-- 展开/收起按钮 -->
-      <view class="salesman-expand" bindtap="toggleSalesmanExpand" wx:if="{{salesmanStats.length > 5}}">
-        <text>{{salesmanExpanded ? '收起' : '查看更多'}}</text>
-        <t-icon name="{{salesmanExpanded ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#059669" />
+      <!-- 无数据时显示空状态 -->
+      <view class="salesman-empty" wx:else>
+        <t-icon name="info-circle" size="64rpx" color="#d1d5db" />
+        <text class="empty-text">昨日暂无新增签约</text>
       </view>
     </view>
   </view>
