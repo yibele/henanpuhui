@@ -349,32 +349,29 @@
 
 /* 列宽定义 - 更宽松 */
 .col-rank {
-  width: 48rpx;
+  width: 40rpx;
   text-align: left;
   flex-shrink: 0;
 }
 
 .col-name {
-  flex: 1;
-  min-width: 120rpx;
+  width: 100rpx;
+  flex-shrink: 0;
 }
 
 .col-count {
-  width: 80rpx;
+  flex: 1;
   text-align: right;
-  flex-shrink: 0;
 }
 
 .col-acreage {
-  width: 100rpx;
+  flex: 1;
   text-align: right;
-  flex-shrink: 0;
 }
 
 .col-deposit {
-  width: 110rpx;
+  flex: 1.2;
   text-align: right;
-  flex-shrink: 0;
 }
 
 .col-grade {
