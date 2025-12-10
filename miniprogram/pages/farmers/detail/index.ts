@@ -522,18 +522,10 @@ Page({
 
   // ==================== 定金管理 ====================
 
-  onAddDeposit() {
+  onOpenDepositPopup() {
     this.setData({
       depositPopupVisible: true,
       depositAction: 'add',
-      depositInputValue: ''
-    });
-  },
-
-  onReduceDeposit() {
-    this.setData({
-      depositPopupVisible: true,
-      depositAction: 'reduce',
       depositInputValue: ''
     });
   },
@@ -548,7 +540,7 @@ Page({
   },
 
   onSubmitDeposit() {
-    const { farmer, depositAction, depositInputValue } = this.data;
+    const { farmer, depositInputValue, currentUser, businessRecords } = this.data;
     if (!farmer) return;
 
     const amount = parseFloat(depositInputValue);
@@ -557,31 +549,35 @@ Page({
       return;
     }
 
-    let newDeposit = farmer.deposit || 0;
-    if (depositAction === 'add') {
-      newDeposit += amount;
-    } else {
-      newDeposit = Math.max(0, newDeposit - amount);
-    }
+    const newDeposit = (farmer.deposit || 0) + amount;
+
+    // 记录业务往来
+    const newRecord = {
+      id: `deposit_${Date.now()}`,
+      type: 'deposit',
+      date: getTodayDate(),
+      name: '追加定金',
+      desc: `收款方式: 现金`,
+      amount: amount,
+      isIncome: true,
+      operator: currentUser
+    };
 
     this.setData({
       'farmer.deposit': newDeposit,
+      businessRecords: [newRecord, ...businessRecords],
       depositPopupVisible: false
     });
 
-    wx.showToast({
-      title: depositAction === 'add' ? '已增加定金' : '已减少定金',
-      icon: 'success'
-    });
+    wx.showToast({ title: '定金已更新', icon: 'success' });
   },
 
   // ==================== 面积管理 ====================
 
-  onUpdateAcreage() {
-    const { farmer } = this.data;
+  onOpenAcreagePopup() {
     this.setData({
       acreagePopupVisible: true,
-      acreageInputValue: farmer?.acreage?.toString() || ''
+      acreageInputValue: '' // 默认清空，让用户输入增加量
     });
   },
 
@@ -595,17 +591,32 @@ Page({
   },
 
   onSubmitAcreage() {
-    const { farmer, acreageInputValue } = this.data;
+    const { farmer, acreageInputValue, currentUser, businessRecords } = this.data;
     if (!farmer) return;
 
-    const acreage = parseFloat(acreageInputValue);
-    if (isNaN(acreage) || acreage <= 0) {
+    const addedAcreage = parseFloat(acreageInputValue);
+    if (isNaN(addedAcreage) || addedAcreage <= 0) {
       wx.showToast({ title: '请输入有效面积', icon: 'none' });
       return;
     }
 
+    const newAcreage = (farmer.acreage || 0) + addedAcreage;
+
+    // 记录业务往来
+    const newRecord = {
+      id: `acreage_${Date.now()}`,
+      type: 'acreage',
+      date: getTodayDate(),
+      name: '追加面积',
+      desc: `从 ${farmer.acreage} 亩增加到 ${newAcreage} 亩`,
+      quantity: addedAcreage,
+      unit: '亩',
+      operator: currentUser
+    };
+
     this.setData({
-      'farmer.acreage': acreage,
+      'farmer.acreage': newAcreage,
+      businessRecords: [newRecord, ...businessRecords],
       acreagePopupVisible: false
     });
 
