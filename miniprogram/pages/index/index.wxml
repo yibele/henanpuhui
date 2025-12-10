@@ -149,7 +149,6 @@
           <text class="col-count">农户</text>
           <text class="col-acreage">面积</text>
           <text class="col-deposit">定金</text>
-          <text class="col-grade">等级</text>
         </view>
         
         <!-- 列表 -->
@@ -160,13 +159,6 @@
             <text class="col-count item-count">{{item.farmerCount}}</text>
             <text class="col-acreage item-acreage">{{item.formatAcreage}}</text>
             <text class="col-deposit item-deposit">{{item.formatDeposit}}</text>
-            <view class="col-grade item-grade">
-              <view class="item-grade-bar">
-                <view class="grade-seg grade-seg-gold" style="width: {{item.gradeDistribution.goldPercent}}%;"></view>
-                <view class="grade-seg grade-seg-silver" style="width: {{item.gradeDistribution.silverPercent}}%;"></view>
-                <view class="grade-seg grade-seg-bronze" style="width: {{item.gradeDistribution.bronzePercent}}%;"></view>
-              </view>
-            </view>
           </view>
         </view>
         
