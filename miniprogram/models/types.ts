@@ -224,30 +224,103 @@ export interface InventoryItem {
 
 // ==================== 结算相关 ====================
 
-/** 结算状态 */
-export type SettlementStatus = 'paid' | 'unpaid';
+/** 结算审核状态 */
+export type SettlementAuditStatus = 
+  | 'pending'      // 待审核（待会计审核）
+  | 'approved'     // 已审核（会计已通过，待支付）
+  | 'paying'       // 支付中（出纳正在分批支付）
+  | 'completed';   // 已完成（全部支付完成）
+
+/** 支付状态（单笔支付） */
+export type PaymentStatus = 'paid' | 'unpaid';
+
+/** 单笔支付记录（支持分批支付，最多5笔） */
+export interface PaymentRecord {
+  id: string;              // 支付记录ID
+  amount: number;          // 支付金额（元）
+  paymentTime: string;     // 支付时间
+  paymentMethod?: string;  // 支付方式
+  operator: string;        // 操作人（出纳）
+  remark?: string;         // 备注
+}
+
+/** 预付款记录 */
+export interface PrepaymentRecord {
+  id: string;              // 预付款ID
+  amount: number;          // 预付金额（元）
+  paymentTime: string;     // 支付时间
+  operator: string;        // 操作人
+  remark?: string;         // 备注
+}
 
 /** 结算记录 */
 export interface Settlement {
   id: string;              // 结算ID
   farmerId: string;        // 农户ID
   farmerName: string;      // 农户姓名
-  totalAcquisitionAmount: number; // 收购总金额
-  deductions: number;      // 扣款（种苗/肥料成本）
-  finalPayment: number;    // 实际支付金额
-  status: SettlementStatus; // 支付状态
-  date: string;            // 结算日期
+  farmerPhone?: string;    // 农户电话
+  
+  // 金额计算
+  totalAcquisitionAmount: number; // 收购总金额（元）
+  seedDeduction: number;          // 种苗扣款（元）
+  fertilizerDeduction: number;    // 农资扣款（元）
+  otherDeduction: number;         // 其他扣款（元）
+  totalDeduction: number;         // 扣款合计（元）
+  calculatedPayment: number;      // 系统计算应付金额（元）
+  adjustedPayment: number;        // 调整后应付金额（元，会计可调整）
+  finalPayment: number;           // 最终应付金额（元）
+  
+  // 预付款
+  prepayments: PrepaymentRecord[]; // 预付款记录
+  totalPrepaid: number;           // 预付款合计（元）
+  
+  // 支付信息
+  payments: PaymentRecord[];      // 支付记录（最多5笔分批支付）
+  totalPaid: number;              // 已支付合计（元）
+  remainingPayment: number;       // 待支付金额（元）
+  
+  // 审核信息
+  auditStatus: SettlementAuditStatus; // 审核状态
+  auditor?: string;               // 审核人（会计）
+  auditTime?: string;             // 审核时间
+  auditRemark?: string;           // 审核备注
+  
+  // 其他信息
+  date: string;                   // 结算日期
   relatedAcquisitionIds: string[]; // 关联的收购记录ID
-  paymentTime?: string;    // 支付时间
-  paymentMethod?: string;  // 支付方式
+  createTime: string;             // 创建时间
+  updateTime?: string;            // 更新时间
+  
+  // 旧字段兼容
+  status?: PaymentStatus;         // 兼容旧版支付状态
+  deductions?: number;            // 兼容旧版扣款字段
+  paymentTime?: string;           // 兼容旧版支付时间
+  paymentMethod?: string;         // 兼容旧版支付方式
 }
 
 /** 更新结算参数 */
 export interface UpdateSettlementParams {
   id: string;
-  status?: SettlementStatus;
+  adjustedPayment?: number;       // 调整后金额
+  auditStatus?: SettlementAuditStatus;
+  auditRemark?: string;
   paymentTime?: string;
   paymentMethod?: string;
+}
+
+/** 结算汇总统计（管理层视图） */
+export interface SettlementOverviewStats {
+  // 农户数量统计
+  totalFarmerCount: number;       // 总农户数
+  settledFarmerCount: number;     // 已结算农户数
+  pendingAuditCount: number;      // 待审核数量
+  payingCount: number;            // 支付中数量
+  
+  // 金额统计
+  totalPayable: number;           // 应付款总额（元）
+  totalPaid: number;              // 已付款总额（元）
+  totalPending: number;           // 待付款总额（元）
+  totalPrepaid: number;           // 预付款总额（元）
 }
 
 // ==================== AI助手相关 ====================

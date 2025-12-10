@@ -17,7 +17,8 @@ import type {
   SeedDistributionStats,
   FarmerSummaryStats,
   SalesmanFarmerStats,
-  SettlementSummaryStats
+  SettlementSummaryStats,
+  SettlementOverviewStats
 } from './types';
 import { UserRole } from './types';
 
@@ -418,53 +419,204 @@ export const MOCK_INVENTORY: InventoryItem[] = [
 // ==================== 结算数据 ====================
 
 export const MOCK_SETTLEMENTS: Settlement[] = [
+  // 已完成结算
   {
     id: '401',
     farmerId: '1',
     farmerName: '张三',
+    farmerPhone: '13812345601',
     totalAcquisitionAmount: 12000,
-    deductions: 500,
+    seedDeduction: 300,
+    fertilizerDeduction: 150,
+    otherDeduction: 50,
+    totalDeduction: 500,
+    calculatedPayment: 11500,
+    adjustedPayment: 11500,
     finalPayment: 11500,
-    status: 'paid',
-    date: '2023-11-01',
+    prepayments: [
+      { id: 'pre_001', amount: 2000, paymentTime: '2025-06-15', operator: '李会计', remark: '预付定金' }
+    ],
+    totalPrepaid: 2000,
+    payments: [
+      { id: 'pay_001', amount: 5000, paymentTime: '2025-11-02 09:30', paymentMethod: '银行转账', operator: '王出纳', remark: '第一笔' },
+      { id: 'pay_002', amount: 4500, paymentTime: '2025-11-03 14:20', paymentMethod: '银行转账', operator: '王出纳', remark: '尾款' }
+    ],
+    totalPaid: 11500,
+    remainingPayment: 0,
+    auditStatus: 'completed',
+    auditor: '李会计',
+    auditTime: '2025-11-01 16:00',
+    auditRemark: '核对无误',
+    date: '2025-11-01',
     relatedAcquisitionIds: ['301'],
-    paymentTime: '2023-11-02',
+    createTime: '2025-11-01 10:00',
+    status: 'paid',
+    deductions: 500,
+    paymentTime: '2025-11-02',
     paymentMethod: '银行转账'
   },
+  // 支付中（分批支付）
   {
     id: '402',
     farmerId: '2',
     farmerName: '李四',
-    totalAcquisitionAmount: 6600,
-    deductions: 200,
-    finalPayment: 6400,
+    farmerPhone: '13812345602',
+    totalAcquisitionAmount: 28600,
+    seedDeduction: 800,
+    fertilizerDeduction: 450,
+    otherDeduction: 0,
+    totalDeduction: 1250,
+    calculatedPayment: 27350,
+    adjustedPayment: 27350,
+    finalPayment: 27350,
+    prepayments: [],
+    totalPrepaid: 0,
+    payments: [
+      { id: 'pay_003', amount: 10000, paymentTime: '2025-12-05 10:15', paymentMethod: '银行转账', operator: '王出纳', remark: '第一批' },
+      { id: 'pay_004', amount: 8000, paymentTime: '2025-12-06 11:00', paymentMethod: '银行转账', operator: '王出纳', remark: '第二批' }
+    ],
+    totalPaid: 18000,
+    remainingPayment: 9350,
+    auditStatus: 'paying',
+    auditor: '李会计',
+    auditTime: '2025-12-04 15:30',
+    auditRemark: '已审核通过',
+    date: '2025-12-04',
+    relatedAcquisitionIds: ['302'],
+    createTime: '2025-12-04 09:00',
     status: 'unpaid',
-    date: '2023-11-05',
-    relatedAcquisitionIds: ['302']
+    deductions: 1250
   },
+  // 已审核待支付
   {
     id: '403',
     farmerId: '3',
     farmerName: '王五',
-    totalAcquisitionAmount: 19200,
-    deductions: 600,
-    finalPayment: 18600,
+    farmerPhone: '13812345603',
+    totalAcquisitionAmount: 45200,
+    seedDeduction: 1200,
+    fertilizerDeduction: 680,
+    otherDeduction: 120,
+    totalDeduction: 2000,
+    calculatedPayment: 43200,
+    adjustedPayment: 43000,
+    finalPayment: 43000,
+    prepayments: [
+      { id: 'pre_002', amount: 3000, paymentTime: '2025-07-20', operator: '李会计', remark: '种苗预付' }
+    ],
+    totalPrepaid: 3000,
+    payments: [],
+    totalPaid: 0,
+    remainingPayment: 43000,
+    auditStatus: 'approved',
+    auditor: '李会计',
+    auditTime: '2025-12-08 14:00',
+    auditRemark: '调整扣减200元（种苗差价）',
+    date: '2025-12-08',
+    relatedAcquisitionIds: ['303'],
+    createTime: '2025-12-08 10:00',
     status: 'unpaid',
-    date: '2023-11-08',
-    relatedAcquisitionIds: ['303']
+    deductions: 2000
   },
+  // 待审核
   {
     id: '404',
     farmerId: '5',
     farmerName: '钱七',
-    totalAcquisitionAmount: 11000,
-    deductions: 350,
-    finalPayment: 10650,
+    farmerPhone: '13812345605',
+    totalAcquisitionAmount: 18500,
+    seedDeduction: 520,
+    fertilizerDeduction: 280,
+    otherDeduction: 0,
+    totalDeduction: 800,
+    calculatedPayment: 17700,
+    adjustedPayment: 17700,
+    finalPayment: 17700,
+    prepayments: [],
+    totalPrepaid: 0,
+    payments: [],
+    totalPaid: 0,
+    remainingPayment: 17700,
+    auditStatus: 'pending',
+    date: '2025-12-10',
+    relatedAcquisitionIds: ['304'],
+    createTime: '2025-12-10 08:30',
     status: 'unpaid',
-    date: '2023-11-10',
-    relatedAcquisitionIds: ['304']
+    deductions: 800
+  },
+  // 更多待审核
+  {
+    id: '405',
+    farmerId: '6',
+    farmerName: '赵六',
+    farmerPhone: '13812345606',
+    totalAcquisitionAmount: 32800,
+    seedDeduction: 900,
+    fertilizerDeduction: 450,
+    otherDeduction: 50,
+    totalDeduction: 1400,
+    calculatedPayment: 31400,
+    adjustedPayment: 31400,
+    finalPayment: 31400,
+    prepayments: [
+      { id: 'pre_003', amount: 5000, paymentTime: '2025-08-01', operator: '李会计', remark: '农资预付' }
+    ],
+    totalPrepaid: 5000,
+    payments: [],
+    totalPaid: 0,
+    remainingPayment: 31400,
+    auditStatus: 'pending',
+    date: '2025-12-10',
+    relatedAcquisitionIds: ['305'],
+    createTime: '2025-12-10 09:15',
+    status: 'unpaid',
+    deductions: 1400
+  },
+  // 已完成（第二个）
+  {
+    id: '406',
+    farmerId: '7',
+    farmerName: '孙八',
+    farmerPhone: '13812345607',
+    totalAcquisitionAmount: 22000,
+    seedDeduction: 600,
+    fertilizerDeduction: 350,
+    otherDeduction: 50,
+    totalDeduction: 1000,
+    calculatedPayment: 21000,
+    adjustedPayment: 21000,
+    finalPayment: 21000,
+    prepayments: [],
+    totalPrepaid: 0,
+    payments: [
+      { id: 'pay_005', amount: 21000, paymentTime: '2025-11-28 16:45', paymentMethod: '银行转账', operator: '王出纳', remark: '一次性结清' }
+    ],
+    totalPaid: 21000,
+    remainingPayment: 0,
+    auditStatus: 'completed',
+    auditor: '李会计',
+    auditTime: '2025-11-27 10:30',
+    date: '2025-11-27',
+    relatedAcquisitionIds: ['306'],
+    createTime: '2025-11-27 08:00',
+    status: 'paid',
+    deductions: 1000,
+    paymentTime: '2025-11-28',
+    paymentMethod: '银行转账'
   }
 ];
+
+/** 结算汇总统计（管理层视图） */
+export const MOCK_SETTLEMENT_OVERVIEW: SettlementOverviewStats = {
+  totalFarmerCount: 7000,
+  settledFarmerCount: 4280,
+  pendingAuditCount: 856,
+  payingCount: 124,
+  totalPayable: 12560000,
+  totalPaid: 9850000,
+  totalPending: 2710000,
+  totalPrepaid: 1256000
+};
 
 // ==================== 统计数据 ====================
 
