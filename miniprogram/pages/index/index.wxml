@@ -27,20 +27,34 @@
     <!-- 我的业绩卡片 -->
     <view class="my-stats-card">
       <view class="my-stats-title">我的业绩</view>
-      <view class="my-stats-grid">
-        <view class="my-stat-item" bindtap="goMyFarmers">
+      <!-- 第一行：签约数据 -->
+      <view class="my-stats-row">
+        <view class="my-stat-box" bindtap="goMyFarmers">
           <text class="my-stat-value">{{myStats.farmerCount}}</text>
-          <text class="my-stat-label">签约农户</text>
+          <text class="my-stat-label">签约农户(户)</text>
         </view>
-        <view class="my-stat-divider"></view>
-        <view class="my-stat-item">
+        <view class="my-stat-box">
           <text class="my-stat-value">{{myStats.acreage}}</text>
           <text class="my-stat-label">总面积(亩)</text>
         </view>
-        <view class="my-stat-divider"></view>
-        <view class="my-stat-item">
+        <view class="my-stat-box">
+          <text class="my-stat-value my-stat-green">{{myStats.depositFormat}}</text>
+          <text class="my-stat-label">定金(元)</text>
+        </view>
+      </view>
+      <!-- 第二行：发苗数据 -->
+      <view class="my-stats-row my-stats-row-seed">
+        <view class="my-stat-box">
           <text class="my-stat-value my-stat-orange">{{myStats.seedCount}}</text>
           <text class="my-stat-label">发苗次数</text>
+        </view>
+        <view class="my-stat-box">
+          <text class="my-stat-value">{{myStats.seedQuantity}}</text>
+          <text class="my-stat-label">发苗数量(kg)</text>
+        </view>
+        <view class="my-stat-box">
+          <text class="my-stat-value my-stat-blue">{{myStats.seedAmountFormat}}</text>
+          <text class="my-stat-label">苗款金额(元)</text>
         </view>
       </view>
     </view>

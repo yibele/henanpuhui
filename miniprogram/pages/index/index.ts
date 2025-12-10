@@ -10,6 +10,7 @@ import {
   MOCK_USER_SALESMAN,
   MOCK_USER_WAREHOUSE,
   MOCK_USER_FINANCE,
+  MOCK_SEED_RECORDS,
   MOCK_SEED_YESTERDAY,
   MOCK_SEED_YEAR_TOTAL,
   MOCK_FARMER_SUMMARY,
@@ -41,9 +42,14 @@ Page({
     // ========== 业务员专属数据 ==========
     // 我的业绩统计
     myStats: {
-      farmerCount: 0,    // 我签约的农户数
-      acreage: 0,        // 我的农户总面积
-      seedCount: 0       // 我的发苗次数
+      farmerCount: 0,       // 我签约的农户数
+      acreage: 0,           // 我的农户总面积
+      deposit: 0,           // 定金总额
+      depositFormat: '0',   // 定金格式化
+      seedCount: 0,         // 我的发苗次数
+      seedQuantity: 0,      // 发苗总数量(kg)
+      seedAmount: 0,        // 苗款总金额
+      seedAmountFormat: '0' // 苗款格式化
     },
     // 最近签约的农户（显示3条）
     recentFarmers: [] as any[],
@@ -265,11 +271,29 @@ Page({
     // 筛选当前业务员签约的农户
     const myFarmers = MOCK_FARMERS.filter(f => f.salesmanId === currentUserId || f.salesmanId === 's001');
     
+    // 筛选当前业务员的发苗记录
+    const mySeedRecords = MOCK_SEED_RECORDS.filter(r => 
+      r.distributorId?.toLowerCase() === 's001' || r.distributorId === currentUserId
+    );
+    
+    // 计算定金总额
+    const totalDeposit = myFarmers.reduce((sum, f) => sum + (f.deposit || 0), 0);
+    
+    // 计算发苗数据
+    const seedCount = mySeedRecords.length;
+    const seedQuantity = mySeedRecords.reduce((sum, r) => sum + r.quantity, 0);
+    const seedAmount = mySeedRecords.reduce((sum, r) => sum + r.totalAmount, 0);
+    
     // 计算我的业绩
     const myStats = {
       farmerCount: myFarmers.length,
       acreage: myFarmers.reduce((sum, f) => sum + f.plantingArea, 0),
-      seedCount: myFarmers.reduce((sum, f) => sum + (f.seedDistributionCount || 0), 0)
+      deposit: totalDeposit,
+      depositFormat: this.formatMoney(totalDeposit),
+      seedCount: seedCount,
+      seedQuantity: seedQuantity,
+      seedAmount: seedAmount,
+      seedAmountFormat: this.formatMoney(seedAmount)
     };
     
     // 最近签约的农户（按签约日期倒序，取前3条）
@@ -282,10 +306,20 @@ Page({
         phone: f.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
         acreage: f.plantingArea,
         grade: f.grade,
-        contractDate: f.contractDate.slice(5) // 只显示月-日
+        contractDate: f.contractDate.slice(5)
       }));
     
     this.setData({ myStats, recentFarmers });
+  },
+  
+  /**
+   * 格式化金额（简化版）
+   */
+  formatMoney(amount: number): string {
+    if (amount >= 10000) {
+      return (amount / 10000).toFixed(1).replace(/\.0$/, '') + '万';
+    }
+    return amount.toString();
   },
   
   /**

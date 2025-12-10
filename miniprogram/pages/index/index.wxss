@@ -1046,7 +1046,7 @@
 .my-stats-card {
   background: #ffffff;
   border-radius: 24rpx;
-  padding: 32rpx;
+  padding: 28rpx 24rpx;
   margin-bottom: 24rpx;
   box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
 }
@@ -1055,25 +1055,45 @@
   font-size: 28rpx;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 24rpx;
+  margin-bottom: 20rpx;
+  padding-left: 8rpx;
 }
 
-.my-stats-grid {
+.my-stats-row {
   display: flex;
-  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
 }
 
-.my-stat-item {
+.my-stats-row-seed {
+  padding-top: 12rpx;
+  border-top: 1rpx solid #f3f4f6;
+  margin-bottom: 0;
+}
+
+.my-stat-box {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
+  justify-content: center;
+  padding: 16rpx 8rpx;
+  background: #f9fafb;
+  border-radius: 16rpx;
+  gap: 6rpx;
+}
+
+.my-stat-box:active {
+  background: #f3f4f6;
 }
 
 .my-stat-value {
-  font-size: 48rpx;
+  font-size: 36rpx;
   font-weight: 700;
+  color: #1f2937;
+}
+
+.my-stat-green {
   color: #059669;
 }
 
@@ -1081,15 +1101,13 @@
   color: #f59e0b;
 }
 
-.my-stat-label {
-  font-size: 24rpx;
-  color: #6b7280;
+.my-stat-blue {
+  color: #3b82f6;
 }
 
-.my-stat-divider {
-  width: 1rpx;
-  height: 60rpx;
-  background-color: #e5e7eb;
+.my-stat-label {
+  font-size: 22rpx;
+  color: #6b7280;
 }
 
 /* 快捷操作区 */

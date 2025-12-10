@@ -53,8 +53,13 @@ Component({
         tabList = DEFAULT_TAB_LIST;
       }
       
-      // 更新导航栏配置
-      this.setData({ list: tabList });
+      // 只有当 list 真正变化时才更新，避免闪动
+      const currentListStr = JSON.stringify(this.data.list);
+      const newListStr = JSON.stringify(tabList);
+      
+      if (currentListStr !== newListStr) {
+        this.setData({ list: tabList });
+      }
       
       // 更新选中状态
       this.updateSelected();
