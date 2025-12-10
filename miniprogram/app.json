@@ -57,6 +57,10 @@
       {
         "pagePath": "pages/stats/supplies/index",
         "text": "农资"
+      },
+      {
+        "pagePath": "pages/stats/seeds/index",
+        "text": "发苗"
       }
     ]
   },
