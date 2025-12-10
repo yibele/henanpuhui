@@ -33,10 +33,10 @@ const ROLE_LIST = [
 Page({
   data: {
     // 用户信息
-    userName: '管理员',
-    // 当前角色信息（测试用）
-    currentRoleName: '财务/管理层',
-    currentRoleKey: 'finance',
+    userName: '张静',
+    // 当前角色信息（默认业务员）
+    currentRoleName: '业务员',
+    currentRoleKey: 'salesman',
     // 核心指标Tab（0:昨日, 1:全季度）
     overviewTab: 1,
     // 当前显示的核心指标

@@ -36,6 +36,7 @@ App<IAppOption>({
   /**
    * 检查登录状态
    * 从本地存储读取 token 和用户信息验证登录状态
+   * 开发模式下默认使用业务员角色
    */
   checkLoginStatus() {
     try {
@@ -49,9 +50,20 @@ App<IAppOption>({
         this.globalData.userRole = userInfo.role;
         console.log('已登录用户:', userInfo.name, '角色:', userInfo.role);
       } else {
-        this.globalData.isLoggedIn = false;
-        this.globalData.userRole = null;
-        console.log('用户未登录');
+        // 开发模式：默认使用业务员角色，方便测试
+        const devUser: User = {
+          id: 'dev_salesman_001',
+          phone: '13800138001',
+          name: '张静',
+          role: UserRole.SALESMAN,
+          avatar: '',
+          createTime: '2024-01-01'
+        };
+        this.globalData.isLoggedIn = true;
+        this.globalData.token = 'dev_token';
+        this.globalData.userInfo = devUser;
+        this.globalData.userRole = UserRole.SALESMAN;
+        console.log('开发模式：默认业务员角色', devUser.name);
       }
     } catch (e) {
       console.error('检查登录状态失败:', e);
