@@ -2,15 +2,6 @@
   "navigationBarTitleText": "结算详情",
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-button": "tdesign-miniprogram/button/button",
-    "t-input": "tdesign-miniprogram/input/input",
-    "t-textarea": "tdesign-miniprogram/textarea/textarea",
-    "t-dialog": "tdesign-miniprogram/dialog/dialog",
-    "t-message": "tdesign-miniprogram/message/message",
-    "t-cell": "tdesign-miniprogram/cell/cell",
-    "t-cell-group": "tdesign-miniprogram/cell-group/cell-group",
-    "t-stepper": "tdesign-miniprogram/stepper/stepper"
+    "t-tag": "tdesign-miniprogram/tag/tag"
   }
 }
-
