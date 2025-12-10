@@ -27,13 +27,23 @@
 
   <!-- 核心指标卡片（签约农户汇总） -->
   <view class="overview-cards" wx:if="{{farmerSummary}}">
+    <!-- Tab 切换：昨日 / 全季度 -->
+    <view class="overview-tab-bar">
+      <view class="overview-tab {{overviewTab === 0 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="0">
+        <text>昨日新增</text>
+      </view>
+      <view class="overview-tab {{overviewTab === 1 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="1">
+        <text>全季度累计</text>
+      </view>
+    </view>
+
     <view class="overview-row overview-row-3">
       <view class="overview-card" data-type="farmers" bindtap="onStatTap">
         <view class="overview-bg-icon">
           <t-icon name="user" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
         </view>
         <view class="overview-info">
-          <text class="overview-value">{{farmerSummary.totalFarmers}}</text>
+          <text class="overview-value">{{currentOverview.farmers}}</text>
           <text class="overview-label">签约农户(户)</text>
         </view>
       </view>
@@ -42,7 +52,7 @@
           <t-icon name="location" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
         </view>
         <view class="overview-info">
-          <text class="overview-value">{{formatAcreage}}</text>
+          <text class="overview-value">{{currentOverview.acreage}}</text>
           <text class="overview-label">种植面积(亩)</text>
         </view>
       </view>
@@ -51,7 +61,7 @@
           <t-icon name="money-circle" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
         </view>
         <view class="overview-info">
-          <text class="overview-value">{{formatDeposit}}</text>
+          <text class="overview-value">{{currentOverview.deposit}}</text>
           <text class="overview-label">定金总额(元)</text>
         </view>
       </view>
@@ -111,7 +121,7 @@
   <view class="section" wx:if="{{currentRoleKey === 'finance' && displaySalesmanList.length > 0}}">
     <!-- 独立标题栏 -->
     <view class="section-header-row">
-      <text class="section-title">负责人签约统计</text>
+      <text class="section-title">{{overviewTab === 0 ? '昨日新增' : '全季度'}} · 负责人统计</text>
       <view class="section-detail-btn" bindtap="goSalesmanDetail">
         <text>详情</text>
         <t-icon name="chevron-right" size="32rpx" color="#059669" />

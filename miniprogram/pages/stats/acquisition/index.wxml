@@ -21,27 +21,27 @@
 
   <!-- 核心指标卡片 -->
   <view class="card stats-card">
-    <view class="stats-grid">
+    <view class="stats-row">
       <!-- 收购总重量 -->
-      <view class="stat-item">
+      <view class="stat-box">
         <text class="stat-value">{{currentStats.totalWeight}}</text>
         <text class="stat-label">收购总量</text>
       </view>
       <!-- 总金额 -->
-      <view class="stat-item">
+      <view class="stat-box">
         <text class="stat-value highlight">{{currentStats.totalAmount}}</text>
         <text class="stat-label">总金额</text>
       </view>
       <!-- 平均单价 -->
-      <view class="stat-item">
+      <view class="stat-box">
         <text class="stat-value">{{currentStats.avgPrice}}</text>
         <text class="stat-label">平均单价</text>
       </view>
-      <!-- 农户数（仅累计显示） -->
-      <view class="stat-item" wx:if="{{currentTab === 1}}">
-        <text class="stat-value">{{currentStats.farmerCount}}</text>
-        <text class="stat-label">卖叶农户</text>
-      </view>
+    </view>
+    <!-- 农户数（仅累计显示） -->
+    <view class="stat-extra" wx:if="{{currentTab === 1}}">
+      <text class="extra-label">已卖叶农户</text>
+      <text class="extra-value">{{currentStats.farmerCount}}</text>
     </view>
   </view>
 

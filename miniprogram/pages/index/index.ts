@@ -13,7 +13,9 @@ import {
   MOCK_SEED_YESTERDAY,
   MOCK_SEED_YEAR_TOTAL,
   MOCK_FARMER_SUMMARY,
-  MOCK_SALESMAN_STATS
+  MOCK_FARMER_SUMMARY_YESTERDAY,
+  MOCK_SALESMAN_STATS,
+  MOCK_SALESMAN_STATS_YESTERDAY
 } from '../../models/mock-data';
 import { UserRole, UserRoleNames } from '../../models/types';
 import type { SeedDistributionStats, FarmerSummaryStats, SalesmanFarmerStats } from '../../models/types';
@@ -35,6 +37,14 @@ Page({
     // 当前角色信息（测试用）
     currentRoleName: '财务/管理层',
     currentRoleKey: 'finance',
+    // 核心指标Tab（0:昨日, 1:全季度）
+    overviewTab: 1,
+    // 当前显示的核心指标
+    currentOverview: {
+      farmers: '0',
+      acreage: '0',
+      deposit: '0'
+    },
     // 统计数据
     stats: {
       totalFarmers: 0,
@@ -292,6 +302,9 @@ Page({
     const salesmanStats = this.processSalesmanStats(MOCK_SALESMAN_STATS);
     const displaySalesmanList = salesmanStats.slice(0, 5);
 
+    // 计算当前核心指标（根据 tab）
+    const currentOverview = this.getOverviewData(this.data.overviewTab);
+
     this.setData({
       stats,
       // 加载发苗统计数据
@@ -304,6 +317,59 @@ Page({
       seedYearFormat,
       currentTrendData,
       salesmanStats,
+      displaySalesmanList,
+      salesmanExpanded: false,
+      currentOverview
+    });
+  },
+
+  /**
+   * 获取核心指标数据
+   * @param tab 0:昨日, 1:全季度
+   */
+  getOverviewData(tab: number) {
+    const summary = tab === 0 ? MOCK_FARMER_SUMMARY_YESTERDAY : MOCK_FARMER_SUMMARY;
+    return {
+      farmers: summary.totalFarmers.toString(),
+      acreage: this.formatAcreage(summary.totalAcreage),
+      deposit: this.formatAmount(summary.totalDeposit)
+    };
+  },
+
+  /**
+   * 获取当前 Tab 对应的农户汇总数据
+   */
+  getCurrentFarmerSummary(tab: number) {
+    return tab === 0 ? MOCK_FARMER_SUMMARY_YESTERDAY : MOCK_FARMER_SUMMARY;
+  },
+
+  /**
+   * 获取当前 Tab 对应的负责人统计数据
+   */
+  getCurrentSalesmanStats(tab: number) {
+    const rawStats = tab === 0 ? MOCK_SALESMAN_STATS_YESTERDAY : MOCK_SALESMAN_STATS;
+    return this.processSalesmanStats(rawStats);
+  },
+
+  /**
+   * 切换核心指标 Tab
+   */
+  switchOverviewTab(e: any) {
+    const tab = parseInt(e.currentTarget.dataset.tab);
+    const currentOverview = this.getOverviewData(tab);
+    const farmerSummary = this.getCurrentFarmerSummary(tab);
+    const salesmanStats = this.getCurrentSalesmanStats(tab);
+    // 昨日数据过滤掉0户的负责人
+    const filteredStats = tab === 0 
+      ? salesmanStats.filter((s: any) => s.farmerCount > 0) 
+      : salesmanStats;
+    const displaySalesmanList = filteredStats.slice(0, 5);
+
+    this.setData({
+      overviewTab: tab,
+      currentOverview,
+      farmerSummary,
+      salesmanStats: filteredStats,
       displaySalesmanList,
       salesmanExpanded: false
     });

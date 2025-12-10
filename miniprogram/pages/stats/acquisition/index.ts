@@ -28,9 +28,14 @@ const MOCK_TODAY = {
   avgPrice: 7,             // 7元/kg
   farmerCount: 0,          // 今日不显示
   warehouses: [
-    { warehouseId: 'wh1', warehouseName: '一号仓库', weight: 5200, amount: 36400, avgPrice: 7 },
-    { warehouseId: 'wh2', warehouseName: '二号仓库', weight: 4100, amount: 28700, avgPrice: 7 },
-    { warehouseId: 'wh3', warehouseName: '三号仓库', weight: 3200, amount: 22400, avgPrice: 7 }
+    { warehouseId: 'wh1', warehouseName: '一号仓库', weight: 2100, amount: 14700, avgPrice: 7 },
+    { warehouseId: 'wh2', warehouseName: '二号仓库', weight: 1850, amount: 12950, avgPrice: 7 },
+    { warehouseId: 'wh3', warehouseName: '三号仓库', weight: 1720, amount: 12040, avgPrice: 7 },
+    { warehouseId: 'wh4', warehouseName: '四号仓库', weight: 1580, amount: 11060, avgPrice: 7 },
+    { warehouseId: 'wh5', warehouseName: '五号仓库', weight: 1450, amount: 10150, avgPrice: 7 },
+    { warehouseId: 'wh6', warehouseName: '六号仓库', weight: 1380, amount: 9660, avgPrice: 7 },
+    { warehouseId: 'wh7', warehouseName: '七号仓库', weight: 1250, amount: 8750, avgPrice: 7 },
+    { warehouseId: 'wh8', warehouseName: '八号仓库', weight: 1170, amount: 8190, avgPrice: 7 }
   ]
 };
 
@@ -41,9 +46,14 @@ const MOCK_TOTAL = {
   avgPrice: 7,             // 7元/kg
   farmerCount: 4850,       // 4850户农户
   warehouses: [
-    { warehouseId: 'wh1', warehouseName: '一号仓库', weight: 385000, amount: 2695000, avgPrice: 7 },
-    { warehouseId: 'wh2', warehouseName: '二号仓库', weight: 298000, amount: 2086000, avgPrice: 7 },
-    { warehouseId: 'wh3', warehouseName: '三号仓库', weight: 173000, amount: 1211000, avgPrice: 7 }
+    { warehouseId: 'wh1', warehouseName: '一号仓库', weight: 142000, amount: 994000, avgPrice: 7 },
+    { warehouseId: 'wh2', warehouseName: '二号仓库', weight: 128000, amount: 896000, avgPrice: 7 },
+    { warehouseId: 'wh3', warehouseName: '三号仓库', weight: 118000, amount: 826000, avgPrice: 7 },
+    { warehouseId: 'wh4', warehouseName: '四号仓库', weight: 108000, amount: 756000, avgPrice: 7 },
+    { warehouseId: 'wh5', warehouseName: '五号仓库', weight: 98000, amount: 686000, avgPrice: 7 },
+    { warehouseId: 'wh6', warehouseName: '六号仓库', weight: 92000, amount: 644000, avgPrice: 7 },
+    { warehouseId: 'wh7', warehouseName: '七号仓库', weight: 88000, amount: 616000, avgPrice: 7 },
+    { warehouseId: 'wh8', warehouseName: '八号仓库', weight: 82000, amount: 574000, avgPrice: 7 }
   ]
 };
 

@@ -533,6 +533,7 @@ export const MOCK_TREND_DATA: TrendDataPoint[] = [
 // ==================== 财务/管理层统计数据 ====================
 
 /** 签约农户汇总统计 */
+/** 全季度签约农户汇总 */
 export const MOCK_FARMER_SUMMARY: FarmerSummaryStats = {
   totalFarmers: 7000,
   totalAcreage: 85600,
@@ -544,6 +545,21 @@ export const MOCK_FARMER_SUMMARY: FarmerSummaryStats = {
     goldPercent: 18,
     silverPercent: 42,
     bronzePercent: 40
+  }
+};
+
+/** 昨日新增签约农户汇总 */
+export const MOCK_FARMER_SUMMARY_YESTERDAY: FarmerSummaryStats = {
+  totalFarmers: 28,
+  totalAcreage: 356,
+  totalDeposit: 118000,
+  gradeDistribution: {
+    gold: 5,
+    silver: 12,
+    bronze: 11,
+    goldPercent: 18,
+    silverPercent: 43,
+    bronzePercent: 39
   }
 };
 
@@ -569,6 +585,30 @@ export const MOCK_SALESMAN_STATS: SalesmanFarmerStats[] = [
   { salesmanId: 'S018', salesmanName: '罗文华', farmerCount: 238, totalAcreage: 2856, totalDeposit: 952000, gradeDistribution: { gold: 43, silver: 100, bronze: 95, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
   { salesmanId: 'S019', salesmanName: '郭振兴', farmerCount: 225, totalAcreage: 2700, totalDeposit: 900000, gradeDistribution: { gold: 41, silver: 95, bronze: 89, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } },
   { salesmanId: 'S020', salesmanName: '曹德明', farmerCount: 236, totalAcreage: 2832, totalDeposit: 944000, gradeDistribution: { gold: 42, silver: 99, bronze: 95, goldPercent: 18, silverPercent: 42, bronzePercent: 40 } }
+];
+
+/** 昨日新增 - 按负责人统计（20个业务员） */
+export const MOCK_SALESMAN_STATS_YESTERDAY: SalesmanFarmerStats[] = [
+  { salesmanId: 'S001', salesmanName: '王建国', farmerCount: 3, totalAcreage: 38, totalDeposit: 12000, gradeDistribution: { gold: 1, silver: 1, bronze: 1, goldPercent: 33, silverPercent: 33, bronzePercent: 34 } },
+  { salesmanId: 'S002', salesmanName: '李明辉', farmerCount: 2, totalAcreage: 26, totalDeposit: 8000, gradeDistribution: { gold: 0, silver: 1, bronze: 1, goldPercent: 0, silverPercent: 50, bronzePercent: 50 } },
+  { salesmanId: 'S003', salesmanName: '张伟东', farmerCount: 2, totalAcreage: 24, totalDeposit: 8000, gradeDistribution: { gold: 1, silver: 1, bronze: 0, goldPercent: 50, silverPercent: 50, bronzePercent: 0 } },
+  { salesmanId: 'S004', salesmanName: '刘志强', farmerCount: 2, totalAcreage: 22, totalDeposit: 8000, gradeDistribution: { gold: 0, silver: 1, bronze: 1, goldPercent: 0, silverPercent: 50, bronzePercent: 50 } },
+  { salesmanId: 'S005', salesmanName: '陈晓峰', farmerCount: 2, totalAcreage: 20, totalDeposit: 8000, gradeDistribution: { gold: 1, silver: 0, bronze: 1, goldPercent: 50, silverPercent: 0, bronzePercent: 50 } },
+  { salesmanId: 'S006', salesmanName: '杨志军', farmerCount: 1, totalAcreage: 18, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 1, bronze: 0, goldPercent: 0, silverPercent: 100, bronzePercent: 0 } },
+  { salesmanId: 'S007', salesmanName: '周文斌', farmerCount: 2, totalAcreage: 16, totalDeposit: 8000, gradeDistribution: { gold: 0, silver: 1, bronze: 1, goldPercent: 0, silverPercent: 50, bronzePercent: 50 } },
+  { salesmanId: 'S008', salesmanName: '吴海涛', farmerCount: 1, totalAcreage: 14, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 0, bronze: 1, goldPercent: 0, silverPercent: 0, bronzePercent: 100 } },
+  { salesmanId: 'S009', salesmanName: '郑国华', farmerCount: 2, totalAcreage: 18, totalDeposit: 8000, gradeDistribution: { gold: 1, silver: 1, bronze: 0, goldPercent: 50, silverPercent: 50, bronzePercent: 0 } },
+  { salesmanId: 'S010', salesmanName: '黄德才', farmerCount: 1, totalAcreage: 12, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 1, bronze: 0, goldPercent: 0, silverPercent: 100, bronzePercent: 0 } },
+  { salesmanId: 'S011', salesmanName: '赵立民', farmerCount: 1, totalAcreage: 14, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 0, bronze: 1, goldPercent: 0, silverPercent: 0, bronzePercent: 100 } },
+  { salesmanId: 'S012', salesmanName: '孙宏伟', farmerCount: 1, totalAcreage: 16, totalDeposit: 4000, gradeDistribution: { gold: 1, silver: 0, bronze: 0, goldPercent: 100, silverPercent: 0, bronzePercent: 0 } },
+  { salesmanId: 'S013', salesmanName: '马俊杰', farmerCount: 2, totalAcreage: 22, totalDeposit: 8000, gradeDistribution: { gold: 0, silver: 1, bronze: 1, goldPercent: 0, silverPercent: 50, bronzePercent: 50 } },
+  { salesmanId: 'S014', salesmanName: '朱永康', farmerCount: 1, totalAcreage: 12, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 1, bronze: 0, goldPercent: 0, silverPercent: 100, bronzePercent: 0 } },
+  { salesmanId: 'S015', salesmanName: '胡建军', farmerCount: 1, totalAcreage: 10, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 0, bronze: 1, goldPercent: 0, silverPercent: 0, bronzePercent: 100 } },
+  { salesmanId: 'S016', salesmanName: '林国栋', farmerCount: 1, totalAcreage: 14, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 1, bronze: 0, goldPercent: 0, silverPercent: 100, bronzePercent: 0 } },
+  { salesmanId: 'S017', salesmanName: '何志勇', farmerCount: 1, totalAcreage: 12, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 0, bronze: 1, goldPercent: 0, silverPercent: 0, bronzePercent: 100 } },
+  { salesmanId: 'S018', salesmanName: '罗文华', farmerCount: 1, totalAcreage: 10, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 1, bronze: 0, goldPercent: 0, silverPercent: 100, bronzePercent: 0 } },
+  { salesmanId: 'S019', salesmanName: '郭振兴', farmerCount: 0, totalAcreage: 0, totalDeposit: 0, gradeDistribution: { gold: 0, silver: 0, bronze: 0, goldPercent: 0, silverPercent: 0, bronzePercent: 0 } },
+  { salesmanId: 'S020', salesmanName: '曹德明', farmerCount: 1, totalAcreage: 18, totalDeposit: 4000, gradeDistribution: { gold: 0, silver: 0, bronze: 1, goldPercent: 0, silverPercent: 0, bronzePercent: 100 } }
 ];
 
 /** 种苗发放统计 - 昨日数据 */
