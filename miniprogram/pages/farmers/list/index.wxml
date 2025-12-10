@@ -1,7 +1,7 @@
 <!--
   农户列表页面
   展示签约农户列表
-  设计原则：关键信息（亩数、定金）放在显眼位置
+  设计原则：简洁清晰，符合常规列表阅读习惯
 -->
 <view class="farmer-list-page">
   <!-- 顶部统计卡片 -->
@@ -12,7 +12,7 @@
     <view class="stats-grid">
       <view class="stats-item">
         <text class="stats-value">{{stats.totalFarmers}}</text>
-        <text class="stats-label">签约农户(户)</text>
+        <text class="stats-label">总户数</text>
       </view>
       <view class="stats-divider"></view>
       <view class="stats-item">
@@ -33,7 +33,7 @@
       <view class="search-wrapper">
         <t-search
           value="{{searchValue}}"
-          placeholder="搜姓名/手机号/客户编码"
+          placeholder="搜索姓名、电话、编码"
           shape="round"
           bind:change="onSearchChange"
           bind:clear="onSearchClear"
@@ -55,41 +55,43 @@
         data-id="{{item.id}}"
         bindtap="onFarmerTap"
       >
-        <!-- 左侧等级色条 -->
-        <view class="grade-bar grade-bar-{{item.grade}}"></view>
+        <!-- 左侧竖线标识等级 -->
+        <view class="grade-line-mark grade-mark-{{item.grade}}"></view>
         
-        <view class="farmer-card-content">
-          <!-- 第一行：姓名 | 等级 | 电话 -->
-          <view class="farmer-row-1">
-            <view class="farmer-name-area">
-              <text class="farmer-name">{{item.name}}</text>
-              <text class="grade-line">|</text>
-              <text class="grade-text grade-text-{{item.grade}}">{{item.gradeText}}</text>
-            </view>
-            <text class="farmer-phone">{{item.phone}}</text>
-          </view>
-          
-          <!-- 第二行：核心数据 - 亩数 + 定金（突出显示） -->
-          <view class="farmer-row-2">
-            <view class="core-data">
-              <view class="data-item">
-                <text class="data-value">{{item.acreage}}</text>
-                <text class="data-unit">亩</text>
+        <view class="farmer-card-body">
+          <!-- 顶部：姓名和关键数据 -->
+          <view class="card-top">
+            <view class="farmer-identity">
+              <view class="name-row">
+                <text class="farmer-name">{{item.name}}</text>
+                <text class="grade-tag grade-tag-{{item.grade}}">{{item.gradeText}}</text>
               </view>
-              <view class="data-divider"></view>
-              <view class="data-item">
-                <text class="data-label">定金</text>
-                <text class="data-value data-value-orange">¥{{item.deposit || 0}}</text>
+              <text class="farmer-phone">{{item.phone}}</text>
+            </view>
+            
+            <view class="farmer-metrics">
+              <view class="metric-item">
+                <text class="metric-value">{{item.acreage}}</text>
+                <text class="metric-unit">亩</text>
+              </view>
+              <view class="metric-item">
+                <text class="metric-value metric-money">¥{{item.deposit || 0}}</text>
+                <text class="metric-unit">定金</text>
               </view>
             </view>
-            <t-icon name="chevron-right" size="36rpx" color="#d1d5db" />
           </view>
           
-          <!-- 第三行：次要信息 - 客户编码 + 地址 + 签约日期 -->
-          <view class="farmer-row-3">
-            <text class="sub-info code">{{item.customerCode}}</text>
-            <text class="sub-info">{{item.addressText || item.address.village}}</text>
-            <text class="sub-info">签约 {{item.contractDate}}</text>
+          <!-- 分割线 -->
+          <view class="card-divider"></view>
+          
+          <!-- 底部：次要信息 -->
+          <view class="card-bottom">
+            <view class="info-group">
+              <text class="info-text code">{{item.customerCode}}</text>
+              <text class="info-dot">·</text>
+              <text class="info-text">{{item.addressText || item.address.village}}</text>
+            </view>
+            <text class="date-text">{{item.contractDate}}</text>
           </view>
         </view>
       </view>
@@ -99,7 +101,7 @@
     <view wx:else class="empty-state">
       <t-empty 
         icon="folder-open" 
-        description="没有找到相关农户"
+        description="暂无农户数据"
       />
     </view>
   </view>

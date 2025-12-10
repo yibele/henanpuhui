@@ -1,6 +1,6 @@
 /**
  * 农户列表页面样式
- * 设计原则：关键信息（亩数、定金）放在显眼位置
+ * 重新设计：左右结构，更符合列表阅读习惯
  */
 
 .farmer-list-page {
@@ -12,11 +12,11 @@
 /* ==================== 顶部统计卡片 ==================== */
 
 .stats-card {
-  background: linear-gradient(135deg, #059669, #10b981);
+  background: linear-gradient(135deg, #059669, #047857);
   margin: 24rpx;
-  border-radius: 28rpx;
-  padding: 28rpx 32rpx;
-  box-shadow: 0 8rpx 32rpx rgba(5, 150, 105, 0.3);
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.2);
 }
 
 .stats-header {
@@ -41,36 +41,36 @@
 
 .stats-value {
   display: block;
-  font-size: 48rpx;
+  font-size: 40rpx;
   font-weight: 700;
   color: #ffffff;
-  margin-bottom: 8rpx;
+  margin-bottom: 4rpx;
 }
 
 .stats-value-orange {
-  color: #fde68a;
+  color: #fcd34d;
 }
 
 .stats-label {
   font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .stats-divider {
   width: 1rpx;
-  height: 60rpx;
-  background-color: rgba(255, 255, 255, 0.3);
+  height: 40rpx;
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* ==================== 搜索区域 ==================== */
 
 .search-area {
-  padding: 0 24rpx 16rpx;
+  padding: 0 24rpx 24rpx;
 }
 
 .search-row {
   display: flex;
-  gap: 16rpx;
+  gap: 20rpx;
   align-items: center;
 }
 
@@ -79,22 +79,25 @@
 }
 
 .add-btn {
-  width: 80rpx;
-  height: 80rpx;
-  background: linear-gradient(135deg, #34d399, #059669);
-  border-radius: 50%;
+  width: 88rpx;
+  height: 88rpx;
+  background: #ffffff;
+  border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(5, 150, 105, 0.35);
-  flex-shrink: 0;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.add-btn t-icon {
+  color: #059669;
 }
 
 .add-btn:active {
-  transform: scale(0.95);
+  background-color: #f9fafb;
 }
 
-/* ==================== 农户列表 ==================== */
+/* ==================== 农户列表卡片 ==================== */
 
 .farmer-list {
   padding: 0 24rpx;
@@ -103,51 +106,54 @@
 .farmer-card {
   display: flex;
   background-color: #ffffff;
-  border-radius: 16rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  border-radius: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
   overflow: hidden;
+  position: relative;
 }
 
 .farmer-card:active {
   background-color: #fafafa;
 }
 
-/* 左侧等级色条 */
-.grade-bar {
+/* 左侧竖线 */
+.grade-line-mark {
   width: 8rpx;
-  flex-shrink: 0;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
 }
 
-.grade-bar-gold {
-  background: linear-gradient(180deg, #f59e0b, #d97706);
-}
+.grade-mark-gold { background-color: #f59e0b; }
+.grade-mark-silver { background-color: #9ca3af; }
+.grade-mark-bronze { background-color: #d97706; }
 
-.grade-bar-silver {
-  background: linear-gradient(180deg, #9ca3af, #6b7280);
-}
-
-.grade-bar-bronze {
-  background: linear-gradient(180deg, #f97316, #ea580c);
-}
-
-/* 卡片内容 */
-.farmer-card-content {
+/* 卡片主体 */
+.farmer-card-body {
   flex: 1;
-  padding: 20rpx 24rpx;
+  padding: 24rpx 24rpx 24rpx 32rpx; /* 左侧留出一点空间 */
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
 }
 
-/* 第一行：姓名 | 等级 | 电话 */
-.farmer-row-1 {
+/* 顶部区域：左右布局 */
+.card-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
 }
 
-.farmer-name-area {
+.farmer-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.name-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
@@ -155,105 +161,101 @@
 
 .farmer-name {
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 600;
   color: #1f2937;
 }
 
-.grade-line {
-  font-size: 24rpx;
-  color: #d1d5db;
-}
-
-.grade-text {
-  font-size: 24rpx;
-  font-weight: 600;
-}
-
-.grade-text-gold {
-  color: #d97706;
-}
-
-.grade-text-silver {
+.grade-tag {
+  font-size: 20rpx;
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
+  background-color: #f3f4f6;
   color: #6b7280;
 }
 
-.grade-text-bronze {
-  color: #ea580c;
-}
+.grade-tag-gold { color: #d97706; background-color: #fef3c7; }
+.grade-tag-silver { color: #4b5563; background-color: #f3f4f6; }
+.grade-tag-bronze { color: #9a3412; background-color: #ffedd5; }
 
 .farmer-phone {
   font-size: 26rpx;
-  color: #6b7280;
+  color: #9ca3af;
+  font-family: 'SF Mono', monospace;
 }
 
-/* 第二行：核心数据 - 亩数 + 定金（突出显示） */
-.farmer-row-2 {
+/* 右侧关键数值 */
+.farmer-metrics {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f9fafb;
-  border-radius: 12rpx;
-  padding: 16rpx 20rpx;
+  gap: 32rpx;
 }
 
-.core-data {
+.metric-item {
   display: flex;
-  align-items: center;
-  gap: 24rpx;
-}
-
-.data-item {
-  display: flex;
-  align-items: baseline;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 4rpx;
 }
 
-.data-label {
-  font-size: 24rpx;
-  color: #9ca3af;
-  margin-right: 4rpx;
-}
-
-.data-value {
+.metric-value {
   font-size: 36rpx;
   font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.metric-money {
   color: #059669;
 }
 
-.data-value-orange {
-  color: #ea580c;
-}
-
-.data-unit {
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.data-divider {
-  width: 1rpx;
-  height: 32rpx;
-  background-color: #e5e7eb;
-}
-
-/* 第三行：次要信息 */
-.farmer-row-3 {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  flex-wrap: wrap;
-}
-
-.sub-info {
+.metric-unit {
   font-size: 22rpx;
   color: #9ca3af;
 }
 
-.sub-info.code {
-  color: #8b5cf6;
-  background-color: #f3e8ff;
-  padding: 2rpx 8rpx;
-  border-radius: 4rpx;
-  font-family: 'SF Mono', monospace;
+/* 分割线 */
+.card-divider {
+  height: 1rpx;
+  background-color: #f3f4f6;
+  margin-bottom: 16rpx;
+}
+
+/* 底部区域 */
+.card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-group {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex: 1;
+  overflow: hidden;
+}
+
+.info-text {
+  font-size: 24rpx;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-text.code {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.info-dot {
+  color: #d1d5db;
+  font-size: 20rpx;
+}
+
+.date-text {
+  font-size: 22rpx;
+  color: #9ca3af;
+  flex-shrink: 0;
 }
 
 /* ==================== 空状态 ==================== */
