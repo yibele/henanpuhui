@@ -1,0 +1,423 @@
+/**
+ * 种苗发放统计详情页样式
+ */
+
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 24rpx;
+  padding-bottom: 160rpx;
+  box-sizing: border-box;
+}
+
+/* 搜索栏 */
+.search-bar {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 16rpx 20rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1f2937;
+}
+
+.search-clear {
+  padding: 4rpx;
+}
+
+.search-btn {
+  padding: 16rpx 28rpx;
+  background-color: #059669;
+  border-radius: 16rpx;
+  color: #ffffff;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  display: flex;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 8rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+  color: #6b7280;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.tab-item.active {
+  background-color: #059669;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* 卡片通用 */
+.card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 汇总统计卡片 */
+.summary-card {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #ffffff;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-item {
+  text-align: center;
+  flex: 1;
+}
+
+.summary-item:not(:last-child) {
+  border-right: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.summary-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.summary-value.highlight {
+  color: #fef08a;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+  display: block;
+}
+
+/* 收款情况 */
+.payment-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+.payment-item {
+  flex: 1;
+  text-align: center;
+}
+
+.payment-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.payment-label {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+  margin-bottom: 4rpx;
+}
+
+.payment-value {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.payment-value.paid {
+  color: #86efac;
+}
+
+.payment-value.unpaid {
+  color: #fef08a;
+}
+
+/* 发放进度 */
+.progress-section {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(255, 255, 255, 0.2);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.progress-title {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.progress-value {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.progress-bar-wrap {
+  height: 12rpx;
+  background-color: rgba(255, 255, 255, 0.3);
+  border-radius: 6rpx;
+  overflow: hidden;
+  margin-bottom: 8rpx;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 6rpx;
+}
+
+.progress-desc {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* 筛选条件 */
+.filter-row {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 20rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  font-size: 26rpx;
+  color: #374151;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+/* 列表标题 */
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.list-count {
+  font-size: 24rpx;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+/* 发放记录列表 */
+.record-list {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.record-item {
+  padding: 20rpx 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-item:active {
+  background-color: #f9fafb;
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
+}
+
+.record-farmer {
+  display: flex;
+  flex-direction: column;
+}
+
+.farmer-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.farmer-phone {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 4rpx;
+}
+
+.record-status {
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.status-paid {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-partial {
+  background-color: #fef3c7;
+  color: #d97706;
+}
+
+.status-unpaid {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.record-body {
+  margin-bottom: 12rpx;
+}
+
+.record-info {
+  display: flex;
+  gap: 24rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.info-label {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: #374151;
+  font-weight: 500;
+}
+
+.info-value.amount {
+  color: #059669;
+}
+
+.record-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 24rpx;
+  font-size: 26rpx;
+  color: #059669;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 24rpx;
+  gap: 16rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #9ca3af;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 32rpx;
+}
+
+/* 弹窗 */
+.picker-popup {
+  background-color: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  max-height: 70vh;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.popup-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.popup-close {
+  padding: 8rpx;
+}
+
+.popup-content {
+  max-height: 60vh;
+  padding: 0 24rpx;
+}
+
+.popup-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #f5f5f5;
+  font-size: 28rpx;
+  color: #374151;
+}
+
+.popup-item:last-child {
+  border-bottom: none;
+}
+
+.popup-item.active {
+  color: #059669;
+  font-weight: 500;
+}
+

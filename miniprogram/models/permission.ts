@@ -162,6 +162,7 @@ export const PagePermissions: Record<string, Permission[]> = {
   '/pages/stats/acquisition/index': [Permission.STATS_ALL],
   '/pages/stats/supplies/index': [Permission.STATS_ALL],
   '/pages/stats/farmers/index': [Permission.STATS_ALL],
+  '/pages/stats/seeds/index': [Permission.STATS_ALL],
   
   // AI助手 - 所有角色可访问
   '/pages/ai/index/index': [],

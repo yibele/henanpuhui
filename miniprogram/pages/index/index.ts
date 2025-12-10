@@ -416,10 +416,19 @@ Page({
    * 跳转负责人详情页
    */
   goSalesmanDetail() {
-    // TODO: 二级页面待开发
+    // TODO: 负责人统计详情页待开发
     wx.showToast({
       title: '详情页开发中',
       icon: 'none'
+    });
+  },
+
+  /**
+   * 跳转种苗发放详情页
+   */
+  goSeedDetail() {
+    wx.navigateTo({
+      url: '/pages/stats/seeds/index'
     });
   },
 

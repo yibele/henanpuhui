@@ -13,7 +13,8 @@
     "pages/ai/index/index",
     "pages/stats/acquisition/index",
     "pages/stats/supplies/index",
-    "pages/stats/farmers/index"
+    "pages/stats/farmers/index",
+    "pages/stats/seeds/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
