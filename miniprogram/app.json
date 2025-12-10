@@ -61,6 +61,10 @@
       {
         "pagePath": "pages/stats/seeds/index",
         "text": "发苗"
+      },
+      {
+        "pagePath": "pages/stats/farmers/index",
+        "text": "签约"
       }
     ]
   },

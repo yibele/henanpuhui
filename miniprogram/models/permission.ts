@@ -71,13 +71,13 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
   ],
 
-  // 财务/管理层导航栏：总览、发苗、收苗、结算、助手
+  // 财务/管理层导航栏：总览、签约、发苗、收苗、结算
   [UserRole.FINANCE_ADMIN]: [
     { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
+    { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
     { icon: 'tree', text: '发苗', pagePath: '/pages/stats/seeds/index' },
     { icon: 'cart', text: '收苗', pagePath: '/pages/stats/acquisition/index' },
-    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' },
-    { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
+    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
   ]
 };
 
