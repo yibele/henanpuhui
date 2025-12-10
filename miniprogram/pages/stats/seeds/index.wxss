@@ -246,6 +246,7 @@
 .chart-container {
   height: 320rpx;
   margin-bottom: 16rpx;
+  white-space: nowrap;
 }
 
 .chart-bars {
@@ -256,12 +257,28 @@
   padding: 0 8rpx;
 }
 
+/* 月度模式可滚动 */
+.chart-bars-scroll {
+  justify-content: flex-start;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 16rpx;
+}
+
 .bar-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
   max-width: 60rpx;
+  min-width: 48rpx;
+}
+
+/* 月度模式固定宽度 */
+.chart-bars-scroll .bar-item {
+  flex: none;
+  width: 56rpx;
+  margin: 0 8rpx;
 }
 
 .bar-value {
