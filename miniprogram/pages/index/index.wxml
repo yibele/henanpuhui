@@ -220,21 +220,23 @@
       </view>
     </view>
     
-    <view class="card seed-stats-card">
+    <view class="card seed-stats-card" bindtap="{{currentRoleKey === 'finance' ? 'goSeedDetail' : ''}}">
       <!-- 标题和Tab切换 -->
       <view class="seed-stats-header">
         <view class="seed-stats-title">
           <text>{{currentRoleKey === 'finance' ? '甜叶菊' : '发苗统计（甜叶菊）'}}</text>
+          <!-- 管理层显示点击提示 -->
+          <t-icon wx:if="{{currentRoleKey === 'finance'}}" name="chevron-right" size="28rpx" color="#9ca3af" />
         </view>
         <view class="seed-stats-tabs">
           <view 
             class="seed-tab {{seedStatsTab === 0 ? 'seed-tab-active' : ''}}" 
-            bindtap="onSeedStatsTabChange"
+            catchtap="onSeedStatsTabChange"
             data-value="{{0}}"
           >昨日</view>
           <view 
             class="seed-tab {{seedStatsTab === 1 ? 'seed-tab-active' : ''}}" 
-            bindtap="onSeedStatsTabChange"
+            catchtap="onSeedStatsTabChange"
             data-value="{{1}}"
           >年度累计</view>
         </view>

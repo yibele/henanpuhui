@@ -771,6 +771,11 @@
 .seed-stats-card {
   padding: 0;
   overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.seed-stats-card:active {
+  transform: scale(0.98);
 }
 
 .seed-stats-header {
