@@ -6,22 +6,27 @@
   <!-- 汇总统计卡片 -->
   <view class="overview-card">
     <view class="overview-title">结算汇总</view>
-    <view class="overview-stats">
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-blue">{{formattedOverview.totalPayable}}</text>
-        <text class="stat-label">应付款</text>
+    <!-- 金额统计 2x2 布局 -->
+    <view class="overview-stats-grid">
+      <view class="overview-row">
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-blue">{{formattedOverview.totalPayable}}</text>
+          <text class="stat-label">应付款</text>
+        </view>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-green">{{formattedOverview.totalPaid}}</text>
+          <text class="stat-label">已付款</text>
+        </view>
       </view>
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-green">{{formattedOverview.totalPaid}}</text>
-        <text class="stat-label">已付款</text>
-      </view>
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-orange">{{formattedOverview.totalPending}}</text>
-        <text class="stat-label">待付款</text>
-      </view>
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-purple">{{formattedOverview.totalPrepaid}}</text>
-        <text class="stat-label">预付款</text>
+      <view class="overview-row">
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-orange">{{formattedOverview.totalPending}}</text>
+          <text class="stat-label">待付款</text>
+        </view>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-purple">{{formattedOverview.totalPrepaid}}</text>
+          <text class="stat-label">预付款</text>
+        </view>
       </view>
     </view>
     
@@ -35,11 +40,6 @@
       <view class="farmer-stat-item">
         <text class="farmer-count farmer-count-orange">{{overview.pendingAuditCount}}</text>
         <text class="farmer-label">待审核</text>
-      </view>
-      <view class="farmer-stat-divider"></view>
-      <view class="farmer-stat-item">
-        <text class="farmer-count farmer-count-purple">{{overview.payingCount}}</text>
-        <text class="farmer-label">支付中</text>
       </view>
     </view>
   </view>
@@ -78,8 +78,7 @@
       <view class="tab-badge" wx:if="{{index === 0}}">{{counts.all}}</view>
       <view class="tab-badge tab-badge-orange" wx:if="{{index === 1}}">{{counts.pending}}</view>
       <view class="tab-badge tab-badge-blue" wx:if="{{index === 2}}">{{counts.approved}}</view>
-      <view class="tab-badge tab-badge-purple" wx:if="{{index === 3}}">{{counts.paying}}</view>
-      <view class="tab-badge tab-badge-green" wx:if="{{index === 4}}">{{counts.completed}}</view>
+      <view class="tab-badge tab-badge-green" wx:if="{{index === 3}}">{{counts.completed}}</view>
     </view>
   </view>
 

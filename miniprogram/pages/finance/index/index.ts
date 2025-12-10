@@ -34,8 +34,8 @@ Page({
     },
     
     // Tab切换
-    currentTab: 0,  // 0:全部 1:待审核 2:待支付 3:支付中 4:已完成
-    tabs: ['全部', '待审核', '待支付', '支付中', '已完成'],
+    currentTab: 0,  // 0:全部 1:待审核 2:待支付 3:已完成
+    tabs: ['全部', '待审核', '待支付', '已完成'],
     
     // 结算列表
     allSettlements: [] as Settlement[],
@@ -49,7 +49,6 @@ Page({
       all: 0,
       pending: 0,
       approved: 0,
-      paying: 0,
       completed: 0
     }
   },
@@ -93,12 +92,11 @@ Page({
         : 0
     }));
     
-    // 统计各状态数量
+    // 统计各状态数量（支付中合并到待支付）
     const counts = {
       all: allSettlements.length,
       pending: allSettlements.filter(s => s.auditStatus === 'pending').length,
-      approved: allSettlements.filter(s => s.auditStatus === 'approved').length,
-      paying: allSettlements.filter(s => s.auditStatus === 'paying').length,
+      approved: allSettlements.filter(s => s.auditStatus === 'approved' || s.auditStatus === 'paying').length,
       completed: allSettlements.filter(s => s.auditStatus === 'completed').length
     };
 
@@ -143,14 +141,12 @@ Page({
     let settlements = [...this.data.allSettlements];
     const searchValue = this.data.searchValue.trim().toLowerCase();
     
-    // 按状态过滤
+    // 按状态过滤（支付中合并到待支付）
     if (tab === 1) {
       settlements = settlements.filter(s => s.auditStatus === 'pending');
     } else if (tab === 2) {
-      settlements = settlements.filter(s => s.auditStatus === 'approved');
+      settlements = settlements.filter(s => s.auditStatus === 'approved' || s.auditStatus === 'paying');
     } else if (tab === 3) {
-      settlements = settlements.filter(s => s.auditStatus === 'paying');
-    } else if (tab === 4) {
       settlements = settlements.filter(s => s.auditStatus === 'completed');
     }
     
