@@ -1,8 +1,11 @@
 {
-  "navigationBarTitleText": "财务结算",
+  "navigationBarTitleText": "结算管理",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 100,
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-tag": "tdesign-miniprogram/tag/tag",
-    "t-empty": "tdesign-miniprogram/empty/empty"
+    "t-empty": "tdesign-miniprogram/empty/empty",
+    "t-loading": "tdesign-miniprogram/loading/loading"
   }
 }

@@ -418,205 +418,166 @@ export const MOCK_INVENTORY: InventoryItem[] = [
 
 // ==================== 结算数据 ====================
 
-export const MOCK_SETTLEMENTS: Settlement[] = [
-  // 已完成结算
-  {
-    id: '401',
-    farmerId: '1',
-    farmerName: '张三',
-    farmerPhone: '13812345601',
-    totalAcquisitionAmount: 12000,
-    seedDeduction: 300,
-    fertilizerDeduction: 150,
-    otherDeduction: 50,
-    totalDeduction: 500,
-    calculatedPayment: 11500,
-    adjustedPayment: 11500,
-    finalPayment: 11500,
-    prepayments: [
-      { id: 'pre_001', amount: 2000, paymentTime: '2025-06-15', operator: '李会计', remark: '预付定金' }
-    ],
-    totalPrepaid: 2000,
-    payments: [
-      { id: 'pay_001', amount: 5000, paymentTime: '2025-11-02 09:30', paymentMethod: '银行转账', operator: '王出纳', remark: '第一笔' },
-      { id: 'pay_002', amount: 4500, paymentTime: '2025-11-03 14:20', paymentMethod: '银行转账', operator: '王出纳', remark: '尾款' }
-    ],
-    totalPaid: 11500,
-    remainingPayment: 0,
-    auditStatus: 'completed',
-    auditor: '李会计',
-    auditTime: '2025-11-01 16:00',
-    auditRemark: '核对无误',
-    date: '2025-11-01',
-    relatedAcquisitionIds: ['301'],
-    createTime: '2025-11-01 10:00',
-    status: 'paid',
-    deductions: 500,
-    paymentTime: '2025-11-02',
-    paymentMethod: '银行转账'
-  },
-  // 支付中（分批支付）
-  {
-    id: '402',
-    farmerId: '2',
-    farmerName: '李四',
-    farmerPhone: '13812345602',
-    totalAcquisitionAmount: 28600,
-    seedDeduction: 800,
-    fertilizerDeduction: 450,
-    otherDeduction: 0,
-    totalDeduction: 1250,
-    calculatedPayment: 27350,
-    adjustedPayment: 27350,
-    finalPayment: 27350,
-    prepayments: [],
-    totalPrepaid: 0,
-    payments: [
-      { id: 'pay_003', amount: 10000, paymentTime: '2025-12-05 10:15', paymentMethod: '银行转账', operator: '王出纳', remark: '第一批' },
-      { id: 'pay_004', amount: 8000, paymentTime: '2025-12-06 11:00', paymentMethod: '银行转账', operator: '王出纳', remark: '第二批' }
-    ],
-    totalPaid: 18000,
-    remainingPayment: 9350,
-    auditStatus: 'paying',
-    auditor: '李会计',
-    auditTime: '2025-12-04 15:30',
-    auditRemark: '已审核通过',
-    date: '2025-12-04',
-    relatedAcquisitionIds: ['302'],
-    createTime: '2025-12-04 09:00',
-    status: 'unpaid',
-    deductions: 1250
-  },
-  // 已审核待支付
-  {
-    id: '403',
-    farmerId: '3',
-    farmerName: '王五',
-    farmerPhone: '13812345603',
-    totalAcquisitionAmount: 45200,
-    seedDeduction: 1200,
-    fertilizerDeduction: 680,
-    otherDeduction: 120,
-    totalDeduction: 2000,
-    calculatedPayment: 43200,
-    adjustedPayment: 43000,
-    finalPayment: 43000,
-    prepayments: [
-      { id: 'pre_002', amount: 3000, paymentTime: '2025-07-20', operator: '李会计', remark: '种苗预付' }
-    ],
-    totalPrepaid: 3000,
-    payments: [],
-    totalPaid: 0,
-    remainingPayment: 43000,
-    auditStatus: 'approved',
-    auditor: '李会计',
-    auditTime: '2025-12-08 14:00',
-    auditRemark: '调整扣减200元（种苗差价）',
-    date: '2025-12-08',
-    relatedAcquisitionIds: ['303'],
-    createTime: '2025-12-08 10:00',
-    status: 'unpaid',
-    deductions: 2000
-  },
-  // 待审核
-  {
-    id: '404',
-    farmerId: '5',
-    farmerName: '钱七',
-    farmerPhone: '13812345605',
-    totalAcquisitionAmount: 18500,
-    seedDeduction: 520,
-    fertilizerDeduction: 280,
-    otherDeduction: 0,
-    totalDeduction: 800,
-    calculatedPayment: 17700,
-    adjustedPayment: 17700,
-    finalPayment: 17700,
-    prepayments: [],
-    totalPrepaid: 0,
-    payments: [],
-    totalPaid: 0,
-    remainingPayment: 17700,
-    auditStatus: 'pending',
-    date: '2025-12-10',
-    relatedAcquisitionIds: ['304'],
-    createTime: '2025-12-10 08:30',
-    status: 'unpaid',
-    deductions: 800
-  },
-  // 更多待审核
-  {
-    id: '405',
-    farmerId: '6',
-    farmerName: '赵六',
-    farmerPhone: '13812345606',
-    totalAcquisitionAmount: 32800,
-    seedDeduction: 900,
-    fertilizerDeduction: 450,
-    otherDeduction: 50,
-    totalDeduction: 1400,
-    calculatedPayment: 31400,
-    adjustedPayment: 31400,
-    finalPayment: 31400,
-    prepayments: [
-      { id: 'pre_003', amount: 5000, paymentTime: '2025-08-01', operator: '李会计', remark: '农资预付' }
-    ],
-    totalPrepaid: 5000,
-    payments: [],
-    totalPaid: 0,
-    remainingPayment: 31400,
-    auditStatus: 'pending',
-    date: '2025-12-10',
-    relatedAcquisitionIds: ['305'],
-    createTime: '2025-12-10 09:15',
-    status: 'unpaid',
-    deductions: 1400
-  },
-  // 已完成（第二个）
-  {
-    id: '406',
-    farmerId: '7',
-    farmerName: '孙八',
-    farmerPhone: '13812345607',
-    totalAcquisitionAmount: 22000,
-    seedDeduction: 600,
-    fertilizerDeduction: 350,
-    otherDeduction: 50,
-    totalDeduction: 1000,
-    calculatedPayment: 21000,
-    adjustedPayment: 21000,
-    finalPayment: 21000,
-    prepayments: [],
-    totalPrepaid: 0,
-    payments: [
-      { id: 'pay_005', amount: 21000, paymentTime: '2025-11-28 16:45', paymentMethod: '银行转账', operator: '王出纳', remark: '一次性结清' }
-    ],
-    totalPaid: 21000,
-    remainingPayment: 0,
-    auditStatus: 'completed',
-    auditor: '李会计',
-    auditTime: '2025-11-27 10:30',
-    date: '2025-11-27',
-    relatedAcquisitionIds: ['306'],
-    createTime: '2025-11-27 08:00',
-    status: 'paid',
-    deductions: 1000,
-    paymentTime: '2025-11-28',
-    paymentMethod: '银行转账'
+// 农户姓氏库
+const SURNAMES = ['张', '李', '王', '刘', '陈', '杨', '黄', '赵', '周', '吴', '徐', '孙', '马', '朱', '胡', '郭', '何', '林', '罗', '郑'];
+const NAMES = ['伟', '强', '芳', '敏', '静', '秀英', '丽', '娜', '军', '磊', '洋', '勇', '艳', '杰', '涛', '明', '超', '华', '平', '建国'];
+
+// 审核状态分布（模拟7000农户）
+const STATUS_DISTRIBUTION = {
+  completed: 4280,  // 已完成 61%
+  approved: 1536,   // 待支付 22%
+  paying: 328,      // 支付中 5%
+  pending: 856      // 待审核 12%
+};
+
+/**
+ * 生成模拟结算数据
+ * @param count 生成数量
+ * @param status 结算状态
+ * @param startId 起始ID
+ */
+function generateSettlements(count: number, status: string, startId: number): Settlement[] {
+  const settlements: Settlement[] = [];
+  
+  for (let i = 0; i < count; i++) {
+    const id = startId + i;
+    const surname = SURNAMES[Math.floor(Math.random() * SURNAMES.length)];
+    const name = NAMES[Math.floor(Math.random() * NAMES.length)];
+    const farmerName = surname + name;
+    
+    // 随机生成金额（1万-10万）
+    const totalAcquisition = Math.floor(10000 + Math.random() * 90000);
+    const seedDeduction = Math.floor(totalAcquisition * 0.03);
+    const fertilizerDeduction = Math.floor(totalAcquisition * 0.02);
+    const otherDeduction = Math.floor(Math.random() * 200);
+    const totalDeduction = seedDeduction + fertilizerDeduction + otherDeduction;
+    const finalPayment = totalAcquisition - totalDeduction;
+    
+    // 根据状态设置支付信息
+    let totalPaid = 0;
+    let payments: any[] = [];
+    let prepayments: any[] = [];
+    const hasPrepayment = Math.random() > 0.7;
+    const prepaidAmount = hasPrepayment ? Math.floor(1000 + Math.random() * 4000) : 0;
+    
+    if (hasPrepayment) {
+      prepayments = [{ id: `pre_${id}`, amount: prepaidAmount, paymentTime: '2025-07-15', operator: '李会计', remark: '预付款' }];
+    }
+    
+    if (status === 'completed') {
+      totalPaid = finalPayment;
+      payments = [{ id: `pay_${id}`, amount: finalPayment, paymentTime: '2025-11-20 10:00', paymentMethod: '银行转账', operator: '王出纳', remark: '结清' }];
+    } else if (status === 'paying') {
+      totalPaid = Math.floor(finalPayment * 0.6);
+      payments = [{ id: `pay_${id}`, amount: totalPaid, paymentTime: '2025-12-05 10:00', paymentMethod: '银行转账', operator: '王出纳', remark: '第一批' }];
+    }
+    
+    // 生成日期（最近30天内）
+    const daysAgo = Math.floor(Math.random() * 30);
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    settlements.push({
+      id: `S${id}`,
+      farmerId: `F${id}`,
+      farmerName,
+      farmerPhone: `138${String(10000000 + id).slice(-8)}`,
+      totalAcquisitionAmount: totalAcquisition,
+      seedDeduction,
+      fertilizerDeduction,
+      otherDeduction,
+      totalDeduction,
+      calculatedPayment: finalPayment,
+      adjustedPayment: finalPayment,
+      finalPayment,
+      prepayments,
+      totalPrepaid: prepaidAmount,
+      payments,
+      totalPaid,
+      remainingPayment: finalPayment - totalPaid,
+      auditStatus: status as any,
+      auditor: status !== 'pending' ? '李会计' : undefined,
+      auditTime: status !== 'pending' ? `${dateStr} 14:00` : undefined,
+      date: dateStr,
+      relatedAcquisitionIds: [`A${id}`],
+      createTime: `${dateStr} 09:00`,
+      status: status === 'completed' ? 'paid' : 'unpaid',
+      deductions: totalDeduction
+    });
   }
+  
+  return settlements;
+}
+
+// 生成各状态的结算数据（每种状态生成一部分用于展示）
+const MOCK_SETTLEMENTS_COMPLETED = generateSettlements(50, 'completed', 1000);
+const MOCK_SETTLEMENTS_APPROVED = generateSettlements(30, 'approved', 2000);
+const MOCK_SETTLEMENTS_PAYING = generateSettlements(20, 'paying', 3000);
+const MOCK_SETTLEMENTS_PENDING = generateSettlements(40, 'pending', 4000);
+
+// 合并所有结算数据
+export const MOCK_SETTLEMENTS: Settlement[] = [
+  ...MOCK_SETTLEMENTS_PENDING,
+  ...MOCK_SETTLEMENTS_APPROVED,
+  ...MOCK_SETTLEMENTS_PAYING,
+  ...MOCK_SETTLEMENTS_COMPLETED
 ];
 
-/** 结算汇总统计（管理层视图） */
+/** 结算汇总统计（管理层视图）- 反映7000农户的真实规模 */
 export const MOCK_SETTLEMENT_OVERVIEW: SettlementOverviewStats = {
   totalFarmerCount: 7000,
-  settledFarmerCount: 4280,
-  pendingAuditCount: 856,
-  payingCount: 124,
-  totalPayable: 12560000,
-  totalPaid: 9850000,
-  totalPending: 2710000,
-  totalPrepaid: 1256000
+  settledFarmerCount: 4280,      // 已完成结算
+  pendingAuditCount: 856,        // 待审核
+  payingCount: 0,                // 支付中（已合并到待支付）
+  totalPayable: 125600000,       // 应付款 1.256亿
+  totalPaid: 98500000,           // 已付款 9850万
+  totalPending: 27100000,        // 待付款 2710万
+  totalPrepaid: 12560000         // 预付款 1256万
 };
+
+/**
+ * 分页获取结算数据
+ * @param page 页码（从1开始）
+ * @param pageSize 每页条数
+ * @param status 状态筛选（可选）
+ * @param keyword 搜索关键词（可选）
+ */
+export function getSettlementsByPage(
+  page: number, 
+  pageSize: number, 
+  status?: string, 
+  keyword?: string
+): { list: Settlement[], total: number, hasMore: boolean } {
+  let filtered = [...MOCK_SETTLEMENTS];
+  
+  // 状态筛选
+  if (status && status !== 'all') {
+    if (status === 'approved') {
+      // 待支付包含 approved 和 paying
+      filtered = filtered.filter(s => s.auditStatus === 'approved' || s.auditStatus === 'paying');
+    } else {
+      filtered = filtered.filter(s => s.auditStatus === status);
+    }
+  }
+  
+  // 关键词搜索
+  if (keyword) {
+    const kw = keyword.toLowerCase();
+    filtered = filtered.filter(s => 
+      s.farmerName.toLowerCase().includes(kw) ||
+      (s.farmerPhone && s.farmerPhone.includes(kw))
+    );
+  }
+  
+  const total = filtered.length;
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  const list = filtered.slice(start, end);
+  const hasMore = end < total;
+  
+  return { list, total, hasMore };
+}
 
 // ==================== 统计数据 ====================
 

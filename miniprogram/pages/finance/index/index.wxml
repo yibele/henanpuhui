@@ -159,9 +159,24 @@
   </view>
 
   <!-- 空状态 -->
-  <view class="empty-state" wx:else>
+  <view class="empty-state" wx:if="{{!isLoading && settlements.length === 0}}">
     <t-icon name="folder-open" size="120rpx" color="#d1d5db" />
     <text class="empty-text">暂无结算记录</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="loading-more" wx:if="{{isLoading}}">
+    <t-loading theme="circular" size="40rpx" text="加载中..." />
+  </view>
+  
+  <!-- 加载完成提示 -->
+  <view class="load-complete" wx:if="{{!hasMore && settlements.length > 0}}">
+    <text>已加载全部 {{total}} 条记录</text>
+  </view>
+  
+  <!-- 数据统计提示 -->
+  <view class="list-info" wx:if="{{settlements.length > 0 && !isLoading}}">
+    <text>当前显示 {{settlements.length}} / {{total}} 条</text>
   </view>
 
   <!-- 底部间距 -->

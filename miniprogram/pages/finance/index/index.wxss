@@ -451,6 +451,32 @@
   margin-top: 24rpx;
 }
 
+/* ==================== 加载状态 ==================== */
+
+.loading-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32rpx 0;
+}
+
+.load-complete {
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.list-info {
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 22rpx;
+  color: #9ca3af;
+  background-color: #f9fafb;
+  border-radius: 8rpx;
+  margin-top: 16rpx;
+}
+
 /* ==================== 底部间距 ==================== */
 
 .bottom-space {
