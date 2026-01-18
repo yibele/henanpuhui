@@ -61,12 +61,19 @@ Page({
     wx.showLoading({ title: '加载中...' });
 
     try {
-      // 获取当前用户信息（可能为空，云函数已支持）
+      // 获取当前用户信息
       const globalData = (app.globalData as any) || {};
       const userInfo = globalData.currentUser || {};
-      const userId = userInfo._id || '';
+      // 兼容 id 和 _id（登录时保存的是 id）
+      const userId = userInfo.id || userInfo._id || '';
 
-      console.log('[seed-add] 加载农户列表, userId:', userId);
+      console.log('[seed-add] 加载农户列表, userId:', userId, 'userInfo:', userInfo);
+
+      if (!userId) {
+        wx.hideLoading();
+        wx.showToast({ title: '请先登录', icon: 'none' });
+        return;
+      }
 
       // 调用云函数获取农户列表
       const res = await wx.cloud.callFunction({
