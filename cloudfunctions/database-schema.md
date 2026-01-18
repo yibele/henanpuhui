@@ -191,7 +191,70 @@
 
 ---
 
-### 4. seed_records - 种苗发放记录表
+### 4. business_records - 业务记录表
+
+**集合名称：** `business_records`
+
+**说明：** 记录农户相关的业务变更，包括追加签约、追加定金、预付款等
+
+**字段结构：**
+
+```javascript
+{
+  _id: "auto_generated",
+  recordId: "BIZ_20260118_0001",     // 业务记录编号
+  
+  // 关联信息
+  farmerId: "farmer_xxx",            // 农户ID
+  farmerName: "张三",                 // 农户姓名（冗余）
+  
+  // 记录类型
+  type: "addendum",                  // 类型：addendum(追加签约) / deposit(追加定金) / advance(预付款) / fertilizer(发放化肥) / pesticide(发放农药)
+  
+  // ========== 追加签约类型专用字段 ==========
+  addedAcreage: 5,                   // 追加面积（亩）
+  addedSeedTotal: 4.6,               // 追加种苗（万株）
+  addedSeedUnitPrice: 3000,          // 种苗单价（元/万株）
+  addedReceivable: 13800,            // 追加应收款（元）
+  addedDeposit: 2000,                // 追加定金（元）
+  
+  // 追加后的累计值（快照，便于追溯）
+  snapshotAcreage: 15,               // 追加后总面积
+  snapshotDeposit: 6000,             // 追加后总定金
+  snapshotSeedTotal: 13.9,           // 追加后总种苗
+  snapshotReceivable: 41700,         // 追加后总应收
+  
+  // ========== 定金/预付款类型专用字段 ==========
+  amount: 2000,                      // 金额（元）
+  paymentMethod: "cash",             // 支付方式：cash/wechat/transfer
+  
+  // ========== 发放化肥/农药类型专用字段 ==========
+  itemName: "复合肥",                 // 物品名称
+  quantity: 10,                      // 数量
+  unit: "袋",                        // 单位
+  unitPrice: 150,                    // 单价
+  totalAmount: 1500,                 // 总金额
+  
+  // 通用字段
+  remark: "二次扩种",                 // 备注
+  
+  // 操作信息
+  createTime: Date,                  // 创建时间
+  createBy: "user_xxx",              // 操作人ID
+  createByName: "张助理"              // 操作人姓名
+}
+```
+
+**索引：**
+- `recordId`: 唯一索引
+- `farmerId`: 普通索引（查询农户的业务记录）
+- `type`: 普通索引（按类型筛选）
+- `createTime`: 普通索引（按时间排序）
+- `createBy`: 普通索引（查询助理的操作记录）
+
+---
+
+### 5. seed_records - 种苗发放记录表
 
 **集合名称：** `seed_records`
 

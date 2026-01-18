@@ -688,8 +688,8 @@ Page({
   /**
    * 提交追加签约信息
    */
-  onSubmitAcreage() {
-    const { farmer, acreageForm, currentUser, businessRecords } = this.data;
+  async onSubmitAcreage() {
+    const { farmer, acreageForm, currentUser, businessRecords, farmerId } = this.data;
     if (!farmer) return;
 
     const addedAcreage = parseFloat(acreageForm.acreage);
@@ -698,48 +698,82 @@ Page({
       return;
     }
 
-    // 计算新值
-    const newAcreage = (farmer.acreage || 0) + addedAcreage;
+    // 准备数据
     const addedSeedTotal = parseFloat(acreageForm.seedTotal) || 0;
+    const addedSeedUnitPrice = parseFloat(acreageForm.seedUnitPrice) || 0;
+    const addedReceivable = acreageForm.receivableAmount || 0;
     const addedDeposit = acreageForm.addDeposit ? (parseFloat(acreageForm.deposit) || 0) : 0;
 
-    // 构建描述信息
-    let descParts: string[] = [];
-    descParts.push(`面积 +${addedAcreage} 亩`);
-    if (addedSeedTotal > 0) {
-      descParts.push(`种苗 +${addedSeedTotal} 万株`);
+    wx.showLoading({ title: '保存中...' });
+
+    try {
+      // 获取当前用户信息
+      const userInfo = app.globalData.currentUser as any;
+      const userId = userInfo?._id || '';
+      const userName = userInfo?.name || currentUser;
+
+      // 调用云函数
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'addendum',
+          userId,
+          userName,
+          farmerId: farmer.id || farmerId,
+          data: {
+            addedAcreage,
+            addedSeedTotal,
+            addedSeedUnitPrice,
+            addedReceivable,
+            addedDeposit,
+            remark: acreageForm.remark
+          }
+        }
+      });
+
+      const result = res.result as any;
+      wx.hideLoading();
+
+      if (result.success) {
+        // 构建描述信息
+        let descParts: string[] = [];
+        descParts.push(`面积 +${addedAcreage} 亩`);
+        if (addedSeedTotal > 0) {
+          descParts.push(`种苗 +${addedSeedTotal} 万株`);
+        }
+        if (addedDeposit > 0) {
+          descParts.push(`定金 +¥${addedDeposit}`);
+        }
+        if (addedReceivable > 0) {
+          descParts.push(`应收 +¥${addedReceivable}`);
+        }
+
+        // 更新本地数据
+        const newRecord = {
+          id: `acreage_${Date.now()}`,
+          type: 'acreage',
+          date: getTodayDate(),
+          name: '追加签约',
+          desc: descParts.join('，'),
+          operator: currentUser,
+          remark: acreageForm.remark
+        };
+
+        this.setData({
+          'farmer.acreage': result.data.newAcreage,
+          'farmer.deposit': result.data.newDeposit,
+          businessRecords: [newRecord, ...businessRecords],
+          acreagePopupVisible: false
+        });
+
+        wx.showToast({ title: '追加成功', icon: 'success' });
+      } else {
+        wx.showToast({ title: result.message || '追加失败', icon: 'none' });
+      }
+    } catch (error: any) {
+      wx.hideLoading();
+      console.error('追加签约失败:', error);
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
     }
-    if (addedDeposit > 0) {
-      descParts.push(`定金 +¥${addedDeposit}`);
-    }
-    if (acreageForm.receivableAmount > 0) {
-      descParts.push(`应收 +¥${acreageForm.receivableAmount}`);
-    }
-
-    // 记录业务往来
-    const newRecord = {
-      id: `acreage_${Date.now()}`,
-      type: 'acreage',
-      date: getTodayDate(),
-      name: '追加签约',
-      desc: descParts.join('，'),
-      operator: currentUser,
-      remark: acreageForm.remark
-    };
-
-    // 更新农户数据
-    const updates: any = {
-      'farmer.acreage': newAcreage,
-      businessRecords: [newRecord, ...businessRecords],
-      acreagePopupVisible: false
-    };
-
-    if (addedDeposit > 0) {
-      updates['farmer.deposit'] = (farmer.deposit || 0) + addedDeposit;
-    }
-
-    this.setData(updates);
-
-    wx.showToast({ title: '追加成功', icon: 'success' });
   }
 });

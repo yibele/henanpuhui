@@ -80,7 +80,7 @@ async function createFarmer(event) {
     const existingPhone = await db.collection('farmers')
       .where({ phone, isDeleted: false })
       .count();
-    
+
     if (existingPhone.total > 0) {
       return {
         success: false,
@@ -92,7 +92,7 @@ async function createFarmer(event) {
     const existingIdCard = await db.collection('farmers')
       .where({ idCard, isDeleted: false })
       .count();
-    
+
     if (existingIdCard.total > 0) {
       return {
         success: false,
@@ -102,7 +102,7 @@ async function createFarmer(event) {
 
     // 获取当前用户信息
     const userRes = await db.collection('users').doc(userId).get();
-    
+
     if (!userRes.data) {
       return {
         success: false,
@@ -229,7 +229,7 @@ async function listFarmers(event) {
   try {
     // 获取用户信息，判断权限
     const userRes = await db.collection('users').doc(userId).get();
-    
+
     if (!userRes.data) {
       return {
         success: false,
@@ -443,6 +443,127 @@ async function deleteFarmer(event) {
 }
 
 /**
+ * 追加签约信息
+ * 更新农户累计值 + 写入业务记录表
+ */
+async function addFarmerAddendum(event) {
+  const { userId, userName, farmerId, data } = event;
+
+  if (!userId || !farmerId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  const {
+    addedAcreage,        // 追加面积
+    addedSeedTotal,      // 追加种苗（万株）
+    addedSeedUnitPrice,  // 种苗单价
+    addedReceivable,     // 追加应收款
+    addedDeposit,        // 追加定金
+    remark
+  } = data;
+
+  // 验证追加面积
+  const acreage = parseFloat(addedAcreage) || 0;
+  if (acreage <= 0) {
+    return {
+      success: false,
+      message: '请输入有效的追加面积'
+    };
+  }
+
+  try {
+    // 1. 获取当前农户信息
+    const farmerRes = await db.collection('farmers')
+      .where({ _id: farmerId, isDeleted: false })
+      .get();
+
+    if (farmerRes.data.length === 0) {
+      return {
+        success: false,
+        message: '农户不存在'
+      };
+    }
+
+    const farmer = farmerRes.data[0];
+
+    // 2. 计算新的累计值
+    const seedTotal = parseFloat(addedSeedTotal) || 0;
+    const seedUnitPrice = parseFloat(addedSeedUnitPrice) || 0;
+    const receivable = parseFloat(addedReceivable) || (seedTotal * seedUnitPrice);
+    const deposit = parseFloat(addedDeposit) || 0;
+
+    const newAcreage = (farmer.acreage || 0) + acreage;
+    const newSeedTotal = (farmer.seedTotal || 0) + seedTotal;
+    const newReceivable = (farmer.receivableAmount || 0) + receivable;
+    const newDeposit = (farmer.deposit || 0) + deposit;
+
+    // 3. 更新农户主表
+    await db.collection('farmers').doc(farmerId).update({
+      data: {
+        acreage: newAcreage,
+        seedTotal: newSeedTotal,
+        receivableAmount: newReceivable,
+        deposit: newDeposit,
+        updateTime: db.serverDate()
+      }
+    });
+
+    // 4. 生成业务记录编号
+    const now = new Date();
+    const recordId = `BIZ_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+    // 5. 写入业务记录表
+    await db.collection('business_records').add({
+      data: {
+        recordId,
+        farmerId,
+        farmerName: farmer.name,
+        type: 'addendum',
+
+        // 追加内容
+        addedAcreage: acreage,
+        addedSeedTotal: seedTotal,
+        addedSeedUnitPrice: seedUnitPrice,
+        addedReceivable: receivable,
+        addedDeposit: deposit,
+
+        // 追加后的快照
+        snapshotAcreage: newAcreage,
+        snapshotSeedTotal: newSeedTotal,
+        snapshotReceivable: newReceivable,
+        snapshotDeposit: newDeposit,
+
+        remark: remark || '',
+        createTime: db.serverDate(),
+        createBy: userId,
+        createByName: userName || ''
+      }
+    });
+
+    return {
+      success: true,
+      message: '追加成功',
+      data: {
+        newAcreage,
+        newSeedTotal,
+        newReceivable,
+        newDeposit
+      }
+    };
+
+  } catch (error) {
+    console.error('追加签约失败:', error);
+    return {
+      success: false,
+      message: error.message || '追加签约失败'
+    };
+  }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -451,19 +572,22 @@ exports.main = async (event, context) => {
   switch (action) {
     case 'create':
       return await createFarmer(event);
-    
+
     case 'get':
       return await getFarmer(event);
-    
+
     case 'list':
       return await listFarmers(event);
-    
+
     case 'update':
       return await updateFarmer(event);
-    
+
     case 'delete':
       return await deleteFarmer(event);
-    
+
+    case 'addendum':
+      return await addFarmerAddendum(event);
+
     default:
       return {
         success: false,
