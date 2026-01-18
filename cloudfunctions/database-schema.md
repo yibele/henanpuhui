@@ -127,6 +127,12 @@
   // 种植信息
   acreage: 10,                       // 种植面积（亩）
   
+  // 农户等级（用于统计各等级占比）
+  grade: "gold",                     // 等级：gold(金牌)/silver(银牌)/bronze(铜牌)
+  
+  // 定金信息
+  deposit: 4000,                     // 定金（元）
+  
   // 负责人信息（助理）
   firstManager: "李助理",             // 第一负责人（必填）
   firstManagerId: "user_id_123",     // 第一负责人用户ID
