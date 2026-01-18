@@ -1,7 +1,6 @@
 <!--
   发放种苗页面
   助理录入种苗发放信息
-  每个农户支持10次录入
 -->
 <view class="seed-add-page">
   <!-- 页面标题 -->
@@ -22,9 +21,9 @@
         <view class="farmer-info" wx:if="{{selectedFarmer}}">
           <text class="farmer-name">{{selectedFarmer.name}}</text>
           <text class="farmer-phone">{{selectedFarmer.phone}}</text>
-          <view class="farmer-record-count">
-            <text class="record-label">已发放</text>
-            <text class="record-value {{recordCount >= 10 ? 'full' : ''}}">{{recordCount}}/10次</text>
+          <view class="farmer-acreage-info">
+            <text class="acreage-label">签约面积</text>
+            <text class="acreage-value">{{selectedFarmer.acreage || 0}} 亩</text>
           </view>
         </view>
         <view class="farmer-placeholder" wx:else>
@@ -32,12 +31,6 @@
           <text>点击选择农户</text>
         </view>
         <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
-      </view>
-      
-      <!-- 已达上限提示 -->
-      <view class="limit-warning" wx:if="{{selectedFarmer && recordCount >= 10}}">
-        <t-icon name="error-circle" size="32rpx" color="#dc2626" />
-        <text>该农户已达到10次发放上限</text>
       </view>
     </view>
   </view>
@@ -109,7 +102,10 @@
       
       <!-- 已发放面积 -->
       <view class="form-item">
-        <text class="form-label required">已发放面积（亩）</text>
+        <view class="form-label-row">
+          <text class="form-label required">已发放面积（亩）</text>
+          <text class="form-hint" wx:if="{{selectedFarmer}}">/ 总面积 {{selectedFarmer.acreage || 0}} 亩</text>
+        </view>
         <view class="input-with-unit">
           <input 
             class="form-input"
@@ -182,10 +178,6 @@
   <view class="tips">
     <view class="tip-item">
       <t-icon name="info-circle-filled" size="28rpx" color="#059669" />
-      <text>每个农户最多支持10次种苗发放记录</text>
-    </view>
-    <view class="tip-item">
-      <t-icon name="info-circle-filled" size="28rpx" color="#059669" />
       <text>已发放金额自动计算：发放数量（株）× 单价（元/株）</text>
     </view>
   </view>
@@ -255,9 +247,16 @@
           </view>
         </view>
         <view class="farmer-item-right">
-          <view class="item-record-count {{item.seedRecordCount >= 10 ? 'full' : ''}}">
-            {{item.seedRecordCount || 0}}/10次
+          <view class="item-acreage">
+            {{item.acreage || 0}} 亩
           </view>
+          <t-icon 
+            wx:if="{{selectedFarmer.id === item.id}}" 
+            name="check-circle-filled" 
+            size="44rpx" 
+            color="#059669" 
+          />
+        </view>
           <t-icon 
             wx:if="{{selectedFarmer.id === item.id}}" 
             name="check-circle-filled" 

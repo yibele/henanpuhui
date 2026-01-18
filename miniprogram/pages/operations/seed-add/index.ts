@@ -36,8 +36,6 @@ Page({
     searchValue: '',
     // 选中的农户
     selectedFarmer: null as any,
-    // 该农户已发放次数
-    recordCount: 0,
     // 选择农户弹窗
     showFarmerPopup: false,
     // 日期选择器
@@ -225,11 +223,9 @@ Page({
    */
   onSelectFarmer(e: WechatMiniprogram.TouchEvent) {
     const farmer = e.currentTarget.dataset.farmer;
-    const recordCount = farmer.seedRecordCount || 0;
 
     this.setData({
       selectedFarmer: farmer,
-      recordCount,
       showFarmerPopup: false,
       searchValue: '',
       // 自动填充领取人为农户姓名
@@ -370,12 +366,11 @@ Page({
    * 检查是否可以提交
    */
   checkCanSubmit() {
-    const { form, selectedFarmer, recordCount } = this.data;
+    const { form, selectedFarmer } = this.data;
 
     // 检查必填字段
     const canSubmit = !!(
       selectedFarmer &&
-      recordCount < 10 &&
       form.distributeTime &&
       form.quantity && parseInt(form.quantity) > 0 &&
       form.unitPrice && parseFloat(form.unitPrice) > 0 &&
@@ -396,13 +391,7 @@ Page({
   async onSubmit() {
     if (!this.data.canSubmit || this.data.submitting) return;
 
-    const { form, selectedFarmer, recordCount, calculatedAmount } = this.data;
-
-    // 二次验证
-    if (recordCount >= 10) {
-      wx.showToast({ title: '该农户已达10次发放上限', icon: 'none' });
-      return;
-    }
+    const { form, selectedFarmer, calculatedAmount } = this.data;
 
     this.setData({ submitting: true });
 
@@ -430,7 +419,7 @@ Page({
             receiverName: form.receiverName.trim(),      // 领取人
             receiveLocation: form.receiveLocation.trim(), // 领取地点
             managerName: form.managerName.trim(),        // 发苗负责人
-            remark: `第${recordCount + 1}次发放，领取人：${form.receiverName}，地点：${form.receiveLocation}`
+            remark: `领取人：${form.receiverName}，地点：${form.receiveLocation}`
           }
         }
       });

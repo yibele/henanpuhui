@@ -189,30 +189,42 @@
   margin-top: 4rpx;
 }
 
-.farmer-record-count {
+.farmer-acreage-info {
   display: flex;
   align-items: center;
   margin-top: 8rpx;
 }
 
-.record-label {
+.acreage-label {
   font-size: 24rpx;
   color: #9ca3af;
   margin-right: 8rpx;
 }
 
-.record-value {
+.acreage-value {
   font-size: 24rpx;
   font-weight: 600;
-  color: #059669;
-  background-color: #d1fae5;
+  color: #2563eb;
+  background-color: #dbeafe;
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
 }
 
-.record-value.full {
-  color: #dc2626;
-  background-color: #fee2e2;
+.form-label-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.form-label-row .form-label {
+  margin-bottom: 0;
+}
+
+.form-hint {
+  font-size: 24rpx;
+  color: #2563eb;
+  font-weight: 500;
 }
 
 .farmer-placeholder {
@@ -498,17 +510,13 @@
   gap: 8rpx;
 }
 
-.item-record-count {
-  font-size: 22rpx;
-  color: #059669;
-  background-color: #d1fae5;
-  padding: 4rpx 10rpx;
+.item-acreage {
+  font-size: 24rpx;
+  color: #2563eb;
+  background-color: #dbeafe;
+  padding: 4rpx 12rpx;
   border-radius: 6rpx;
-}
-
-.item-record-count.full {
-  color: #dc2626;
-  background-color: #fee2e2;
+  font-weight: 500;
 }
 
 /* 空状态 */
