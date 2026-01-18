@@ -29,17 +29,6 @@ Page({
     // 业务记录
     businessRecords: [] as any[],
 
-    // ========== 发放种苗 ==========
-    seedPopupVisible: false,
-    seedForm: {
-      date: getTodayDate(),
-      quantity: '',
-      price: '',
-      amount: 0,
-      receiver: '',
-      location: ''
-    },
-
     // ========== 发放化肥 ==========
     fertilizerPopupVisible: false,
     fertilizerForm: {
@@ -76,11 +65,6 @@ Page({
       price: '',
       amount: 0
     },
-
-    // ========== 定金管理 ==========
-    depositPopupVisible: false,
-    depositAction: '' as 'add' | 'reduce',
-    depositInputValue: '',
 
     // ========== 面积管理 ==========
     acreagePopupVisible: false,
@@ -214,88 +198,6 @@ Page({
     }
   },
 
-  // ==================== 发放种苗 ====================
-
-  onOpenSeedPopup() {
-    this.setData({
-      seedPopupVisible: true,
-      seedForm: {
-        date: getTodayDate(),
-        quantity: '',
-        price: '',
-        amount: 0,
-        receiver: this.data.farmer?.name || '',
-        location: ''
-      }
-    });
-  },
-
-  onCloseSeedPopup() {
-    this.setData({ seedPopupVisible: false });
-  },
-
-  onSeedDateChange(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'seedForm.date': e.detail.value });
-  },
-
-  onSeedQuantityInput(e: WechatMiniprogram.CustomEvent) {
-    const quantity = e.detail.value.replace(/[^\d.]/g, '');
-    const price = parseFloat(this.data.seedForm.price) || 0;
-    const amount = (parseFloat(quantity) || 0) * price;
-    this.setData({
-      'seedForm.quantity': quantity,
-      'seedForm.amount': Math.round(amount * 100) / 100
-    });
-  },
-
-  onSeedPriceInput(e: WechatMiniprogram.CustomEvent) {
-    const price = e.detail.value.replace(/[^\d.]/g, '');
-    const quantity = parseFloat(this.data.seedForm.quantity) || 0;
-    const amount = quantity * (parseFloat(price) || 0);
-    this.setData({
-      'seedForm.price': price,
-      'seedForm.amount': Math.round(amount * 100) / 100
-    });
-  },
-
-  onSeedReceiverInput(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'seedForm.receiver': e.detail.value });
-  },
-
-  onSeedLocationInput(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'seedForm.location': e.detail.value });
-  },
-
-  onSubmitSeed() {
-    const { seedForm, currentUser, businessRecords } = this.data;
-
-    if (!seedForm.quantity || !seedForm.price) {
-      wx.showToast({ title: '请填写数量和单价', icon: 'none' });
-      return;
-    }
-
-    // 添加记录
-    const newRecord = {
-      id: `seed_${Date.now()}`,
-      type: 'seed',
-      date: seedForm.date,
-      name: '种苗发放',
-      quantity: seedForm.quantity,
-      unit: '株',
-      price: seedForm.price,
-      amount: seedForm.amount,
-      receiver: seedForm.receiver,
-      location: seedForm.location,
-      operator: currentUser
-    };
-
-    this.setData({
-      businessRecords: [newRecord, ...businessRecords],
-      seedPopupVisible: false
-    });
-
-    wx.showToast({ title: '发放成功', icon: 'success' });
-  },
 
   // ==================== 发放化肥 ====================
 
@@ -570,58 +472,6 @@ Page({
       purchasePopupVisible: false
     });
     wx.showToast({ title: '购买成功', icon: 'success' });
-  },
-
-  // ==================== 定金管理 ====================
-
-  onOpenDepositPopup() {
-    this.setData({
-      depositPopupVisible: true,
-      depositAction: 'add',
-      depositInputValue: ''
-    });
-  },
-
-  onCloseDepositPopup() {
-    this.setData({ depositPopupVisible: false });
-  },
-
-  onDepositInputChange(e: WechatMiniprogram.CustomEvent) {
-    const value = e.detail.value.replace(/[^\d.]/g, '');
-    this.setData({ depositInputValue: value });
-  },
-
-  onSubmitDeposit() {
-    const { farmer, depositInputValue, currentUser, businessRecords } = this.data;
-    if (!farmer) return;
-
-    const amount = parseFloat(depositInputValue);
-    if (isNaN(amount) || amount <= 0) {
-      wx.showToast({ title: '请输入有效金额', icon: 'none' });
-      return;
-    }
-
-    const newDeposit = (farmer.deposit || 0) + amount;
-
-    // 记录业务往来
-    const newRecord = {
-      id: `deposit_${Date.now()}`,
-      type: 'deposit',
-      date: getTodayDate(),
-      name: '追加定金',
-      desc: `收款方式: 现金`,
-      amount: amount,
-      isIncome: true,
-      operator: currentUser
-    };
-
-    this.setData({
-      'farmer.deposit': newDeposit,
-      businessRecords: [newRecord, ...businessRecords],
-      depositPopupVisible: false
-    });
-
-    wx.showToast({ title: '定金已更新', icon: 'success' });
   },
 
   // ==================== 面积管理 ====================

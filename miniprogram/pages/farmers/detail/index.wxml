@@ -68,32 +68,11 @@
           </view>
           <text class="action-name">追加面积</text>
         </view>
-        <view class="action-item" bindtap="onOpenDepositPopup">
-          <view class="action-icon-bg bg-green">
-            <t-icon name="money-circle" size="44rpx" color="#059669" />
-          </view>
-          <text class="action-name">追加定金</text>
-        </view>
         <view class="action-item" bindtap="onOpenAdvancePopup">
           <view class="action-icon-bg bg-orange">
             <t-icon name="wallet" size="44rpx" color="#f59e0b" />
           </view>
           <text class="action-name">预付款</text>
-        </view>
-      </view>
-    </view>
-    
-    <!-- 4. 生产管理 (折叠或单独区域) -->
-    <view class="section-card" wx:if="{{!isFinanceAdmin}}">
-      <view class="section-header">
-        <text class="section-title">生产发放</text>
-      </view>
-      <view class="action-grid">
-        <view class="action-item" bindtap="onOpenSeedPopup">
-          <view class="action-icon-bg bg-teal">
-            <t-icon name="corn" size="44rpx" color="#0d9488" />
-          </view>
-          <text class="action-name">发放种苗</text>
         </view>
         <view class="action-item" bindtap="onOpenFertilizerPopup">
           <view class="action-icon-bg bg-cyan">
@@ -186,39 +165,7 @@
     </view>
   </t-popup>
 
-  <!-- 2. 追加定金弹窗 -->
-  <t-popup visible="{{depositPopupVisible}}" placement="bottom" bind:visible-change="onCloseDepositPopup">
-    <view class="popup-container">
-      <view class="popup-header-bar">
-        <text class="popup-title">追加定金</text>
-        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseDepositPopup" />
-      </view>
-      <view class="popup-body">
-        <view class="popup-info-row">
-          <text>当前定金</text>
-          <text class="popup-highlight">¥{{farmer.deposit || 0}}</text>
-        </view>
-        <view class="form-field">
-          <text class="field-label">增加金额 (元)</text>
-          <input class="field-input" type="digit" placeholder="请输入金额" value="{{depositInputValue}}" bindinput="onDepositInputChange" />
-        </view>
-        <view class="form-field">
-          <text class="field-label">收款方式</text>
-          <view class="tag-group">
-            <view class="tag-item active">现金</view>
-            <view class="tag-item">微信</view>
-            <view class="tag-item">转账</view>
-          </view>
-        </view>
-      </view>
-      <view class="popup-footer-bar">
-        <button class="btn-cancel" bindtap="onCloseDepositPopup">取消</button>
-        <button class="btn-confirm" bindtap="onSubmitDeposit">确认收款</button>
-      </view>
-    </view>
-  </t-popup>
-
-  <!-- 3. 预付款弹窗 -->
+  <!-- 2. 预付款弹窗 -->
   <t-popup visible="{{advancePopupVisible}}" placement="bottom" bind:visible-change="onCloseAdvancePopup">
     <view class="popup-container">
       <view class="popup-header-bar">
@@ -244,35 +191,6 @@
       <view class="popup-footer-bar">
         <button class="btn-cancel" bindtap="onCloseAdvancePopup">取消</button>
         <button class="btn-confirm" bindtap="onSubmitAdvance">确认支付</button>
-      </view>
-    </view>
-  </t-popup>
-
-  <!-- 4. 发放种苗/化肥/农药 (复用之前的逻辑，简化弹窗样式) -->
-  <!-- (这里为了简洁，省略了生产发放的弹窗代码，假设复用相同的样式类 popup-container) -->
-  <t-popup visible="{{seedPopupVisible}}" placement="bottom" bind:visible-change="onCloseSeedPopup">
-    <view class="popup-container">
-      <view class="popup-header-bar">
-        <text class="popup-title">发放种苗</text>
-        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseSeedPopup" />
-      </view>
-      <view class="popup-body">
-        <view class="form-field">
-          <text class="field-label">发放数量 (株)</text>
-          <input class="field-input" type="digit" value="{{seedForm.quantity}}" bindinput="onSeedQuantityInput" placeholder="0" />
-        </view>
-        <view class="form-field">
-          <text class="field-label">单价 (元)</text>
-          <input class="field-input" type="digit" value="{{seedForm.price}}" bindinput="onSeedPriceInput" placeholder="0.00" />
-        </view>
-        <view class="popup-info-row">
-          <text>总金额</text>
-          <text class="popup-highlight">¥{{seedForm.amount}}</text>
-        </view>
-      </view>
-      <view class="popup-footer-bar">
-        <button class="btn-cancel" bindtap="onCloseSeedPopup">取消</button>
-        <button class="btn-confirm" bindtap="onSubmitSeed">确认发放</button>
       </view>
     </view>
   </t-popup>
