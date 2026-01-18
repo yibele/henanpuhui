@@ -219,35 +219,27 @@ async function getFarmer(event) {
 async function listFarmers(event) {
   const { userId, page = 1, pageSize = 20, keyword = '', status = '' } = event;
 
-  if (!userId) {
-    return {
-      success: false,
-      message: '缺少用户ID'
-    };
-  }
-
   try {
-    // 获取用户信息，判断权限
-    const userRes = await db.collection('users').doc(userId).get();
-
-    if (!userRes.data) {
-      return {
-        success: false,
-        message: '用户不存在'
-      };
-    }
-
-    const currentUser = userRes.data;
-
     // 构建查询条件
     let queryCondition = {
       isDeleted: false
     };
 
-    // 如果是助理，只能看自己创建的农户
-    if (currentUser.role === 'assistant') {
-      queryCondition.createBy = userId;
+    // 如果传了 userId，检查用户权限
+    if (userId) {
+      const userRes = await db.collection('users').doc(userId).get();
+
+      if (userRes.data) {
+        const currentUser = userRes.data;
+
+        // 如果是助理，只能看自己创建的农户
+        if (currentUser.role === 'assistant') {
+          queryCondition.createBy = userId;
+        }
+        // 管理员、财务可以看所有农户
+      }
     }
+    // 如果没有传 userId，返回所有农户（管理员模式，用于选择农户等场景）
 
     // 如果有关键词搜索
     if (keyword) {

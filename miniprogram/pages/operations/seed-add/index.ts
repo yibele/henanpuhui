@@ -61,16 +61,19 @@ Page({
     wx.showLoading({ title: '加载中...' });
 
     try {
-      // 获取当前用户信息
-      const userInfo = app.globalData.currentUser as any;
-      const userId = userInfo?._id || '';
+      // 获取当前用户信息（可能为空，云函数已支持）
+      const globalData = (app.globalData as any) || {};
+      const userInfo = globalData.currentUser || {};
+      const userId = userInfo._id || '';
+
+      console.log('[seed-add] 加载农户列表, userId:', userId);
 
       // 调用云函数获取农户列表
       const res = await wx.cloud.callFunction({
         name: 'farmer-manage',
         data: {
           action: 'list',
-          userId,
+          userId,  // 可以为空，云函数会返回所有农户
           page: 1,
           pageSize: 100  // 获取足够多的农户用于选择
         }
