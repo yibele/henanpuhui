@@ -257,13 +257,6 @@
             color="#059669" 
           />
         </view>
-          <t-icon 
-            wx:if="{{selectedFarmer.id === item.id}}" 
-            name="check-circle-filled" 
-            size="44rpx" 
-            color="#059669" 
-          />
-        </view>
       </view>
       
       <!-- 空状态 -->
