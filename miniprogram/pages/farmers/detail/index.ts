@@ -274,35 +274,77 @@ Page({
     this.setData({ 'seedForm.location': e.detail.value });
   },
 
-  onSubmitSeed() {
-    const { seedForm, currentUser, businessRecords } = this.data;
+  async onSubmitSeed() {
+    const { seedForm, farmer, farmerId, currentUser, businessRecords } = this.data;
+    if (!farmer) return;
 
     if (!seedForm.quantity || !seedForm.price) {
       wx.showToast({ title: '请填写数量和单价', icon: 'none' });
       return;
     }
 
-    // 添加记录
-    const newRecord = {
-      id: `seed_${Date.now()}`,
-      type: 'seed',
-      date: seedForm.date,
-      name: '种苗发放',
-      quantity: seedForm.quantity,
-      unit: '株',
-      price: seedForm.price,
-      amount: seedForm.amount,
-      receiver: seedForm.receiver,
-      location: seedForm.location,
-      operator: currentUser
-    };
+    const quantity = parseFloat(seedForm.quantity) || 0;
+    const unitPrice = parseFloat(seedForm.price) || 0;
+    const amount = seedForm.amount || (quantity * unitPrice);
 
-    this.setData({
-      businessRecords: [newRecord, ...businessRecords],
-      seedPopupVisible: false
-    });
+    wx.showLoading({ title: '保存中...' });
 
-    wx.showToast({ title: '发放成功', icon: 'success' });
+    try {
+      // 获取当前用户信息
+      const userInfo = app.globalData.currentUser as any;
+      const userId = userInfo?._id || '';
+      const userName = userInfo?.name || currentUser;
+
+      // 调用云函数
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: {
+          action: 'distribute',
+          userId,
+          userName,
+          farmerId: farmer.id || farmerId,
+          data: {
+            quantity,
+            unitPrice,
+            amount,
+            distributionDate: seedForm.date,
+            remark: `领取人：${seedForm.receiver || farmer.name}，地点：${seedForm.location || ''}`
+          }
+        }
+      });
+
+      const result = res.result as any;
+      wx.hideLoading();
+
+      if (result.success) {
+        // 更新本地记录
+        const newRecord = {
+          id: `seed_${Date.now()}`,
+          type: 'seed',
+          date: seedForm.date,
+          name: '种苗发放',
+          desc: `发放 ${quantity} 株，单价 ¥${unitPrice}`,
+          quantity: quantity,
+          unit: '株',
+          price: unitPrice,
+          amount: amount,
+          operator: currentUser
+        };
+
+        this.setData({
+          businessRecords: [newRecord, ...businessRecords],
+          seedPopupVisible: false
+        });
+
+        wx.showToast({ title: '发放成功', icon: 'success' });
+      } else {
+        wx.showToast({ title: result.message || '发放失败', icon: 'none' });
+      }
+    } catch (error: any) {
+      wx.hideLoading();
+      console.error('发放种苗失败:', error);
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+    }
   },
 
   // ==================== 发放化肥 ====================
