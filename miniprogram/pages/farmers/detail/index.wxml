@@ -40,19 +40,39 @@
 
     <!-- 2. 核心数据指标 -->
     <view class="stats-card">
-      <view class="stat-item">
-        <text class="stat-value">{{farmer.acreage}}</text>
-        <text class="stat-label">签约面积(亩)</text>
+      <view class="stats-row">
+        <view class="stat-item">
+          <text class="stat-value">{{farmer.acreage}}</text>
+          <text class="stat-label">签约面积(亩)</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-green">¥{{farmer.deposit || 0}}</text>
+          <text class="stat-label">已交定金</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-blue">{{farmer.contractDate}}</text>
+          <text class="stat-label">签约日期</text>
+        </view>
       </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value stat-green">¥{{farmer.deposit || 0}}</text>
-        <text class="stat-label">已交定金</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value stat-blue">{{farmer.contractDate}}</text>
-        <text class="stat-label">签约日期</text>
+      
+      <!-- 发苗统计 -->
+      <view class="stats-row stats-row-secondary" wx:if="{{seedStats.totalQuantity > 0 || seedStats.totalAmount > 0}}">
+        <view class="stat-item">
+          <text class="stat-value stat-purple">{{seedStats.totalQuantityText}}</text>
+          <text class="stat-label">已发放种苗</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-orange">¥{{seedStats.totalAmount}}</text>
+          <text class="stat-label">发苗金额</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value">{{seedStats.totalArea}}</text>
+          <text class="stat-label">已发面积(亩)</text>
+        </view>
       </view>
     </view>
 

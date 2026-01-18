@@ -28,6 +28,14 @@ Page({
     isFinanceAdmin: false,
     // 业务记录
     businessRecords: [] as any[],
+    // 发苗统计
+    seedStats: {
+      totalQuantity: 0,      // 总发放数量（株）
+      totalQuantityText: '0株',
+      totalAmount: 0,        // 总金额
+      totalArea: 0,          // 总发放面积
+      recordCount: 0         // 发放次数
+    },
 
     // ========== 发放种苗 ==========
     seedPopupVisible: false,
@@ -167,6 +175,9 @@ Page({
 
         // 从数据库加载业务往来记录
         await this.loadBusinessRecords(farmerData._id || id, farmer);
+
+        // 加载发苗统计
+        await this.loadSeedStats(farmerData._id || id);
       } else {
         // 云函数失败，尝试从mock数据获取
         const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
@@ -266,6 +277,52 @@ Page({
         return `追加定金 ¥${record.amount || 0}`;
       default:
         return record.remark || '';
+    }
+  },
+
+  /**
+   * 加载发苗统计数据
+   */
+  async loadSeedStats(farmerId: string) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: {
+          action: 'getByFarmer',
+          farmerId
+        }
+      });
+
+      const result = res.result as any;
+
+      if (result.success && result.data) {
+        const records = result.data.list || [];
+
+        // 计算统计数据
+        const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+        const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+        const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
+
+        // 格式化数量显示
+        let totalQuantityText = totalQuantity + '株';
+        if (totalQuantity >= 10000) {
+          totalQuantityText = (totalQuantity / 10000).toFixed(1) + '万株';
+        } else if (totalQuantity >= 1000) {
+          totalQuantityText = (totalQuantity / 1000).toFixed(1) + '千株';
+        }
+
+        this.setData({
+          seedStats: {
+            totalQuantity,
+            totalQuantityText,
+            totalAmount: Math.round(totalAmount),
+            totalArea: totalArea.toFixed(1),
+            recordCount: records.length
+          }
+        });
+      }
+    } catch (error) {
+      console.error('加载发苗统计失败:', error);
     }
   },
 

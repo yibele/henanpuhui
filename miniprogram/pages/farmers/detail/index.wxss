@@ -115,10 +115,19 @@
 .stats-card {
   background-color: #ffffff;
   padding: 24rpx;
-  display: flex;
-  align-items: center;
   margin-bottom: 24rpx;
   box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+}
+
+.stats-row-secondary {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f3f4f6;
 }
 
 .stat-item {
@@ -137,6 +146,8 @@
 
 .stat-green { color: #059669; }
 .stat-blue { color: #3b82f6; font-size: 30rpx; } /* 日期字体稍小 */
+.stat-purple { color: #8b5cf6; }
+.stat-orange { color: #f59e0b; }
 
 .stat-label {
   font-size: 22rpx;
