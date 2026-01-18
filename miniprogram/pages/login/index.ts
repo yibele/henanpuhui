@@ -88,9 +88,10 @@ Page({
         // 登录成功
         const userData = result.data;
 
-        // 保存用户信息到全局
+        // 保存用户信息到全局（同时保存 id 和 _id，确保兼容）
         app.globalData.currentUser = {
           id: userData.userId,
+          _id: userData.userId,  // 统一添加 _id，与数据库字段保持一致
           name: userData.name,
           phone: userData.phone,
           role: userData.role,

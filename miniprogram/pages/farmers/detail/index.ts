@@ -370,7 +370,7 @@ Page({
     try {
       // 获取当前用户信息
       const userInfo = app.globalData.currentUser as any;
-      const userId = userInfo?._id || '';
+      const userId = userInfo?.id || userInfo?._id || '';
       const userName = userInfo?.name || currentUser;
 
       // 调用云函数
@@ -829,7 +829,7 @@ Page({
     try {
       // 获取当前用户信息
       const userInfo = app.globalData.currentUser as any;
-      const userId = userInfo?._id || '';
+      const userId = userInfo?.id || userInfo?._id || '';
       const userName = userInfo?.name || currentUser;
 
       // 调用云函数
