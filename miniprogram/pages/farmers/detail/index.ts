@@ -122,13 +122,64 @@ Page({
   /**
    * 加载农户详情
    */
-  loadFarmerDetail(id: string) {
-    const farmer = MOCK_FARMERS.find(f => f.id === id);
-    
-    // 模拟业务记录数据
-    const businessRecords: any[] = [];
-    
-    this.setData({ farmer, businessRecords });
+  async loadFarmerDetail(id: string) {
+    try {
+      // 尝试从云函数获取农户详情
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'get',
+          farmerId: id
+        }
+      });
+
+      const result = res.result as any;
+
+      if (result.success && result.data) {
+        const farmerData = result.data;
+
+        // 构造前端需要的数据结构
+        const farmer = {
+          id: farmerData._id || farmerData.farmerId,
+          customerCode: farmerData.farmerId,
+          name: farmerData.name,
+          phone: farmerData.phone,
+          idCard: farmerData.idCard,
+          address: farmerData.address || {},
+          addressText: farmerData.addressText || '',
+          acreage: farmerData.acreage || 0,
+          grade: farmerData.grade || 'bronze',
+          deposit: farmerData.deposit || 0,
+          manager: farmerData.firstManager || '',
+          contractDate: farmerData.createTime ? new Date(farmerData.createTime).toLocaleDateString('zh-CN') : '',
+          status: farmerData.status || 'active',
+          contractImages: farmerData.contractImages || [],
+          salesmanId: farmerData.createBy || '',
+          salesmanName: farmerData.createByName || ''
+        };
+
+        this.setData({ farmer, businessRecords: [] });
+      } else {
+        // 云函数失败，尝试从mock数据获取
+        const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
+        if (mockFarmer) {
+          this.setData({ farmer: mockFarmer, businessRecords: [] });
+        } else {
+          wx.showToast({ title: '农户信息不存在', icon: 'none' });
+          setTimeout(() => wx.navigateBack(), 1500);
+        }
+      }
+    } catch (error) {
+      console.error('加载农户详情失败:', error);
+
+      // 云函数故障，回退到mock数据
+      const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
+      if (mockFarmer) {
+        this.setData({ farmer: mockFarmer, businessRecords: [] });
+      } else {
+        wx.showToast({ title: '加载失败', icon: 'none' });
+      }
+    }
   },
 
   /**
@@ -169,7 +220,7 @@ Page({
     const quantity = e.detail.value.replace(/[^\d.]/g, '');
     const price = parseFloat(this.data.seedForm.price) || 0;
     const amount = (parseFloat(quantity) || 0) * price;
-    this.setData({ 
+    this.setData({
       'seedForm.quantity': quantity,
       'seedForm.amount': Math.round(amount * 100) / 100
     });
@@ -179,7 +230,7 @@ Page({
     const price = e.detail.value.replace(/[^\d.]/g, '');
     const quantity = parseFloat(this.data.seedForm.quantity) || 0;
     const amount = quantity * (parseFloat(price) || 0);
-    this.setData({ 
+    this.setData({
       'seedForm.price': price,
       'seedForm.amount': Math.round(amount * 100) / 100
     });
@@ -195,7 +246,7 @@ Page({
 
   onSubmitSeed() {
     const { seedForm, currentUser, businessRecords } = this.data;
-    
+
     if (!seedForm.quantity || !seedForm.price) {
       wx.showToast({ title: '请填写数量和单价', icon: 'none' });
       return;
@@ -255,7 +306,7 @@ Page({
     const quantity = e.detail.value.replace(/[^\d.]/g, '');
     const price = parseFloat(this.data.fertilizerForm.price) || 0;
     const amount = (parseFloat(quantity) || 0) * price;
-    this.setData({ 
+    this.setData({
       'fertilizerForm.quantity': quantity,
       'fertilizerForm.amount': Math.round(amount * 100) / 100
     });
@@ -265,7 +316,7 @@ Page({
     const price = e.detail.value.replace(/[^\d.]/g, '');
     const quantity = parseFloat(this.data.fertilizerForm.quantity) || 0;
     const amount = quantity * (parseFloat(price) || 0);
-    this.setData({ 
+    this.setData({
       'fertilizerForm.price': price,
       'fertilizerForm.amount': Math.round(amount * 100) / 100
     });
@@ -273,7 +324,7 @@ Page({
 
   onSubmitFertilizer() {
     const { fertilizerForm, currentUser, businessRecords } = this.data;
-    
+
     if (!fertilizerForm.name || !fertilizerForm.quantity || !fertilizerForm.price) {
       wx.showToast({ title: '请填写完整信息', icon: 'none' });
       return;
@@ -330,7 +381,7 @@ Page({
     const quantity = e.detail.value.replace(/[^\d.]/g, '');
     const price = parseFloat(this.data.pesticideForm.price) || 0;
     const amount = (parseFloat(quantity) || 0) * price;
-    this.setData({ 
+    this.setData({
       'pesticideForm.quantity': quantity,
       'pesticideForm.amount': Math.round(amount * 100) / 100
     });
@@ -340,7 +391,7 @@ Page({
     const price = e.detail.value.replace(/[^\d.]/g, '');
     const quantity = parseFloat(this.data.pesticideForm.quantity) || 0;
     const amount = quantity * (parseFloat(price) || 0);
-    this.setData({ 
+    this.setData({
       'pesticideForm.price': price,
       'pesticideForm.amount': Math.round(amount * 100) / 100
     });
@@ -348,7 +399,7 @@ Page({
 
   onSubmitPesticide() {
     const { pesticideForm, currentUser, businessRecords } = this.data;
-    
+
     if (!pesticideForm.name || !pesticideForm.quantity || !pesticideForm.price) {
       wx.showToast({ title: '请填写完整信息', icon: 'none' });
       return;
@@ -406,7 +457,7 @@ Page({
 
   onSubmitAdvance() {
     const { advanceForm, currentUser, businessRecords } = this.data;
-    
+
     if (!advanceForm.amount) {
       wx.showToast({ title: '请填写预付金额', icon: 'none' });
       return;
@@ -456,7 +507,7 @@ Page({
     const quantity = e.detail.value.replace(/[^\d.]/g, '');
     const price = parseFloat(this.data.purchaseForm.price) || 0;
     const amount = (parseFloat(quantity) || 0) * price;
-    this.setData({ 
+    this.setData({
       'purchaseForm.quantity': quantity,
       'purchaseForm.amount': Math.round(amount * 100) / 100
     });
@@ -466,7 +517,7 @@ Page({
     const price = e.detail.value.replace(/[^\d.]/g, '');
     const quantity = parseFloat(this.data.purchaseForm.quantity) || 0;
     const amount = quantity * (parseFloat(price) || 0);
-    this.setData({ 
+    this.setData({
       'purchaseForm.price': price,
       'purchaseForm.amount': Math.round(amount * 100) / 100
     });
@@ -474,7 +525,7 @@ Page({
 
   onSubmitPurchase() {
     const { purchaseForm, currentUser, businessRecords } = this.data;
-    
+
     if (!purchaseForm.quantity || !purchaseForm.price) {
       wx.showToast({ title: '请填写数量和单价', icon: 'none' });
       return;
@@ -513,7 +564,7 @@ Page({
   onPreviewContract(e: WechatMiniprogram.TouchEvent) {
     const { url } = e.currentTarget.dataset;
     const { farmer } = this.data;
-    
+
     wx.previewImage({
       current: url,
       urls: farmer?.contractImages || []
