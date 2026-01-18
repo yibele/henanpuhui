@@ -258,6 +258,19 @@
   flex-shrink: 0;
 }
 
+/* ==================== 加载状态 ==================== */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+  gap: 16rpx;
+  color: #9ca3af;
+  font-size: 26rpx;
+}
+
 /* ==================== 空状态 ==================== */
 
 .empty-state {

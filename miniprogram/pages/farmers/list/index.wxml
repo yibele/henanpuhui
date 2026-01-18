@@ -35,6 +35,7 @@
           value="{{searchValue}}"
           placeholder="搜索姓名、电话、编码"
           shape="round"
+          left-icon="search"
           bind:change="onSearchChange"
           bind:clear="onSearchClear"
         />
@@ -97,8 +98,14 @@
       </view>
     </block>
 
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-state">
+      <t-loading theme="circular" size="40rpx" />
+      <text>加载中...</text>
+    </view>
+
     <!-- 空状态 -->
-    <view wx:else class="empty-state">
+    <view wx:elif="{{filteredFarmers.length === 0}}" class="empty-state">
       <t-empty 
         icon="folder-open" 
         description="暂无农户数据"
