@@ -409,7 +409,8 @@ Page({
     try {
       // 获取当前用户信息
       const userInfo = (app.globalData as any)?.currentUser || {};
-      const userId = userInfo._id || '';
+      // 兼容 id 和 _id（登录时保存的是 id）
+      const userId = userInfo.id || userInfo._id || '';
       const userName = userInfo.name || form.managerName;
 
       // 调用云函数提交数据
