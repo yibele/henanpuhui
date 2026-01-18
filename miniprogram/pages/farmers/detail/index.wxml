@@ -137,27 +137,74 @@
 
   <!-- ==================== 弹窗区域 ==================== -->
   
-  <!-- 1. 追加面积弹窗 -->
+  <!-- 1. 追加面积弹窗（完整版：面积+定金+种苗） -->
   <t-popup visible="{{acreagePopupVisible}}" placement="bottom" bind:visible-change="onCloseAcreagePopup">
-    <view class="popup-container">
+    <view class="popup-container popup-container-tall">
       <view class="popup-header-bar">
-        <text class="popup-title">追加签约面积</text>
+        <text class="popup-title">追加签约信息</text>
         <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseAcreagePopup" />
       </view>
-      <view class="popup-body">
-        <view class="popup-info-row">
-          <text>当前面积</text>
-          <text class="popup-highlight">{{farmer.acreage}} 亩</text>
+      
+      <scroll-view class="popup-scroll" scroll-y>
+        <!-- 当前汇总信息 -->
+        <view class="popup-summary">
+          <view class="summary-item">
+            <text class="summary-label">当前面积</text>
+            <text class="summary-value">{{farmer.acreage}} 亩</text>
+          </view>
+          <view class="summary-item">
+            <text class="summary-label">当前定金</text>
+            <text class="summary-value">¥{{farmer.deposit || 0}}</text>
+          </view>
         </view>
+
+        <!-- 追加面积 -->
         <view class="form-field">
-          <text class="field-label">追加面积 (亩)</text>
-          <input class="field-input" type="digit" placeholder="请输入增加的亩数" value="{{acreageInputValue}}" bindinput="onAcreageInputChange" />
+          <text class="field-label required">追加面积（亩）</text>
+          <input class="field-input" type="digit" placeholder="请输入追加亩数" value="{{acreageForm.acreage}}" bindinput="onAcreageFormInput" data-field="acreage" />
         </view>
+
+        <!-- 追加种苗 -->
+        <view class="form-field">
+          <text class="field-label">追加种苗（万株）</text>
+          <input class="field-input" type="digit" placeholder="请输入追加种苗数量" value="{{acreageForm.seedTotal}}" bindinput="onAcreageFormInput" data-field="seedTotal" />
+        </view>
+
+        <!-- 种苗单价 -->
+        <view class="form-field">
+          <text class="field-label">种苗单价（元/万株）</text>
+          <input class="field-input" type="digit" placeholder="请输入单价" value="{{acreageForm.seedUnitPrice}}" bindinput="onAcreageFormInput" data-field="seedUnitPrice" />
+        </view>
+
+        <!-- 追加应收款（自动计算） -->
+        <view class="popup-info-row" wx:if="{{acreageForm.receivableAmount > 0}}">
+          <text>追加应收</text>
+          <text class="popup-highlight">¥{{acreageForm.receivableAmount}}</text>
+        </view>
+
+        <!-- 是否追加定金 -->
+        <view class="form-field">
+          <view class="toggle-row">
+            <text class="field-label">是否追加定金</text>
+            <view class="toggle-switch {{acreageForm.addDeposit ? 'active' : ''}}" bindtap="onToggleAddDeposit">
+              <view class="toggle-dot"></view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 追加定金金额（条件显示） -->
+        <view class="form-field" wx:if="{{acreageForm.addDeposit}}">
+          <text class="field-label">追加定金（元）</text>
+          <input class="field-input" type="digit" placeholder="请输入定金金额" value="{{acreageForm.deposit}}" bindinput="onAcreageFormInput" data-field="deposit" />
+        </view>
+
+        <!-- 备注 -->
         <view class="form-field">
           <text class="field-label">备注</text>
-          <input class="field-input" placeholder="可选填备注" />
+          <input class="field-input" placeholder="可选填备注" value="{{acreageForm.remark}}" bindinput="onAcreageFormInput" data-field="remark" />
         </view>
-      </view>
+      </scroll-view>
+
       <view class="popup-footer-bar">
         <button class="btn-cancel" bindtap="onCloseAcreagePopup">取消</button>
         <button class="btn-confirm" bindtap="onSubmitAcreage">确认追加</button>

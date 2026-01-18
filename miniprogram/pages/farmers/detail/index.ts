@@ -82,9 +82,17 @@ Page({
     depositAction: '' as 'add' | 'reduce',
     depositInputValue: '',
 
-    // ========== 面积管理 ==========
+    // ========== 面积管理（追加签约信息） ==========
     acreagePopupVisible: false,
-    acreageInputValue: ''
+    acreageForm: {
+      acreage: '',           // 追加面积
+      seedTotal: '',         // 追加种苗（万株）
+      seedUnitPrice: '',     // 种苗单价
+      receivableAmount: 0,   // 追加应收款（自动计算）
+      addDeposit: false,     // 是否追加定金
+      deposit: '',           // 追加定金金额
+      remark: ''             // 备注
+    }
   },
 
   onLoad(options) {
@@ -624,12 +632,20 @@ Page({
     wx.showToast({ title: '定金已更新', icon: 'success' });
   },
 
-  // ==================== 面积管理 ====================
+  // ==================== 面积管理（追加签约信息） ====================
 
   onOpenAcreagePopup() {
     this.setData({
       acreagePopupVisible: true,
-      acreageInputValue: '' // 默认清空，让用户输入增加量
+      acreageForm: {
+        acreage: '',
+        seedTotal: '',
+        seedUnitPrice: '',
+        receivableAmount: 0,
+        addDeposit: false,
+        deposit: '',
+        remark: ''
+      }
     });
   },
 
@@ -637,41 +653,93 @@ Page({
     this.setData({ acreagePopupVisible: false });
   },
 
-  onAcreageInputChange(e: WechatMiniprogram.CustomEvent) {
+  /**
+   * 追加面积表单输入
+   */
+  onAcreageFormInput(e: WechatMiniprogram.CustomEvent) {
+    const { field } = e.currentTarget.dataset;
     const value = e.detail.value.replace(/[^\d.]/g, '');
-    this.setData({ acreageInputValue: value });
+
+    const form = { ...this.data.acreageForm };
+    (form as any)[field] = value;
+
+    // 自动计算追加应收款 = 种苗数量 × 单价
+    if (field === 'seedTotal' || field === 'seedUnitPrice') {
+      const seedTotal = parseFloat(form.seedTotal) || 0;
+      const seedUnitPrice = parseFloat(form.seedUnitPrice) || 0;
+      form.receivableAmount = Math.round(seedTotal * seedUnitPrice * 100) / 100;
+    }
+
+    this.setData({ acreageForm: form });
   },
 
+  /**
+   * 切换是否追加定金
+   */
+  onToggleAddDeposit() {
+    const form = { ...this.data.acreageForm };
+    form.addDeposit = !form.addDeposit;
+    if (!form.addDeposit) {
+      form.deposit = '';
+    }
+    this.setData({ acreageForm: form });
+  },
+
+  /**
+   * 提交追加签约信息
+   */
   onSubmitAcreage() {
-    const { farmer, acreageInputValue, currentUser, businessRecords } = this.data;
+    const { farmer, acreageForm, currentUser, businessRecords } = this.data;
     if (!farmer) return;
 
-    const addedAcreage = parseFloat(acreageInputValue);
+    const addedAcreage = parseFloat(acreageForm.acreage);
     if (isNaN(addedAcreage) || addedAcreage <= 0) {
-      wx.showToast({ title: '请输入有效面积', icon: 'none' });
+      wx.showToast({ title: '请输入追加面积', icon: 'none' });
       return;
     }
 
+    // 计算新值
     const newAcreage = (farmer.acreage || 0) + addedAcreage;
+    const addedSeedTotal = parseFloat(acreageForm.seedTotal) || 0;
+    const addedDeposit = acreageForm.addDeposit ? (parseFloat(acreageForm.deposit) || 0) : 0;
+
+    // 构建描述信息
+    let descParts: string[] = [];
+    descParts.push(`面积 +${addedAcreage} 亩`);
+    if (addedSeedTotal > 0) {
+      descParts.push(`种苗 +${addedSeedTotal} 万株`);
+    }
+    if (addedDeposit > 0) {
+      descParts.push(`定金 +¥${addedDeposit}`);
+    }
+    if (acreageForm.receivableAmount > 0) {
+      descParts.push(`应收 +¥${acreageForm.receivableAmount}`);
+    }
 
     // 记录业务往来
     const newRecord = {
       id: `acreage_${Date.now()}`,
       type: 'acreage',
       date: getTodayDate(),
-      name: '追加面积',
-      desc: `从 ${farmer.acreage} 亩增加到 ${newAcreage} 亩`,
-      quantity: addedAcreage,
-      unit: '亩',
-      operator: currentUser
+      name: '追加签约',
+      desc: descParts.join('，'),
+      operator: currentUser,
+      remark: acreageForm.remark
     };
 
-    this.setData({
+    // 更新农户数据
+    const updates: any = {
       'farmer.acreage': newAcreage,
       businessRecords: [newRecord, ...businessRecords],
       acreagePopupVisible: false
-    });
+    };
 
-    wx.showToast({ title: '面积已更新', icon: 'success' });
+    if (addedDeposit > 0) {
+      updates['farmer.deposit'] = (farmer.deposit || 0) + addedDeposit;
+    }
+
+    this.setData(updates);
+
+    wx.showToast({ title: '追加成功', icon: 'success' });
   }
 });

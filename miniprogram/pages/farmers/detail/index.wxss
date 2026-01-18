@@ -491,3 +491,85 @@
   color: #9ca3af;
   font-size: 26rpx;
 }
+
+/* ==================== 7. 追加面积弹窗增强样式 ==================== */
+
+.popup-container-tall {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-scroll {
+  flex: 1;
+  max-height: 60vh;
+  padding: 0 32rpx;
+}
+
+.popup-summary {
+  display: flex;
+  justify-content: space-around;
+  background-color: #f9fafb;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.summary-label {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.summary-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.field-label.required::after {
+  content: '*';
+  color: #ef4444;
+  margin-left: 4rpx;
+}
+
+.toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.toggle-switch {
+  width: 88rpx;
+  height: 48rpx;
+  background-color: #e5e7eb;
+  border-radius: 24rpx;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.toggle-switch.active {
+  background-color: #059669;
+}
+
+.toggle-dot {
+  width: 40rpx;
+  height: 40rpx;
+  background-color: #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: 4rpx;
+  left: 4rpx;
+  transition: all 0.3s ease;
+  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch.active .toggle-dot {
+  left: 44rpx;
+}
