@@ -1,51 +1,514 @@
-@import '../seed-add/index.wxss';
+/* 收购登记页面样式 */
 
-.form-row {
-  display: flex;
-  gap: 24rpx;
+.acquisition-page {
+  min-height: 100vh;
+  background-color: #f3f4f6;
+  padding-bottom: 180rpx;
 }
 
-.form-item-half {
+/* ==================== 页面标题 ==================== */
+
+.page-header {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  padding: 48rpx 32rpx 40rpx;
+  color: #ffffff;
+}
+
+.page-title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+
+.page-subtitle {
+  display: block;
+  font-size: 26rpx;
+  opacity: 0.9;
+}
+
+/* ==================== 表单区域 ==================== */
+
+.form-section {
+  margin-top: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  padding: 0 32rpx 16rpx;
+}
+
+.section-indicator {
+  width: 8rpx;
+  height: 28rpx;
+  border-radius: 4rpx;
+  margin-right: 12rpx;
+}
+
+.indicator-orange {
+  background-color: #f97316;
+}
+
+.indicator-blue {
+  background-color: #3b82f6;
+}
+
+.indicator-green {
+  background-color: #059669;
+}
+
+.indicator-purple {
+  background-color: #8b5cf6;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.form-card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  margin: 0 24rpx;
+  padding: 8rpx 0;
+}
+
+/* ==================== 表单项 ==================== */
+
+.form-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx 32rpx;
+  min-height: 100rpx;
+}
+
+.form-label {
+  font-size: 30rpx;
+  color: #374151;
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+
+.form-label.required::before {
+  content: '* ';
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.form-value-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
   flex: 1;
-  padding: 28rpx 0;
+  justify-content: flex-end;
+}
+
+.form-value {
+  font-size: 30rpx;
+  color: #111827;
+  text-align: right;
+}
+
+.form-placeholder {
+  color: #9ca3af;
+}
+
+.form-divider {
+  height: 1rpx;
+  background-color: #f3f4f6;
+  margin: 0 32rpx;
+}
+
+/* ==================== 输入框 ==================== */
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+  justify-content: flex-end;
+  position: relative;
+}
+
+.input-prefix {
+  font-size: 30rpx;
+  color: #059669;
+  font-weight: 600;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 32rpx;
+  color: #111827;
+  text-align: right;
+  padding: 12rpx 16rpx;
+  background-color: #f9fafb;
+  border-radius: 8rpx;
+  border: 2rpx solid #e5e7eb;
+  min-width: 200rpx;
+  max-width: 300rpx;
+}
+
+.weight-input {
+  border-color: #bfdbfe;
+  background-color: #eff6ff;
 }
 
 .price-input {
-  width: 100%;
-  height: 60rpx;
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1f2937;
+  border-color: #d1fae5;
+  background-color: #ecfdf5;
 }
 
-.quantity-input-orange {
-  color: #f97316 !important;
+.input-unit {
+  font-size: 26rpx;
+  color: #6b7280;
+  flex-shrink: 0;
 }
 
-.total-row {
+/* ==================== 只读值显示 ==================== */
+
+.readonly-value-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24rpx;
-  background-color: #fff7ed;
-  border-radius: 20rpx;
-  margin: 16rpx 0;
+  align-items: baseline;
+  gap: 12rpx;
+  flex: 1;
+  justify-content: flex-end;
 }
 
-.total-label {
-  font-size: 30rpx;
-  font-weight: 500;
-  color: #c2410c;
+.readonly-value {
+  font-size: 36rpx;
+  color: #6b7280;
+  font-weight: 600;
 }
 
-.total-value {
+.readonly-highlight {
+  color: #3b82f6;
+  font-size: 40rpx;
+}
+
+.readonly-unit {
+  font-size: 26rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 金额显示 ==================== */
+
+.amount-display {
+  flex: 1;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.amount-value {
+  display: inline-block;
   font-size: 44rpx;
   font-weight: 700;
-  color: #ea580c;
+  color: #059669;
+}
+
+.amount-unit {
+  display: inline-block;
+  font-size: 28rpx;
+  color: #059669;
+  font-weight: 600;
+  margin-left: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.amount-formula {
+  font-size: 24rpx;
+  color: #9ca3af;
+  margin-top: 4rpx;
+}
+
+/* ==================== 预估收购重量 ==================== */
+
+.estimated-weight-display {
+  flex: 1;
+  text-align: right;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8rpx;
+  flex-wrap: wrap;
+}
+
+.estimated-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.estimated-unit {
+  font-size: 26rpx;
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+.estimated-note {
+  font-size: 22rpx;
+  color: #9ca3af;
+  width: 100%;
+  text-align: right;
+  margin-top: 4rpx;
+}
+
+/* ==================== 备注输入 ==================== */
+
+.form-item-textarea {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 28rpx 32rpx;
+}
+
+.form-item-textarea .form-label {
+  margin-bottom: 16rpx;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  padding: 16rpx;
+  background-color: #f9fafb;
+  border-radius: 8rpx;
+  border: 2rpx solid #e5e7eb;
+  font-size: 28rpx;
+  color: #111827;
+  line-height: 1.6;
+}
+
+.textarea-counter {
+  align-self: flex-end;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 提示信息 ==================== */
+
+.tips {
+  margin: 32rpx 24rpx;
+  padding: 24rpx;
+  background-color: #fff7ed;
+  border-radius: 12rpx;
+  border: 2rpx solid #fed7aa;
+}
+
+.tip-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+  color: #9a3412;
+}
+
+.tip-item:last-child {
+  margin-bottom: 0;
+}
+
+/* ==================== 底部按钮 ==================== */
+
+.bottom-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 24rpx;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background-color: #ffffff;
+  border-top: 1rpx solid #e5e7eb;
+  box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.btn {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.btn-cancel {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.btn-submit {
+  color: #ffffff;
 }
 
 .btn-orange {
-  background: linear-gradient(135deg, #fb923c, #ea580c) !important;
-  box-shadow: 0 8rpx 24rpx rgba(249, 115, 22, 0.3) !important;
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
 }
 
+.btn-disabled {
+  opacity: 0.5;
+}
+
+/* ==================== 弹窗样式 ==================== */
+
+.popup-container {
+  background-color: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.popup-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.popup-close {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 32rpx;
+  background-color: #f3f4f6;
+}
+
+/* ==================== 搜索栏 ==================== */
+
+.popup-search {
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.search-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background-color: #f3f4f6;
+  border-radius: 48rpx;
+  padding: 16rpx 24rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #111827;
+}
+
+.search-clear {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ==================== 列表项 ==================== */
+
+.popup-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.popup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.popup-item:active {
+  background-color: #f9fafb;
+}
+
+.popup-item.selected {
+  background-color: #fff7ed;
+}
+
+.popup-item-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.popup-item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.popup-item-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.grade-badge {
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.grade-A {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.grade-B {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.grade-C {
+  background-color: #fed7aa;
+  color: #9a3412;
+}
+
+.popup-item-sub {
+  font-size: 26rpx;
+  color: #9ca3af;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==================== 空状态 ==================== */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 32rpx;
+  gap: 24rpx;
+}
+
+.empty-state text {
+  font-size: 28rpx;
+  color: #9ca3af;
+}

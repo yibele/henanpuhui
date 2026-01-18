@@ -13,36 +13,37 @@ Page({
       name: '',           // 农户姓名
       phone: '',          // 电话
       idCard: '',         // 身份证号
-      county: '',         // 县城
-      township: '',       // 乡
-      town: '',           // 镇
+      county: '',         // 县/区
+      township: '',       // 乡镇
       village: '',        // 村
       acreage: '',        // 种植面积
       grade: 'silver',    // 农户等级，默认银牌
-      deposit: ''         // 定金
+      deposit: '',        // 定金
+      seedTotal: '',      // 种苗合计（万株）
+      seedUnitPrice: '',  // 单价（元/万株）
+      seedDebt: '0'       // 种苗欠款（元），默认0
     },
-    // 合同照片
-    contractImages: [] as string[],
-    // 身份证照片
-    idCardImages: [] as string[],
+    // 应收款（自动计算）
+    receivableAmount: '0.00',
+    // 负责人信息
+    firstManager: '',   // 第一负责人
+    secondManager: '',  // 第二负责人
     // 提交中
     submitting: false,
     // 生成的客户编码预览
     customerCodePreview: '',
-    // 负责人信息（自动绑定当前登录用户）
+    // 助理信息（用于生成客户编码）
     managerId: '',
-    managerName: '',
-    managerPhone: ''
+    managerName: ''
   },
 
   onLoad() {
-    // 获取当前登录用户作为负责人
+    // 获取当前登录用户作为默认负责人ID
     this.loadManagerInfo();
   },
 
   /**
-   * 获取负责人信息（当前登录用户）
-   * 负责人就是当前登录的用户，自动绑定
+   * 获取负责人信息（用于生成客户编码）
    */
   loadManagerInfo() {
     // 从全局数据获取当前登录用户信息
@@ -52,15 +53,13 @@ Page({
       // 有登录用户，使用登录用户信息
       this.setData({
         managerId: userInfo.salesmanId || 'S001',
-        managerName: userInfo.nickName || '当前用户',
-        managerPhone: userInfo.phone || ''
+        managerName: userInfo.nickName || '当前用户'
       });
     } else {
       // 没有登录用户信息，使用默认值（演示用）
       this.setData({
         managerId: 'S001',
-        managerName: '业务员',
-        managerPhone: ''
+        managerName: '助理'
       });
     }
   },
@@ -187,27 +186,147 @@ Page({
     this.setData({ 'form.deposit': newValue.toString() });
   },
 
+  /**
+   * 输入种苗合计（万株，只允许数字和小数点）
+   */
+  onSeedTotalInput(e: WechatMiniprogram.CustomEvent) {
+    // 过滤非数字字符，只保留数字和小数点
+    let value = e.detail.value.replace(/[^\d.]/g, '');
+    // 确保只有一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    this.setData({ 'form.seedTotal': value }, () => {
+      this.calculateReceivableAmount();
+    });
+  },
+
+  /**
+   * 种苗合计减少（每次减1万株）
+   */
+  onSeedTotalMinus() {
+    const current = parseFloat(this.data.form.seedTotal) || 0;
+    if (current > 0) {
+      const newValue = Math.max(0, current - 1);
+      this.setData({ 'form.seedTotal': newValue.toString() }, () => {
+        this.calculateReceivableAmount();
+      });
+    }
+  },
+
+  /**
+   * 种苗合计增加（每次加1万株）
+   */
+  onSeedTotalPlus() {
+    const current = parseFloat(this.data.form.seedTotal) || 0;
+    const newValue = current + 1;
+    this.setData({ 'form.seedTotal': newValue.toString() }, () => {
+      this.calculateReceivableAmount();
+    });
+  },
+
+  /**
+   * 输入单价（元/万株，只允许数字和小数点）
+   */
+  onSeedUnitPriceInput(e: WechatMiniprogram.CustomEvent) {
+    // 过滤非数字字符，只保留数字和小数点
+    let value = e.detail.value.replace(/[^\d.]/g, '');
+    // 确保只有一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    this.setData({ 'form.seedUnitPrice': value }, () => {
+      this.calculateReceivableAmount();
+    });
+  },
+
+  /**
+   * 单价减少（每次减100元）
+   */
+  onSeedUnitPriceMinus() {
+    const current = parseFloat(this.data.form.seedUnitPrice) || 0;
+    if (current > 0) {
+      const newValue = Math.max(0, current - 100);
+      this.setData({ 'form.seedUnitPrice': newValue.toString() }, () => {
+        this.calculateReceivableAmount();
+      });
+    }
+  },
+
+  /**
+   * 单价增加（每次加100元）
+   */
+  onSeedUnitPricePlus() {
+    const current = parseFloat(this.data.form.seedUnitPrice) || 0;
+    const newValue = current + 100;
+    this.setData({ 'form.seedUnitPrice': newValue.toString() }, () => {
+      this.calculateReceivableAmount();
+    });
+  },
+
+  /**
+   * 输入种苗欠款（只允许数字和小数点）
+   */
+  onSeedDebtInput(e: WechatMiniprogram.CustomEvent) {
+    // 过滤非数字字符，只保留数字和小数点
+    let value = e.detail.value.replace(/[^\d.]/g, '');
+    // 确保只有一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    this.setData({ 'form.seedDebt': value });
+  },
+
+  /**
+   * 种苗欠款减少（每次减100元）
+   */
+  onSeedDebtMinus() {
+    const current = parseFloat(this.data.form.seedDebt) || 0;
+    if (current > 0) {
+      const newValue = Math.max(0, current - 100);
+      this.setData({ 'form.seedDebt': newValue.toString() });
+    }
+  },
+
+  /**
+   * 种苗欠款增加（每次加100元）
+   */
+  onSeedDebtPlus() {
+    const current = parseFloat(this.data.form.seedDebt) || 0;
+    const newValue = current + 100;
+    this.setData({ 'form.seedDebt': newValue.toString() });
+  },
+
+  /**
+   * 计算应收款
+   * 应收款 = 种苗合计（万株）× 单价（元/万株）
+   */
+  calculateReceivableAmount() {
+    const seedTotal = parseFloat(this.data.form.seedTotal) || 0;
+    const seedUnitPrice = parseFloat(this.data.form.seedUnitPrice) || 0;
+    const receivable = seedTotal * seedUnitPrice;
+    this.setData({
+      receivableAmount: receivable.toFixed(2)
+    });
+  },
+
   // ==================== 地址输入 ====================
 
   /**
-   * 输入县城
+   * 输入县/区
    */
   onCountyInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'form.county': e.detail.value });
   },
 
   /**
-   * 输入乡
+   * 输入乡镇
    */
   onTownshipInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'form.township': e.detail.value });
-  },
-
-  /**
-   * 输入镇
-   */
-  onTownInput(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'form.town': e.detail.value });
   },
 
   /**
@@ -217,60 +336,20 @@ Page({
     this.setData({ 'form.village': e.detail.value });
   },
 
-  // ==================== 照片处理 ====================
+  // ==================== 负责人信息输入 ====================
 
   /**
-   * 拍摄/选择身份证照片
+   * 输入第一负责人
    */
-  onChooseIdPhoto() {
-    wx.chooseMedia({
-      count: 2,  // 正反面
-      mediaType: ['image'],
-      sourceType: ['camera', 'album'],
-      success: (res) => {
-        const images = res.tempFiles.map(f => f.tempFilePath);
-        this.setData({
-          idCardImages: [...this.data.idCardImages, ...images].slice(0, 2)
-        });
-      }
-    });
+  onFirstManagerInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ firstManager: e.detail.value });
   },
 
   /**
-   * 删除身份证照片
+   * 输入第二负责人
    */
-  onDeleteIdPhoto(e: WechatMiniprogram.TouchEvent) {
-    const { index } = e.currentTarget.dataset;
-    const images = [...this.data.idCardImages];
-    images.splice(index, 1);
-    this.setData({ idCardImages: images });
-  },
-
-  /**
-   * 上传合同照片
-   */
-  onChooseContractPhoto() {
-    wx.chooseMedia({
-      count: 9,
-      mediaType: ['image'],
-      sourceType: ['camera', 'album'],
-      success: (res) => {
-        const images = res.tempFiles.map(f => f.tempFilePath);
-        this.setData({
-          contractImages: [...this.data.contractImages, ...images]
-        });
-      }
-    });
-  },
-
-  /**
-   * 删除合同照片
-   */
-  onDeleteContractPhoto(e: WechatMiniprogram.TouchEvent) {
-    const { index } = e.currentTarget.dataset;
-    const images = [...this.data.contractImages];
-    images.splice(index, 1);
-    this.setData({ contractImages: images });
+  onSecondManagerInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ secondManager: e.detail.value });
   },
 
   // ==================== 表单验证和提交 ====================
@@ -306,13 +385,19 @@ Page({
       return false;
     }
 
-    // 验证地址（至少填写县城和村）
+    // 验证地址（至少填写县/区和村）
     if (!form.county.trim()) {
       this.showToast('请输入县/区');
       return false;
     }
     if (!form.village.trim()) {
-      this.showToast('请输入村/组');
+      this.showToast('请输入村');
+      return false;
+    }
+
+    // 验证第一负责人（必填）
+    if (!this.data.firstManager.trim()) {
+      this.showToast('请输入第一负责人');
       return false;
     }
 
@@ -321,6 +406,33 @@ Page({
       const deposit = parseFloat(form.deposit);
       if (isNaN(deposit) || deposit < 0) {
         this.showToast('请输入正确的定金金额');
+        return false;
+      }
+    }
+
+    // 验证种苗合计（可以为0，但如果填了必须是有效数字）
+    if (form.seedTotal) {
+      const seedTotal = parseFloat(form.seedTotal);
+      if (isNaN(seedTotal) || seedTotal < 0) {
+        this.showToast('请输入正确的种苗合计（万株）');
+        return false;
+      }
+    }
+
+    // 验证单价（可以为0，但如果填了必须是有效数字）
+    if (form.seedUnitPrice) {
+      const seedUnitPrice = parseFloat(form.seedUnitPrice);
+      if (isNaN(seedUnitPrice) || seedUnitPrice < 0) {
+        this.showToast('请输入正确的单价');
+        return false;
+      }
+    }
+
+    // 验证种苗欠款（可以为0，但如果填了必须是有效数字）
+    if (form.seedDebt) {
+      const seedDebt = parseFloat(form.seedDebt);
+      if (isNaN(seedDebt) || seedDebt < 0) {
+        this.showToast('请输入正确的种苗欠款');
         return false;
       }
     }
@@ -337,41 +449,53 @@ Page({
 
     this.setData({ submitting: true });
 
-    const { form, managerId, managerName, contractImages } = this.data;
+    const { form, firstManager, secondManager, receivableAmount } = this.data;
 
-    // 构建农户数据
-    const farmerData = {
-      id: `F${Date.now()}`,  // 临时ID，实际由后端生成
-      customerCode: this.generateCustomerCode(form.phone),
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      idCard: form.idCard.trim().toUpperCase(),
-      address: {
-        county: form.county.trim(),
-        township: form.township.trim(),
-        town: form.town.trim(),
-        village: form.village.trim()
-      },
-      addressText: [form.county, form.township, form.town, form.village]
-        .filter(s => s.trim())
-        .join(''),
-      acreage: parseFloat(form.acreage),
-      grade: form.grade,
-      deposit: parseFloat(form.deposit) || 0,
-      manager: managerName,  // 自动绑定的负责人
-      contractDate: new Date().toISOString().split('T')[0],
-      status: 'active' as const,
-      contractImages,
-      salesmanId: managerId,
-      salesmanName: managerName,
-      createTime: new Date().toISOString()
-    };
+    try {
+      // 获取当前用户ID
+      const app = getApp<IAppOption>();
+      const currentUser = app.globalData.currentUser;
+      if (!currentUser || !currentUser.id) {
+        throw new Error('用户信息不存在，请重新登录');
+      }
 
-    console.log('提交农户数据:', farmerData);
+      // 构建农户数据
+      const farmerData = {
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        idCard: form.idCard.trim().toUpperCase(),
+        address: {
+          county: form.county.trim(),
+          township: form.township.trim(),
+          village: form.village.trim()
+        },
+        acreage: parseFloat(form.acreage),
+        grade: form.grade,
+        deposit: parseFloat(form.deposit) || 0,
+        seedTotal: parseFloat(form.seedTotal) || 0,  // 种苗合计（万株）
+        seedUnitPrice: parseFloat(form.seedUnitPrice) || 0,  // 单价（元/万株）
+        receivableAmount: parseFloat(receivableAmount) || 0,  // 应收款（元）
+        seedDebt: parseFloat(form.seedDebt) || 0,  // 种苗欠款（元）
+        firstManager: firstManager.trim(),  // 第一负责人
+        secondManager: secondManager.trim() || ''  // 第二负责人（可选）
+      };
 
-    // TODO: 调用 API 提交数据
-    // 这里模拟提交
-    setTimeout(() => {
+      console.log('提交农户数据:', farmerData);
+
+      // 调用云函数创建农户
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'create',
+          userId: currentUser.id,
+          data: farmerData
+        }
+      });
+
+      if (!res.result || !(res.result as any).success) {
+        throw new Error((res.result as any)?.message || '创建失败');
+      }
+
       this.setData({ submitting: false });
 
       wx.showToast({
@@ -384,7 +508,17 @@ Page({
       setTimeout(() => {
         wx.navigateBack();
       }, 1500);
-    }, 1000);
+
+    } catch (error: any) {
+      console.error('创建农户失败:', error);
+      this.setData({ submitting: false });
+      
+      wx.showModal({
+        title: '签约失败',
+        content: error.message || '请稍后重试',
+        showCancel: false
+      });
+    }
   },
 
   /**

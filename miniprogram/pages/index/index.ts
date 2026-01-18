@@ -3,7 +3,7 @@
  * @description 数据概览、快捷操作入口、业务趋势展示
  */
 
-import { 
+import {
   MOCK_FARMERS,
   MOCK_ACQUISITIONS,
   MOCK_SETTLEMENTS,
@@ -16,20 +16,15 @@ import {
   MOCK_FARMER_SUMMARY,
   MOCK_FARMER_SUMMARY_YESTERDAY,
   MOCK_SALESMAN_STATS,
-  MOCK_SALESMAN_STATS_YESTERDAY
+  MOCK_SALESMAN_STATS_YESTERDAY,
+  MOCK_WAREHOUSES,
+  MOCK_WAREHOUSE_STATS
 } from '../../models/mock-data';
 import { UserRole, UserRoleNames } from '../../models/types';
 import type { SeedDistributionStats, FarmerSummaryStats, SalesmanFarmerStats } from '../../models/types';
 
 // 获取应用实例
 const app = getApp<IAppOption>();
-
-// 角色列表（用于测试切换）
-const ROLE_LIST = [
-  { role: UserRole.SALESMAN, user: MOCK_USER_SALESMAN },
-  { role: UserRole.WAREHOUSE_MANAGER, user: MOCK_USER_WAREHOUSE },
-  { role: UserRole.FINANCE_ADMIN, user: MOCK_USER_FINANCE }
-];
 
 Page({
   data: {
@@ -38,7 +33,7 @@ Page({
     // 当前角色信息（默认业务员）
     currentRoleName: '业务员',
     currentRoleKey: 'salesman',
-    
+
     // ========== 业务员专属数据 ==========
     // 我的业绩统计
     myStats: {
@@ -53,7 +48,7 @@ Page({
     },
     // 最近签约的农户（显示3条）
     recentFarmers: [] as any[],
-    
+
     // ========== 管理层数据 ==========
     // 核心指标Tab（0:昨日, 1:全季度）
     overviewTab: 1,
@@ -83,7 +78,33 @@ Page({
     displaySalesmanList: [] as any[],
     salesmanExpanded: false,
     salesmanTab: 1,
-    
+
+    // ========== 仓库管理员数据 ==========
+    // 仓库信息
+    warehouseInfo: {
+      id: '',
+      code: '',
+      name: '',
+      location: '',
+      managerId: '',
+      managerName: ''
+    },
+    // 仓库统计数据
+    warehouseStats: {
+      todayQuantity: 0,
+      todayAmount: 0,
+      todayAmountFormat: '0.00',
+      todayFarmerCount: 0,
+      totalQuantity: 0,
+      totalAmount: 0,
+      totalAmountFormat: '0.00',
+      totalFarmerCount: 0,
+      currentStock: 0,
+      outStock: 0
+    },
+    // 今日日期
+    todayDate: '',
+
     // 当前时间问候语
     greeting: '下午好'
   },
@@ -98,6 +119,14 @@ Page({
   },
 
   onShow() {
+    // 先检查登录状态
+    if (!app.globalData.isLoggedIn) {
+      wx.reLaunch({
+        url: '/pages/login/index'
+      });
+      return;
+    }
+
     // 每次页面显示时更新 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ value: 0 });
@@ -111,7 +140,7 @@ Page({
    */
   checkLogin() {
     if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
+      wx.reLaunch({
         url: '/pages/login/index'
       });
       return;
@@ -133,51 +162,20 @@ Page({
    */
   updateRoleDisplay(role: UserRole | null) {
     if (!role) return;
-    
+
     const roleKeyMap: Record<UserRole, string> = {
-      [UserRole.SALESMAN]: 'salesman',
+      [UserRole.ASSISTANT]: 'salesman',
       [UserRole.WAREHOUSE_MANAGER]: 'warehouse',
-      [UserRole.FINANCE_ADMIN]: 'finance'
+      [UserRole.FINANCE_ADMIN]: 'finance',
+      [UserRole.ADMIN]: 'finance'  // 管理员与财务共用视图
     };
-    
+
     this.setData({
       currentRoleName: UserRoleNames[role],
       currentRoleKey: roleKeyMap[role]
     });
   },
 
-  /**
-   * 切换角色（测试用）
-   */
-  onSwitchRole() {
-    const currentRole = app.globalData.userRole;
-    const currentIndex = ROLE_LIST.findIndex(item => item.role === currentRole);
-    const nextIndex = (currentIndex + 1) % ROLE_LIST.length;
-    const nextRoleItem = ROLE_LIST[nextIndex];
-    
-    // 更新全局状态
-    const token = app.globalData.token;
-    app.setLoginStatus(token, nextRoleItem.user);
-    
-    // 更新页面显示
-    this.setData({ userName: nextRoleItem.user.name });
-    this.updateRoleDisplay(nextRoleItem.role);
-    
-    // 重新加载对应角色的数据
-    this.loadDashboardData();
-    
-    // 刷新底部导航栏
-    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().initTabBar();
-    }
-    
-    // 提示用户
-    wx.showToast({
-      title: `已切换为：${UserRoleNames[nextRoleItem.role]}`,
-      icon: 'none',
-      duration: 1500
-    });
-  },
 
   /**
    * 设置问候语
@@ -249,69 +247,104 @@ Page({
    */
   loadDashboardData() {
     const roleKey = this.data.currentRoleKey;
-    
+
     // 业务员：只加载自己的数据
     if (roleKey === 'salesman') {
       this.loadSalesmanData();
       return;
     }
-    
+
+    // 仓库管理员：加载仓库数据
+    if (roleKey === 'warehouse') {
+      this.loadWarehouseData();
+      return;
+    }
+
     // 管理层：加载全部统计数据
     this.loadManagerData();
   },
-  
+
   /**
    * 加载业务员专属数据
    * 只展示自己签约的农户和发苗记录
    */
-  loadSalesmanData() {
-    const currentUser = app.globalData.userInfo;
-    const currentUserId = currentUser?.id || 'dev_salesman_001';
-    
-    // 筛选当前业务员签约的农户
-    const myFarmers = MOCK_FARMERS.filter(f => f.salesmanId === currentUserId || f.salesmanId === 's001');
-    
-    // 筛选当前业务员的发苗记录
-    const mySeedRecords = MOCK_SEED_RECORDS.filter(r => 
-      r.distributorId?.toLowerCase() === 's001' || r.distributorId === currentUserId
-    );
-    
-    // 计算定金总额
-    const totalDeposit = myFarmers.reduce((sum, f) => sum + (f.deposit || 0), 0);
-    
-    // 计算发苗数据
-    const seedCount = mySeedRecords.length;
-    const seedQuantity = mySeedRecords.reduce((sum, r) => sum + r.quantity, 0);
-    const seedAmount = mySeedRecords.reduce((sum, r) => sum + r.totalAmount, 0);
-    
-    // 计算我的业绩
-    const myStats = {
-      farmerCount: myFarmers.length,
-      acreage: myFarmers.reduce((sum, f) => sum + f.plantingArea, 0),
-      deposit: totalDeposit,
-      depositFormat: this.formatMoney(totalDeposit),
-      seedCount: seedCount,
-      seedQuantity: seedQuantity,
-      seedAmount: seedAmount,
-      seedAmountFormat: this.formatMoney(seedAmount)
-    };
-    
-    // 最近签约的农户（按签约日期倒序，取前3条）
-    const recentFarmers = myFarmers
-      .sort((a, b) => new Date(b.contractDate).getTime() - new Date(a.contractDate).getTime())
-      .slice(0, 3)
-      .map(f => ({
-        id: f.id,
+  async loadSalesmanData() {
+    try {
+      wx.showLoading({ title: '加载中...' });
+
+      // 获取当前用户ID
+      const currentUser = app.globalData.currentUser;
+      if (!currentUser || !currentUser.id) {
+        throw new Error('用户信息不存在，请重新登录');
+      }
+
+      // 调用云函数获取助理统计数据
+      const res = await wx.cloud.callFunction({
+        name: 'dashboard-stats',
+        data: {
+          action: 'getAssistantStats',
+          userId: currentUser.id
+        }
+      });
+
+      wx.hideLoading();
+
+      if (!res.result || !(res.result as any).success) {
+        throw new Error((res.result as any)?.message || '获取数据失败');
+      }
+
+      const data = (res.result as any).data;
+
+      // 计算我的业绩统计
+      const myStats = {
+        farmerCount: data.farmerCount || 0,
+        acreage: data.totalAcreage || 0,
+        deposit: data.totalReceivable || 0,
+        depositFormat: this.formatMoney(data.totalReceivable || 0),
+        seedCount: 0, // TODO: 从发苗记录获取
+        seedQuantity: 0,
+        seedAmount: data.totalDistributedAmount || 0,
+        seedAmountFormat: this.formatMoney(data.totalDistributedAmount || 0)
+      };
+
+      // 最近签约的农户（显示前3条）
+      const farmers = data.farmers || [];
+      const recentFarmers = farmers.slice(0, 3).map((f: any) => ({
+        id: f._id,
         name: f.name,
         phone: f.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
-        acreage: f.plantingArea,
-        grade: f.grade,
-        contractDate: f.contractDate.slice(5)
+        acreage: f.acreage || 0,
+        grade: f.grade || 'C',
+        contractDate: f.createTime ? new Date(f.createTime).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) : ''
       }));
-    
-    this.setData({ myStats, recentFarmers });
+
+      this.setData({ myStats, recentFarmers });
+
+    } catch (error: any) {
+      console.error('加载助理数据失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: error.message || '加载数据失败',
+        icon: 'none'
+      });
+
+      // 失败时显示空数据
+      this.setData({
+        myStats: {
+          farmerCount: 0,
+          acreage: 0,
+          deposit: 0,
+          depositFormat: '0',
+          seedCount: 0,
+          seedQuantity: 0,
+          seedAmount: 0,
+          seedAmountFormat: '0'
+        },
+        recentFarmers: []
+      });
+    }
   },
-  
+
   /**
    * 格式化金额（简化版）
    */
@@ -321,7 +354,7 @@ Page({
     }
     return amount.toString();
   },
-  
+
   /**
    * 加载管理层数据
    */
@@ -427,8 +460,8 @@ Page({
     const tab = parseInt(e.currentTarget.dataset.tab);
     const salesmanStats = this.getCurrentSalesmanStats(tab);
     // 昨日数据过滤掉0户的负责人
-    const filteredStats = tab === 0 
-      ? salesmanStats.filter((s: any) => s.farmerCount > 0) 
+    const filteredStats = tab === 0
+      ? salesmanStats.filter((s: any) => s.farmerCount > 0)
       : salesmanStats;
     const displaySalesmanList = filteredStats.slice(0, 5);
 
@@ -446,7 +479,7 @@ Page({
   processSalesmanStats(stats: SalesmanFarmerStats[]) {
     // 按农户数降序排序
     const sorted = [...stats].sort((a, b) => b.farmerCount - a.farmerCount);
-    
+
     // 格式化数据
     return sorted.map((item, index) => ({
       ...item,
@@ -501,14 +534,14 @@ Page({
       { label: '12/9', contract: 156, seed: 189 },
       { label: '12/10', contract: 125, seed: 168 }
     ];
-    
+
     const weekData = [
       { label: '第1周', contract: 420, seed: 580 },
       { label: '第2周', contract: 385, seed: 520 },
       { label: '第3周', contract: 510, seed: 680 },
       { label: '第4周', contract: 465, seed: 620 }
     ];
-    
+
     const monthData = [
       { label: '7月', contract: 1850, seed: 2400 },
       { label: '8月', contract: 2100, seed: 2800 },
@@ -519,12 +552,12 @@ Page({
     ];
 
     const dataSource = tabIndex === 0 ? dayData : tabIndex === 1 ? weekData : monthData;
-    
+
     // 计算最大值用于归一化高度
     const maxContract = Math.max(...dataSource.map(d => d.contract));
     const maxSeed = Math.max(...dataSource.map(d => d.seed));
     const maxValue = Math.max(maxContract, maxSeed);
-    
+
     return dataSource.map(item => ({
       label: item.label,
       contract: item.contract,
@@ -570,7 +603,7 @@ Page({
         '/pages/finance/index/index',
         '/pages/ai/index/index'
       ];
-      
+
       if (tabBarPages.includes(page)) {
         wx.switchTab({ url: page });
       } else {
@@ -585,7 +618,7 @@ Page({
   onStatTap(e: WechatMiniprogram.TouchEvent) {
     const { type } = e.currentTarget.dataset;
     const { currentRoleKey } = this.data;
-    
+
     switch (type) {
       case 'farmers':
         // 管理层跳转到统计详情页，其他角色跳转到农户列表
@@ -619,6 +652,17 @@ Page({
    * 扫码功能
    */
   onScanTap() {
+    const currentRole = this.data.currentUser?.role;
+
+    // 仓库管理员：跳转到收苗登记
+    if (currentRole === UserRole.WAREHOUSE_MANAGER) {
+      wx.navigateTo({
+        url: '/pages/operations/buy-add/index'
+      });
+      return;
+    }
+
+    // 其他角色：调用扫码功能
     wx.scanCode({
       success: (res) => {
         console.log('扫码结果:', res);
@@ -630,29 +674,171 @@ Page({
     });
   },
 
+  // ========== 仓库管理员专属方法 ==========
+
+  /**
+   * 加载仓库管理员数据
+   */
+  async loadWarehouseData() {
+    try {
+      wx.showLoading({ title: '加载中...' });
+
+      // 获取当前用户ID
+      const currentUser = app.globalData.currentUser;
+      if (!currentUser || !currentUser.id) {
+        throw new Error('用户信息不存在，请重新登录');
+      }
+
+      // 调用云函数获取仓管统计数据
+      const res = await wx.cloud.callFunction({
+        name: 'dashboard-stats',
+        data: {
+          action: 'getWarehouseStats',
+          userId: currentUser.id
+        }
+      });
+
+      wx.hideLoading();
+
+      if (!res.result || !(res.result as any).success) {
+        throw new Error((res.result as any)?.message || '获取数据失败');
+      }
+
+      const data = (res.result as any).data;
+
+      // 格式化日期
+      const today = new Date();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const todayDate = `${month}月${day}日`;
+
+      this.setData({
+        warehouseInfo: {
+          id: data.warehouse._id,
+          code: data.warehouse.code,
+          name: data.warehouse.name,
+          location: data.warehouse.address || '',
+          managerId: data.warehouse.managerId || '',
+          managerName: data.warehouse.manager || ''
+        },
+        warehouseStats: {
+          todayQuantity: data.today.count || 0,
+          todayAmount: data.today.amount || 0,
+          todayAmountWan: this.formatAmountToWan(data.today.amount || 0),
+          todayFarmerCount: data.today.count || 0,
+          totalQuantity: data.total.count || 0,
+          totalAmount: data.total.amount || 0,
+          totalAmountWan: this.formatAmountToWan(data.total.amount || 0),
+          totalFarmerCount: data.total.count || 0,
+          currentStock: data.inventory.count || 0,
+          outStock: 0
+        },
+        todayDate
+      });
+
+    } catch (error: any) {
+      console.error('加载仓管数据失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: error.message || '加载数据失败',
+        icon: 'none'
+      });
+
+      // 失败时显示空数据
+      this.setData({
+        warehouseInfo: {
+          id: '',
+          code: '',
+          name: '',
+          location: '',
+          managerId: '',
+          managerName: ''
+        },
+        warehouseStats: {
+          todayQuantity: 0,
+          todayAmount: 0,
+          todayAmountWan: '0.0000',
+          todayFarmerCount: 0,
+          totalQuantity: 0,
+          totalAmount: 0,
+          totalAmountWan: '0.0000',
+          totalFarmerCount: 0,
+          currentStock: 0,
+          outStock: 0
+        }
+      });
+    }
+  },
+
+  /**
+   * 格式化金额为万元（保留4位小数）
+   */
+  formatAmountToWan(amount: number): string {
+    return (amount / 10000).toFixed(4);
+  },
+
+  /**
+   * 跳转收购登记
+   */
+  goAcquisitionAdd() {
+    wx.navigateTo({
+      url: '/pages/operations/buy-add/index'
+    });
+  },
+
+  /**
+   * 跳转库存管理
+   */
+  goStockManage() {
+    wx.showToast({ title: '库存管理功能开发中', icon: 'none' });
+    // wx.navigateTo({
+    //   url: '/pages/inventory/index/index'
+    // });
+  },
+
+  /**
+   * 跳转收购记录
+   */
+  goAcquisitionList() {
+    wx.showToast({ title: '收购记录功能开发中', icon: 'none' });
+    // wx.navigateTo({
+    //   url: '/pages/acquisition/list/index'
+    // });
+  },
+
+  /**
+   * 跳转数据报表
+   */
+  goWarehouseReport() {
+    wx.showToast({ title: '数据报表功能开发中', icon: 'none' });
+    // wx.navigateTo({
+    //   url: '/pages/reports/warehouse/index'
+    // });
+  },
+
   // ========== 业务员专属方法 ==========
-  
+
   /**
    * 跳转：录入农户
    */
   goAddFarmer() {
     wx.navigateTo({ url: '/pages/farmers/add/index' });
   },
-  
+
   /**
    * 跳转：发苗登记
    */
   goAddSeed() {
     wx.navigateTo({ url: '/pages/operations/seed-add/index' });
   },
-  
+
   /**
    * 跳转：我的农户列表
    */
   goMyFarmers() {
     wx.switchTab({ url: '/pages/farmers/list/index' });
   },
-  
+
   /**
    * 跳转：农户详情
    */

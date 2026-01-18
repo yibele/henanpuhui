@@ -23,7 +23,7 @@ Page({
     // 农户信息
     farmer: null as Farmer | null,
     // 当前用户（负责人）
-    currentUser: '业务员',
+    currentUser: '助理',
     // 是否为管理层（管理层不显示作业操作）
     isFinanceAdmin: false,
     // 业务记录
@@ -106,7 +106,7 @@ Page({
   loadCurrentUser() {
     const userInfo = app.globalData.userInfo as any;
     if (userInfo) {
-      this.setData({ currentUser: userInfo.nickName || '业务员' });
+      this.setData({ currentUser: userInfo.nickName || '助理' });
     }
   },
 

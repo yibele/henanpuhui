@@ -139,10 +139,100 @@
           </view>
         </view>
       </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 种苗合计（万株）-->
+      <view class="form-item">
+        <text class="form-label">种苗合计（万株）</text>
+        <view class="stepper-input-row">
+          <input 
+            class="stepper-input"
+            type="digit"
+            placeholder="0"
+            value="{{form.seedTotal}}"
+            bindinput="onSeedTotalInput"
+          />
+          <view class="stepper-controls">
+            <view class="stepper-btn stepper-btn-minus" bindtap="onSeedTotalMinus">
+              <t-icon name="remove" size="36rpx" color="{{form.seedTotal > 0 ? '#059669' : '#d1d5db'}}" />
+            </view>
+            <view class="stepper-btn stepper-btn-plus" bindtap="onSeedTotalPlus">
+              <t-icon name="add" size="36rpx" color="#059669" />
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 单价（元/万株）-->
+      <view class="form-item">
+        <text class="form-label">单价（元/万株）</text>
+        <view class="stepper-input-row">
+          <view class="deposit-input-wrapper">
+            <text class="deposit-prefix">¥</text>
+            <input 
+              class="stepper-input deposit-input"
+              type="digit"
+              placeholder="0"
+              value="{{form.seedUnitPrice}}"
+              bindinput="onSeedUnitPriceInput"
+            />
+          </view>
+          <view class="stepper-controls">
+            <view class="stepper-btn stepper-btn-minus" bindtap="onSeedUnitPriceMinus">
+              <t-icon name="remove" size="36rpx" color="{{form.seedUnitPrice > 0 ? '#3b82f6' : '#d1d5db'}}" />
+            </view>
+            <view class="stepper-btn stepper-btn-plus" bindtap="onSeedUnitPricePlus">
+              <t-icon name="add" size="36rpx" color="#3b82f6" />
+            </view>
+          </view>
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 应收款（自动计算）-->
+      <view class="form-item">
+        <text class="form-label">应收款（元）</text>
+        <view class="readonly-value-row">
+          <text class="readonly-prefix">¥</text>
+          <text class="readonly-value">{{receivableAmount}}</text>
+          <view class="auto-calc-tag">自动计算</view>
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 种苗欠款 -->
+      <view class="form-item">
+        <text class="form-label">种苗欠款（元）</text>
+        <view class="stepper-input-row">
+          <view class="deposit-input-wrapper">
+            <text class="deposit-prefix">¥</text>
+            <input 
+              class="stepper-input deposit-input"
+              type="digit"
+              placeholder="0"
+              value="{{form.seedDebt}}"
+              bindinput="onSeedDebtInput"
+            />
+          </view>
+          <view class="stepper-controls">
+            <view class="stepper-btn stepper-btn-minus" bindtap="onSeedDebtMinus">
+              <t-icon name="remove" size="36rpx" color="{{form.seedDebt > 0 ? '#ef4444' : '#d1d5db'}}" />
+            </view>
+            <view class="stepper-btn stepper-btn-plus" bindtap="onSeedDebtPlus">
+              <t-icon name="add" size="36rpx" color="#ef4444" />
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
   </view>
 
-  <!-- 种植地址（四级） -->
+  <!-- 种植地址（三级） -->
   <view class="form-section">
     <view class="section-header">
       <view class="section-indicator section-indicator-blue"></view>
@@ -150,8 +240,8 @@
     </view>
     
     <view class="form-card">
-      <view class="address-grid">
-        <!-- 县城 -->
+      <view class="address-grid-three">
+        <!-- 县/区 -->
         <view class="address-item">
           <text class="form-label required">县/区</text>
           <input 
@@ -162,34 +252,23 @@
           />
         </view>
         
-        <!-- 乡 -->
+        <!-- 乡镇 -->
         <view class="address-item">
-          <text class="form-label">乡</text>
+          <text class="form-label">乡镇</text>
           <input 
             class="form-input"
-            placeholder="输入乡"
+            placeholder="输入乡镇"
             value="{{form.township}}"
             bindinput="onTownshipInput"
           />
         </view>
         
-        <!-- 镇 -->
-        <view class="address-item">
-          <text class="form-label">镇</text>
-          <input 
-            class="form-input"
-            placeholder="输入镇"
-            value="{{form.town}}"
-            bindinput="onTownInput"
-          />
-        </view>
-        
         <!-- 村 -->
         <view class="address-item">
-          <text class="form-label required">村/组</text>
+          <text class="form-label required">村</text>
           <input 
             class="form-input"
-            placeholder="输入村/组"
+            placeholder="输入村"
             value="{{form.village}}"
             bindinput="onVillageInput"
           />
@@ -198,7 +277,7 @@
     </view>
   </view>
 
-  <!-- 负责人信息（自动绑定当前登录用户） -->
+  <!-- 负责人信息 -->
   <view class="form-section">
     <view class="section-header">
       <view class="section-indicator section-indicator-purple"></view>
@@ -206,19 +285,28 @@
     </view>
     
     <view class="form-card">
-      <view class="manager-info">
-        <view class="manager-row">
-          <text class="manager-label">种植户负责人</text>
-          <view class="manager-value">
-            <t-icon name="user-circle" size="36rpx" color="#8b5cf6" />
-            <text class="manager-name">{{managerName}}</text>
-            <view class="manager-tag">当前账号</view>
-          </view>
-        </view>
-        <view class="manager-hint">
-          <t-icon name="info-circle" size="28rpx" color="#9ca3af" />
-          <text>负责人已自动绑定为当前登录账号</text>
-        </view>
+      <!-- 第一负责人 -->
+      <view class="form-item">
+        <text class="form-label required">第一负责人</text>
+        <input 
+          class="form-input"
+          placeholder="输入第一负责人姓名"
+          value="{{firstManager}}"
+          bindinput="onFirstManagerInput"
+        />
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 第二负责人 -->
+      <view class="form-item">
+        <text class="form-label">第二负责人</text>
+        <input 
+          class="form-input"
+          placeholder="输入第二负责人姓名（可选）"
+          value="{{secondManager}}"
+          bindinput="onSecondManagerInput"
+        />
       </view>
       
       <!-- 客户编码预览 -->
@@ -226,73 +314,6 @@
       <view class="code-preview" wx:if="{{customerCodePreview}}">
         <text class="code-label">客户编码（自动生成）</text>
         <text class="code-value">{{customerCodePreview}}</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 照片上传 -->
-  <view class="form-section">
-    <view class="section-header">
-      <view class="section-indicator section-indicator-teal"></view>
-      <text class="section-title">证件与合同</text>
-    </view>
-    
-    <view class="form-card">
-      <!-- 身份证照片 -->
-      <view class="upload-section">
-        <text class="upload-title">身份证照片（正反面）</text>
-        <view class="upload-row">
-          <view class="upload-btn" bindtap="onChooseIdPhoto" wx:if="{{idCardImages.length < 2}}">
-            <t-icon name="camera" size="48rpx" color="#9ca3af" />
-            <text class="upload-text">拍摄身份证</text>
-          </view>
-          
-          <!-- 已上传的身份证照片 -->
-          <view 
-            wx:for="{{idCardImages}}" 
-            wx:key="*this"
-            class="uploaded-image-item"
-          >
-            <image class="uploaded-image" src="{{item}}" mode="aspectFill" />
-            <view 
-              class="delete-btn"
-              data-index="{{index}}"
-              catchtap="onDeleteIdPhoto"
-            >
-              <t-icon name="close" size="24rpx" color="#ffffff" />
-            </view>
-            <text class="image-label">{{index === 0 ? '正面' : '反面'}}</text>
-          </view>
-        </view>
-      </view>
-      
-      <view class="form-divider"></view>
-      
-      <!-- 合同照片 -->
-      <view class="upload-section">
-        <text class="upload-title">合同照片</text>
-        <view class="upload-row">
-          <view class="upload-btn" bindtap="onChooseContractPhoto">
-            <t-icon name="upload" size="48rpx" color="#9ca3af" />
-            <text class="upload-text">上传合同</text>
-          </view>
-          
-          <!-- 已上传的合同照片 -->
-          <view 
-            wx:for="{{contractImages}}" 
-            wx:key="*this"
-            class="uploaded-image-item"
-          >
-            <image class="uploaded-image" src="{{item}}" mode="aspectFill" />
-            <view 
-              class="delete-btn"
-              data-index="{{index}}"
-              catchtap="onDeleteContractPhoto"
-            >
-              <t-icon name="close" size="24rpx" color="#ffffff" />
-            </view>
-          </view>
-        </view>
       </view>
     </view>
   </view>

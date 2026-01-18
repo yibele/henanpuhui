@@ -1,22 +1,24 @@
 /**
- * 普惠农户 CRM 数据类型定义
+ * 普惠农录 数据类型定义
  * @description 定义系统中使用的所有数据结构
  */
 
 // ==================== 用户相关 ====================
 
-/** 用户角色枚举 */
+/** 用户角色枚举 - 与数据库存储值保持一致 */
 export enum UserRole {
-  SALESMAN = 'SALESMAN',                    // 业务员：负责用户签约和种苗发放
-  WAREHOUSE_MANAGER = 'WAREHOUSE_MANAGER',  // 仓库管理员：负责收苗入库、出库管理
-  FINANCE_ADMIN = 'FINANCE_ADMIN'           // 财务/管理层：系统总览、多维度查询、结算
+  ASSISTANT = 'assistant',                    // 业务员/助理：负责用户签约和种苗发放
+  WAREHOUSE_MANAGER = 'warehouse_manager',    // 仓库管理员：负责收苗入库、出库管理
+  FINANCE_ADMIN = 'finance_admin',            // 财务/管理层：系统总览、多维度查询、结算
+  ADMIN = 'admin'                             // 超级管理员
 }
 
 /** 角色显示名称 */
 export const UserRoleNames: Record<UserRole, string> = {
-  [UserRole.SALESMAN]: '业务员',
+  [UserRole.ASSISTANT]: '助理',
   [UserRole.WAREHOUSE_MANAGER]: '仓库管理员',
-  [UserRole.FINANCE_ADMIN]: '财务/管理层'
+  [UserRole.FINANCE_ADMIN]: '财务/管理层',
+  [UserRole.ADMIN]: '管理员'
 };
 
 /** 权限类型枚举 */
@@ -25,28 +27,28 @@ export enum Permission {
   FARMER_CREATE = 'FARMER_CREATE',      // 新增农户
   FARMER_VIEW_OWN = 'FARMER_VIEW_OWN',  // 查看自己的农户
   FARMER_VIEW_ALL = 'FARMER_VIEW_ALL',  // 查看所有农户
-  
+
   // 种苗发放
   SEED_DISTRIBUTE = 'SEED_DISTRIBUTE',  // 种苗发放操作
   SEED_VIEW = 'SEED_VIEW',              // 查看种苗发放记录
-  
+
   // 种植指导
   GUIDE_CREATE = 'GUIDE_CREATE',        // 添加种植指导
   GUIDE_VIEW = 'GUIDE_VIEW',            // 查看种植指导记录
-  
+
   // 收苗管理
   ACQUISITION_CREATE = 'ACQUISITION_CREATE',  // 收苗登记
   ACQUISITION_VIEW = 'ACQUISITION_VIEW',      // 查看收苗记录
-  
+
   // 仓库管理
   INVENTORY_IN = 'INVENTORY_IN',        // 入库操作
   INVENTORY_OUT = 'INVENTORY_OUT',      // 出库操作
   INVENTORY_VIEW = 'INVENTORY_VIEW',    // 查看库存
-  
+
   // 结算管理
   SETTLEMENT_VIEW = 'SETTLEMENT_VIEW',  // 查看结算列表
   SETTLEMENT_PAY = 'SETTLEMENT_PAY',    // 执行结算支付
-  
+
   // 数据统计
   STATS_OWN = 'STATS_OWN',              // 查看自己的统计数据
   STATS_WAREHOUSE = 'STATS_WAREHOUSE',  // 查看仓库统计数据
@@ -207,6 +209,35 @@ export interface AddAcquisitionParams {
   pricePerKg: number;
 }
 
+// ==================== 仓库相关 ====================
+
+/** 仓库信息 */
+export interface Warehouse {
+  id: string;              // 仓库ID
+  code: string;            // 仓库编码
+  name: string;            // 仓库名称
+  location: string;        // 仓库位置
+  managerId: string;       // 仓库管理员ID
+  managerName: string;     // 仓库管理员姓名
+  status: 'active' | 'inactive';  // 状态
+  createTime: string;      // 创建时间
+}
+
+/** 仓库统计数据 */
+export interface WarehouseStats {
+  // 今日收苗
+  todayQuantity: number;   // 今日收苗数量（kg）
+  todayAmount: number;     // 今日收苗金额（元）
+  todayFarmerCount: number; // 今日收苗农户数
+  // 累计数据
+  totalQuantity: number;   // 累计收苗数量（kg）
+  totalAmount: number;     // 累计收苗金额（元）
+  totalFarmerCount: number; // 累计收苗农户数
+  // 库存数据
+  currentStock: number;    // 当前库存（kg）
+  outStock: number;        // 已出库（kg）
+}
+
 // ==================== 库存相关 ====================
 
 /** 库存类别 */
@@ -220,12 +251,35 @@ export interface InventoryItem {
   quantity: number;        // 数量
   unit: string;            // 单位
   location: string;        // 存放位置
+  warehouseId?: string;    // 所属仓库ID
+  warehouseName?: string;  // 所属仓库名称
+}
+
+/** 库存变动类型 */
+export type InventoryLogType = 'in' | 'out';
+
+/** 库存变动关联业务类型 */
+export type InventoryLogRelatedType = 'seed' | 'acquisition' | 'manual';
+
+/** 库存变动记录 */
+export interface InventoryLog {
+  id: string;                      // 变动记录ID
+  inventoryId: string;             // 关联库存项ID
+  inventoryName: string;           // 库存项名称（冗余）
+  type: InventoryLogType;          // 变动类型：in入库/out出库
+  quantity: number;                // 变动数量
+  relatedType: InventoryLogRelatedType; // 关联业务类型
+  relatedId?: string;              // 关联业务ID（SeedRecord或Acquisition的ID）
+  operator: string;                // 操作人ID
+  operatorName: string;            // 操作人姓名（冗余）
+  remark?: string;                 // 备注
+  createTime: string;              // 创建时间
 }
 
 // ==================== 结算相关 ====================
 
 /** 结算审核状态 */
-export type SettlementAuditStatus = 
+export type SettlementAuditStatus =
   | 'pending'      // 待审核（待会计审核）
   | 'approved'     // 已审核（会计已通过，待支付）
   | 'paying'       // 支付中（出纳正在分批支付）
@@ -259,7 +313,7 @@ export interface Settlement {
   farmerId: string;        // 农户ID
   farmerName: string;      // 农户姓名
   farmerPhone?: string;    // 农户电话
-  
+
   // 金额计算
   totalAcquisitionAmount: number; // 收购总金额（元）
   seedDeduction: number;          // 种苗扣款（元）
@@ -269,28 +323,28 @@ export interface Settlement {
   calculatedPayment: number;      // 系统计算应付金额（元）
   adjustedPayment: number;        // 调整后应付金额（元，会计可调整）
   finalPayment: number;           // 最终应付金额（元）
-  
+
   // 预付款
   prepayments: PrepaymentRecord[]; // 预付款记录
   totalPrepaid: number;           // 预付款合计（元）
-  
+
   // 支付信息
   payments: PaymentRecord[];      // 支付记录（最多5笔分批支付）
   totalPaid: number;              // 已支付合计（元）
   remainingPayment: number;       // 待支付金额（元）
-  
+
   // 审核信息
   auditStatus: SettlementAuditStatus; // 审核状态
   auditor?: string;               // 审核人（会计）
   auditTime?: string;             // 审核时间
   auditRemark?: string;           // 审核备注
-  
+
   // 其他信息
   date: string;                   // 结算日期
   relatedAcquisitionIds: string[]; // 关联的收购记录ID
   createTime: string;             // 创建时间
   updateTime?: string;            // 更新时间
-  
+
   // 旧字段兼容
   status?: PaymentStatus;         // 兼容旧版支付状态
   deductions?: number;            // 兼容旧版扣款字段
@@ -315,7 +369,7 @@ export interface SettlementOverviewStats {
   settledFarmerCount: number;     // 已结算农户数
   pendingAuditCount: number;      // 待审核数量
   payingCount: number;            // 支付中数量
-  
+
   // 金额统计
   totalPayable: number;           // 应付款总额（元）
   totalPaid: number;              // 已付款总额（元）

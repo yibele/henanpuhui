@@ -9,8 +9,8 @@ import { UserRole, Permission } from './types';
 
 /** 各角色拥有的权限列表 */
 export const RolePermissions: Record<UserRole, Permission[]> = {
-  // 业务员权限：用户签约 + 种苗发放
-  [UserRole.SALESMAN]: [
+  // 助理权限：用户签约 + 种苗发放
+  [UserRole.ASSISTANT]: [
     Permission.FARMER_CREATE,      // 新增农户
     Permission.FARMER_VIEW_OWN,    // 查看自己的农户
     Permission.SEED_DISTRIBUTE,    // 种苗发放
@@ -41,6 +41,28 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permission.SETTLEMENT_PAY,     // 执行结算支付
     Permission.STATS_ALL,          // 查看全部统计
     Permission.QUERY_MULTI         // 多维度查询
+  ],
+
+  // 超级管理员权限：全部
+  [UserRole.ADMIN]: [
+    Permission.FARMER_CREATE,
+    Permission.FARMER_VIEW_OWN,
+    Permission.FARMER_VIEW_ALL,
+    Permission.SEED_DISTRIBUTE,
+    Permission.SEED_VIEW,
+    Permission.GUIDE_CREATE,
+    Permission.GUIDE_VIEW,
+    Permission.ACQUISITION_CREATE,
+    Permission.ACQUISITION_VIEW,
+    Permission.INVENTORY_IN,
+    Permission.INVENTORY_OUT,
+    Permission.INVENTORY_VIEW,
+    Permission.SETTLEMENT_VIEW,
+    Permission.SETTLEMENT_PAY,
+    Permission.STATS_OWN,
+    Permission.STATS_WAREHOUSE,
+    Permission.STATS_ALL,
+    Permission.QUERY_MULTI
   ]
 };
 
@@ -55,8 +77,8 @@ export interface TabBarItem {
 
 /** 各角色的底部导航栏配置 */
 export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
-  // 业务员导航栏：首页、农户、发苗、助手
-  [UserRole.SALESMAN]: [
+  // 助理导航栏：首页、农户、发苗、助手
+  [UserRole.ASSISTANT]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
     { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' },
     { icon: 'corn', text: '发苗', pagePath: '/pages/operations/index/index' },
@@ -73,6 +95,15 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
 
   // 财务/管理层导航栏：总览、签约、发苗、收苗、结算
   [UserRole.FINANCE_ADMIN]: [
+    { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
+    { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
+    { icon: 'corn', text: '发苗', pagePath: '/pages/stats/seeds/index' },
+    { icon: 'cart', text: '收苗', pagePath: '/pages/stats/acquisition/index' },
+    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
+  ],
+
+  // 管理员导航栏：与财务相同
+  [UserRole.ADMIN]: [
     { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
     { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
     { icon: 'corn', text: '发苗', pagePath: '/pages/stats/seeds/index' },
@@ -120,7 +151,7 @@ export function hasAllPermissions(userRole: UserRole, permissions: Permission[])
  * @returns 导航栏配置
  */
 export function getTabBarConfig(userRole: UserRole): TabBarItem[] {
-  return RoleTabBars[userRole] || RoleTabBars[UserRole.SALESMAN];
+  return RoleTabBars[userRole] || RoleTabBars[UserRole.ASSISTANT];
 }
 
 /**
@@ -138,35 +169,35 @@ export function getUserPermissions(userRole: UserRole): Permission[] {
 export const PagePermissions: Record<string, Permission[]> = {
   // 首页 - 所有角色可访问，但显示内容不同
   '/pages/index/index': [],
-  
+
   // 农户相关页面
   '/pages/farmers/list/index': [Permission.FARMER_VIEW_OWN, Permission.FARMER_VIEW_ALL],
   '/pages/farmers/add/index': [Permission.FARMER_CREATE],
   '/pages/farmers/detail/index': [Permission.FARMER_VIEW_OWN, Permission.FARMER_VIEW_ALL],
-  
+
   // 作业相关页面
   '/pages/operations/index/index': [],  // 通用入口，内部根据角色显示不同内容
   '/pages/operations/seed-add/index': [Permission.SEED_DISTRIBUTE],
   '/pages/operations/guide-add/index': [Permission.GUIDE_CREATE],
   '/pages/operations/buy-add/index': [Permission.ACQUISITION_CREATE],
-  
+
   // 仓库相关页面
   '/pages/warehouse/index/index': [Permission.INVENTORY_VIEW],
   '/pages/warehouse/in/index': [Permission.INVENTORY_IN],
   '/pages/warehouse/out/index': [Permission.INVENTORY_OUT],
-  
+
   // 结算相关页面
   '/pages/finance/index/index': [Permission.SETTLEMENT_VIEW],
-  
+
   // 统计页面 - 仅管理层可访问
   '/pages/stats/acquisition/index': [Permission.STATS_ALL],
   '/pages/stats/supplies/index': [Permission.STATS_ALL],
   '/pages/stats/farmers/index': [Permission.STATS_ALL],
   '/pages/stats/seeds/index': [Permission.STATS_ALL],
-  
+
   // AI助手 - 所有角色可访问
   '/pages/ai/index/index': [],
-  
+
   // 登录页 - 无需权限
   '/pages/login/index': []
 };
@@ -179,12 +210,12 @@ export const PagePermissions: Record<string, Permission[]> = {
  */
 export function canAccessPage(userRole: UserRole, pagePath: string): boolean {
   const requiredPermissions = PagePermissions[pagePath];
-  
+
   // 页面未配置权限或权限列表为空，表示所有角色可访问
   if (!requiredPermissions || requiredPermissions.length === 0) {
     return true;
   }
-  
+
   // 只要有任意一个权限即可访问
   return hasAnyPermission(userRole, requiredPermissions);
 }
@@ -196,9 +227,10 @@ export function canAccessPage(userRole: UserRole, pagePath: string): boolean {
  */
 export function getNoPermissionMessage(userRole: UserRole): string {
   const roleNames: Record<UserRole, string> = {
-    [UserRole.SALESMAN]: '业务员',
+    [UserRole.ASSISTANT]: '助理',
     [UserRole.WAREHOUSE_MANAGER]: '仓库管理员',
-    [UserRole.FINANCE_ADMIN]: '财务/管理层'
+    [UserRole.FINANCE_ADMIN]: '财务/管理层',
+    [UserRole.ADMIN]: '管理员'
   };
   return `您当前角色（${roleNames[userRole]}）无权限访问此功能`;
 }

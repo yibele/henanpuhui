@@ -1,20 +1,11 @@
 <!--
   首页 Dashboard
   根据角色显示不同内容：
-  - 业务员：我的工作（我的农户、我的发苗、快捷操作）
+  - 助理：我的工作（我的农户、我的发苗、快捷操作）
   - 管理层：数据总览（全公司统计）
 -->
 <view class="dashboard-page">
-  <!-- 开发测试：角色切换按钮 -->
-  <view class="dev-role-switcher" bindtap="onSwitchRole">
-    <view class="role-badge role-badge-{{currentRoleKey}}">
-      <t-icon name="user-setting" size="28rpx" color="#ffffff" />
-      <text class="role-badge-text">{{currentRoleName}}</text>
-    </view>
-    <text class="switch-hint">点击切换</text>
-  </view>
-
-  <!-- ==================== 业务员视图 ==================== -->
+  <!-- ==================== 助理视图 ==================== -->
   <block wx:if="{{currentRoleKey === 'salesman'}}">
     <!-- 欢迎横幅 -->
     <view class="salesman-header">
@@ -24,9 +15,9 @@
       </view>
     </view>
 
-    <!-- 我的业绩卡片 -->
+    <!-- 我录入的农户卡片 -->
     <view class="my-stats-card">
-      <view class="my-stats-title">我的业绩</view>
+      <view class="my-stats-title">我录入的农户</view>
       <!-- 第一行：签约数据 -->
       <view class="my-stats-row">
         <view class="my-stat-box" bindtap="goMyFarmers">
@@ -104,6 +95,139 @@
       
       <view class="empty-recent" wx:else>
         <text>暂无签约记录，快去录入吧~</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- ==================== 仓库管理员视图 ==================== -->
+  <block wx:if="{{currentRoleKey === 'warehouse'}}">
+    <!-- 欢迎横幅 -->
+    <view class="warehouse-header">
+      <view class="warehouse-header-bg"></view>
+      <view class="warehouse-header-content">
+        <view class="header-greeting">
+          <text class="greeting-text">{{greeting}}，{{userName}}</text>
+          <text class="greeting-sub">{{warehouseInfo.name}}仓库</text>
+        </view>
+        <view class="warehouse-code-badge">
+          <text class="code-label">仓库编号</text>
+          <text class="code-value">{{warehouseInfo.code}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 今日收苗数据卡片 -->
+    <view class="today-stats-card">
+      <view class="stats-card-header">
+        <view class="stats-card-title">
+          <view class="title-icon">📦</view>
+          <text>今日收苗</text>
+        </view>
+        <text class="stats-date">{{todayDate}}</text>
+      </view>
+      
+      <view class="today-stats-row">
+        <view class="today-stat-item">
+          <text class="today-stat-value">{{warehouseStats.todayQuantity}}</text>
+          <text class="today-stat-label">收购数量 (kg)</text>
+        </view>
+        <view class="today-stat-divider"></view>
+        <view class="today-stat-item">
+          <text class="today-stat-value today-stat-green">{{warehouseStats.todayAmountWan}}</text>
+          <text class="today-stat-label">收购金额 (万元)</text>
+        </view>
+        <view class="today-stat-divider"></view>
+        <view class="today-stat-item">
+          <text class="today-stat-value today-stat-blue">{{warehouseStats.todayFarmerCount}}</text>
+          <text class="today-stat-label">农户数 (户)</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 累计数据卡片 -->
+    <view class="total-stats-card">
+      <view class="stats-card-header">
+        <view class="stats-card-title">
+          <view class="title-icon">📊</view>
+          <text>累计数据</text>
+        </view>
+      </view>
+      
+      <view class="total-stats-grid">
+        <view class="total-stat-box">
+          <text class="total-stat-label">累计收购</text>
+          <text class="total-stat-value">{{warehouseStats.totalQuantity}}</text>
+          <text class="total-stat-unit">kg</text>
+        </view>
+        <view class="total-stat-box">
+          <text class="total-stat-label">累计金额</text>
+          <text class="total-stat-value total-stat-green">{{warehouseStats.totalAmountWan}}</text>
+          <text class="total-stat-unit">万元</text>
+        </view>
+        <view class="total-stat-box">
+          <text class="total-stat-label">累计农户</text>
+          <text class="total-stat-value total-stat-blue">{{warehouseStats.totalFarmerCount}}</text>
+          <text class="total-stat-unit">户</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 库存数据卡片 -->
+    <view class="stock-stats-card">
+      <view class="stats-card-header">
+        <view class="stats-card-title">
+          <view class="title-icon">📦</view>
+          <text>库存情况</text>
+        </view>
+      </view>
+      
+      <view class="stock-stats-row">
+        <view class="stock-stat-item stock-current">
+          <view class="stock-stat-top">
+            <text class="stock-stat-label">当前库存</text>
+            <view class="stock-badge stock-badge-success">正常</view>
+          </view>
+          <text class="stock-stat-value">{{warehouseStats.currentStock}}</text>
+          <text class="stock-stat-unit">kg</text>
+        </view>
+        <view class="stock-stat-item stock-out">
+          <view class="stock-stat-top">
+            <text class="stock-stat-label">已出库</text>
+          </view>
+          <text class="stock-stat-value">{{warehouseStats.outStock}}</text>
+          <text class="stock-stat-unit">kg</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快捷操作 -->
+    <view class="quick-actions">
+      <view class="quick-action-title">快捷操作</view>
+      <view class="quick-action-grid">
+        <view class="quick-action-item" bindtap="goAcquisitionAdd">
+          <view class="quick-action-icon quick-icon-green">
+            <t-icon name="add-circle" size="48rpx" color="#ffffff" />
+          </view>
+          <text class="quick-action-text">收购登记</text>
+        </view>
+        <view class="quick-action-item" bindtap="goStockManage">
+          <view class="quick-action-icon quick-icon-blue">
+            <t-icon name="order-list" size="48rpx" color="#ffffff" />
+          </view>
+          <text class="quick-action-text">库存管理</text>
+        </view>
+        <view class="quick-action-item" bindtap="goAcquisitionList">
+          <view class="quick-action-icon quick-icon-orange">
+            <t-icon name="chart-bubble" size="48rpx" color="#ffffff" />
+          </view>
+          <text class="quick-action-text">收购记录</text>
+        </view>
+        <view class="quick-action-item" bindtap="goWarehouseReport">
+          <view class="quick-action-icon quick-icon-purple">
+            <t-icon name="chart-bar" size="48rpx" color="#ffffff" />
+          </view>
+          <text class="quick-action-text">数据报表</text>
+        </view>
       </view>
     </view>
   </block>

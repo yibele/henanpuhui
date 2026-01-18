@@ -1,5 +1,5 @@
 /**
- * 普惠农户 CRM 小程序入口
+ * 普惠农录 小程序入口
  * @description 全局应用配置和生命周期管理
  */
 
@@ -25,6 +25,24 @@ App<IAppOption>({
   } as IGlobalData,
 
   onLaunch() {
+    // 初始化云开发
+    if (!wx.cloud) {
+      console.error('请使用 2.2.3 或以上的基础库以使用云能力');
+    } else {
+      const cloudEnv = 'cloud1-5g8kf9072047ce03'; // 云环境ID
+      console.log('正在初始化云开发，环境ID:', cloudEnv);
+      
+      try {
+        wx.cloud.init({
+          env: cloudEnv,
+          traceUser: true
+        });
+        console.log('✅ 云开发初始化成功');
+      } catch (error) {
+        console.error('❌ 云开发初始化失败:', error);
+      }
+    }
+
     // 检查登录状态
     this.checkLoginStatus();
 
@@ -36,7 +54,6 @@ App<IAppOption>({
   /**
    * 检查登录状态
    * 从本地存储读取 token 和用户信息验证登录状态
-   * 开发模式下默认使用业务员角色
    */
   checkLoginStatus() {
     try {
@@ -50,20 +67,12 @@ App<IAppOption>({
         this.globalData.userRole = userInfo.role;
         console.log('已登录用户:', userInfo.name, '角色:', userInfo.role);
       } else {
-        // 开发模式：默认使用业务员角色，方便测试
-        const devUser: User = {
-          id: 'dev_salesman_001',
-          phone: '13800138001',
-          name: '张静',
-          role: UserRole.SALESMAN,
-          avatar: '',
-          createTime: '2024-01-01'
-        };
-        this.globalData.isLoggedIn = true;
-        this.globalData.token = 'dev_token';
-        this.globalData.userInfo = devUser;
-        this.globalData.userRole = UserRole.SALESMAN;
-        console.log('开发模式：默认业务员角色', devUser.name);
+        // 未登录
+        this.globalData.isLoggedIn = false;
+        this.globalData.token = '';
+        this.globalData.userInfo = null;
+        this.globalData.userRole = null;
+        console.log('未登录，请先登录');
       }
     } catch (e) {
       console.error('检查登录状态失败:', e);

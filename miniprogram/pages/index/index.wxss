@@ -11,49 +11,6 @@
   box-sizing: border-box;
 }
 
-/* ==================== 开发测试：角色切换器 ==================== */
-
-.dev-role-switcher {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16rpx 24rpx;
-  background-color: #1f2937;
-  border-radius: 20rpx;
-  margin-bottom: 24rpx;
-}
-
-.role-badge {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 10rpx 20rpx;
-  border-radius: 12rpx;
-}
-
-.role-badge-salesman {
-  background-color: #3b82f6;
-}
-
-.role-badge-warehouse {
-  background-color: #f97316;
-}
-
-.role-badge-finance {
-  background-color: #8b5cf6;
-}
-
-.role-badge-text {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #ffffff;
-}
-
-.switch-hint {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
 /* ==================== 欢迎横幅 ==================== */
 
 .welcome-banner {
@@ -1015,9 +972,9 @@
   text-align: right;
 }
 
-/* ==================== 业务员首页 ==================== */
+/* ==================== 助理首页 ==================== */
 
-/* 业务员头部 */
+/* 助理头部 */
 .salesman-header {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   border-radius: 32rpx;
@@ -1042,7 +999,7 @@
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* 我的业绩卡片 */
+/* 我录入的农户卡片 */
 .my-stats-card {
   background: #ffffff;
   border-radius: 24rpx;
@@ -1265,6 +1222,311 @@
   text-align: center;
   font-size: 28rpx;
   color: #9ca3af;
+}
+
+/* ==================== 仓库管理员首页 ==================== */
+
+/* 仓库头部 */
+.warehouse-header {
+  position: relative;
+  border-radius: 32rpx;
+  margin-bottom: 24rpx;
+  overflow: hidden;
+}
+
+.warehouse-header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  opacity: 1;
+}
+
+.warehouse-header-content {
+  position: relative;
+  padding: 48rpx 40rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.warehouse-code-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 12rpx 20rpx;
+  border-radius: 16rpx;
+  backdrop-filter: blur(10rpx);
+}
+
+.code-label {
+  font-size: 20rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.code-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+/* 今日收苗卡片 */
+.today-stats-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.stats-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.stats-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.title-icon {
+  font-size: 32rpx;
+}
+
+.stats-date {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.today-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.today-stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 20rpx 8rpx;
+  background: #fef3c7;
+  border-radius: 16rpx;
+}
+
+.today-stat-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.today-stat-green {
+  color: #059669;
+}
+
+.today-stat-blue {
+  color: #3b82f6;
+}
+
+.today-stat-label {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.today-stat-divider {
+  width: 1rpx;
+  height: 60rpx;
+  background: #e5e7eb;
+}
+
+/* 累计数据卡片 */
+.total-stats-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.total-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+}
+
+.total-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 24rpx 12rpx;
+  background: #f9fafb;
+  border-radius: 16rpx;
+}
+
+.total-stat-label {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.total-stat-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.total-stat-green {
+  color: #059669;
+}
+
+.total-stat-blue {
+  color: #3b82f6;
+}
+
+.total-stat-unit {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+/* 库存数据卡片 */
+.stock-stats-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.stock-stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.stock-stat-item {
+  padding: 24rpx 20rpx;
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.stock-current {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.stock-out {
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+}
+
+.stock-stat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stock-stat-label {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.stock-badge {
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 20rpx;
+  font-weight: 500;
+}
+
+.stock-badge-success {
+  background: #059669;
+  color: #ffffff;
+}
+
+.stock-stat-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.stock-stat-unit {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+/* 快捷操作 */
+.quick-actions {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+}
+
+.quick-action-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 20rpx;
+  padding-left: 8rpx;
+}
+
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+}
+
+.quick-action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.quick-action-item:active {
+  opacity: 0.7;
+}
+
+.quick-action-icon {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-icon-green {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+}
+
+.quick-icon-blue {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.quick-icon-orange {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+}
+
+.quick-icon-purple {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+}
+
+.quick-action-text {
+  font-size: 22rpx;
+  color: #6b7280;
+  text-align: center;
 }
 
 /* ==================== 底部间距 ==================== */

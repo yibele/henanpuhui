@@ -1,6 +1,6 @@
 <!--
   发放种苗页面
-  业务员录入种苗发放信息
+  助理录入种苗发放信息
   每个农户支持10次录入
 -->
 <view class="seed-add-page">
@@ -63,16 +63,16 @@
       
       <!-- 发放数量 -->
       <view class="form-item">
-        <text class="form-label required">发放数量（kg）</text>
+        <text class="form-label required">发放数量（株）</text>
         <view class="input-with-unit">
           <input 
             class="form-input"
-            type="digit"
+            type="number"
             placeholder="输入数量"
             value="{{form.quantity}}"
             bindinput="onQuantityInput"
           />
-          <text class="input-unit">kg</text>
+          <text class="input-unit">株</text>
         </view>
       </view>
       
@@ -80,7 +80,7 @@
       
       <!-- 单价 -->
       <view class="form-item">
-        <text class="form-label required">单价（元/kg）</text>
+        <text class="form-label required">单价（元/株）</text>
         <view class="input-with-unit">
           <input 
             class="form-input"
@@ -89,19 +89,36 @@
             value="{{form.unitPrice}}"
             bindinput="onUnitPriceInput"
           />
-          <text class="input-unit">元/kg</text>
+          <text class="input-unit">元/株</text>
         </view>
       </view>
       
       <view class="form-divider"></view>
       
-      <!-- 苗款金额（自动计算） -->
+      <!-- 已发放金额（自动计算） -->
       <view class="form-item">
-        <text class="form-label">苗款金额</text>
+        <text class="form-label">已发放金额</text>
         <view class="auto-calc-value">
           <text class="calc-amount">¥{{calculatedAmount}}</text>
-          <text class="calc-formula" wx:if="{{form.quantity && form.unitPrice}}">({{form.quantity}}kg × {{form.unitPrice}}元)</text>
+          <text class="calc-formula" wx:if="{{form.quantity && form.unitPrice}}">({{form.quantity}}株 × {{form.unitPrice}}元)</text>
           <text class="calc-hint" wx:else>自动计算：数量 × 单价</text>
+        </view>
+      </view>
+      
+      <view class="form-divider"></view>
+      
+      <!-- 已发放面积 -->
+      <view class="form-item">
+        <text class="form-label required">已发放面积（亩）</text>
+        <view class="input-with-unit">
+          <input 
+            class="form-input"
+            type="digit"
+            placeholder="输入面积"
+            value="{{form.distributedArea}}"
+            bindinput="onDistributedAreaInput"
+          />
+          <text class="input-unit">亩</text>
         </view>
       </view>
     </view>
@@ -149,16 +166,14 @@
     </view>
     
     <view class="form-card">
-      <view class="manager-info">
-        <view class="manager-row">
-          <t-icon name="user-circle" size="44rpx" color="#8b5cf6" />
-          <text class="manager-name">{{managerName}}</text>
-          <view class="manager-tag">当前账号</view>
-        </view>
-        <view class="manager-hint">
-          <t-icon name="info-circle" size="28rpx" color="#9ca3af" />
-          <text>发苗负责人已自动绑定为当前登录账号</text>
-        </view>
+      <view class="form-item">
+        <text class="form-label required">负责人姓名</text>
+        <input 
+          class="form-input"
+          placeholder="输入发苗负责人姓名"
+          value="{{form.managerName}}"
+          bindinput="onManagerNameInput"
+        />
       </view>
     </view>
   </view>
@@ -171,7 +186,7 @@
     </view>
     <view class="tip-item">
       <t-icon name="info-circle-filled" size="28rpx" color="#059669" />
-      <text>苗款金额将自动计算：发放数量 × 单价</text>
+      <text>已发放金额自动计算：发放数量（株）× 单价（元/株）</text>
     </view>
   </view>
 

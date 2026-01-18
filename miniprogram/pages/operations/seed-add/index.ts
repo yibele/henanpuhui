@@ -1,6 +1,6 @@
 /**
  * 发放种苗页面
- * @description 业务员录入种苗发放信息
+ * @description 助理录入种苗发放信息
  * 每个农户支持10次录入
  */
 
@@ -38,12 +38,14 @@ Page({
     // 表单数据
     form: {
       distributeTime: '',     // 发放时间
-      quantity: '',           // 发放数量（kg）
-      unitPrice: '',          // 单价（元/kg）
+      quantity: '',           // 发放数量（株）
+      unitPrice: '',          // 单价（元/株）
+      distributedArea: '',    // 已发放面积（亩）
       receiverName: '',       // 领取人
-      receiveLocation: ''     // 领取地点
+      receiveLocation: '',    // 领取地点
+      managerName: ''         // 发苗负责人
     },
-    // 计算的苗款金额
+    // 计算的已发放金额
     calculatedAmount: '0.00',
     // 农户列表
     farmers: [] as any[],
@@ -60,9 +62,6 @@ Page({
     // 日期选择器
     showDatePicker: false,
     datePickerValue: Date.now(),
-    // 负责人信息
-    managerId: '',
-    managerName: '',
     // 提交中
     submitting: false,
     // 是否可提交
@@ -71,7 +70,6 @@ Page({
 
   onLoad() {
     this.loadFarmers();
-    this.loadManagerInfo();
     this.setDefaultTime();
   },
 
@@ -87,25 +85,6 @@ Page({
       farmers,
       filteredFarmers: farmers
     });
-  },
-
-  /**
-   * 获取负责人信息（当前登录用户）
-   */
-  loadManagerInfo() {
-    const userInfo = app.globalData.userInfo as any;
-    
-    if (userInfo) {
-      this.setData({
-        managerId: userInfo.salesmanId || 'S001',
-        managerName: userInfo.nickName || '当前用户'
-      });
-    } else {
-      this.setData({
-        managerId: 'S001',
-        managerName: '业务员'
-      });
-    }
   },
 
   /**
@@ -250,19 +229,11 @@ Page({
   // ==================== 表单输入 ====================
 
   /**
-   * 输入发放数量
+   * 输入发放数量（株）
    */
   onQuantityInput(e: WechatMiniprogram.CustomEvent) {
-    let value = e.detail.value.replace(/[^\d.]/g, '');
-    // 确保只有一个小数点
-    const parts = value.split('.');
-    if (parts.length > 2) {
-      value = parts[0] + '.' + parts.slice(1).join('');
-    }
-    // 最多两位小数
-    if (parts.length === 2 && parts[1].length > 2) {
-      value = parts[0] + '.' + parts[1].substring(0, 2);
-    }
+    // 只允许整数
+    let value = e.detail.value.replace(/[^\d]/g, '');
     
     this.setData({ 'form.quantity': value });
     this.calculateAmount();
@@ -270,7 +241,7 @@ Page({
   },
 
   /**
-   * 输入单价
+   * 输入单价（元/株）
    */
   onUnitPriceInput(e: WechatMiniprogram.CustomEvent) {
     let value = e.detail.value.replace(/[^\d.]/g, '');
@@ -286,6 +257,25 @@ Page({
     
     this.setData({ 'form.unitPrice': value });
     this.calculateAmount();
+    this.checkCanSubmit();
+  },
+
+  /**
+   * 输入已发放面积（亩）
+   */
+  onDistributedAreaInput(e: WechatMiniprogram.CustomEvent) {
+    let value = e.detail.value.replace(/[^\d.]/g, '');
+    // 确保只有一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    // 最多两位小数
+    if (parts.length === 2 && parts[1].length > 2) {
+      value = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    this.setData({ 'form.distributedArea': value });
     this.checkCanSubmit();
   },
 
@@ -306,11 +296,20 @@ Page({
   },
 
   /**
-   * 计算苗款金额
+   * 输入发苗负责人
+   */
+  onManagerNameInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'form.managerName': e.detail.value });
+    this.checkCanSubmit();
+  },
+
+  /**
+   * 计算已发放金额
+   * 已发放金额 = 发放数量（株）× 单价（元/株）
    */
   calculateAmount() {
     const { quantity, unitPrice } = this.data.form;
-    const qty = parseFloat(quantity) || 0;
+    const qty = parseInt(quantity) || 0;  // 株数为整数
     const price = parseFloat(unitPrice) || 0;
     const amount = (qty * price).toFixed(2);
     
@@ -328,10 +327,12 @@ Page({
       selectedFarmer &&
       recordCount < 10 &&
       form.distributeTime &&
-      form.quantity && parseFloat(form.quantity) > 0 &&
+      form.quantity && parseInt(form.quantity) > 0 &&
       form.unitPrice && parseFloat(form.unitPrice) > 0 &&
+      form.distributedArea && parseFloat(form.distributedArea) > 0 &&
       form.receiverName.trim() &&
-      form.receiveLocation.trim()
+      form.receiveLocation.trim() &&
+      form.managerName.trim()  // 负责人必填
     );
     
     this.setData({ canSubmit });
@@ -345,7 +346,7 @@ Page({
   async onSubmit() {
     if (!this.data.canSubmit || this.data.submitting) return;
     
-    const { form, selectedFarmer, recordCount, managerId, managerName, calculatedAmount } = this.data;
+    const { form, selectedFarmer, recordCount, calculatedAmount } = this.data;
     
     // 二次验证
     if (recordCount >= 10) {
@@ -362,13 +363,13 @@ Page({
       farmerName: selectedFarmer.name,
       farmerPhone: selectedFarmer.phone,
       distributeTime: form.distributeTime,
-      quantity: parseFloat(form.quantity),
-      unitPrice: parseFloat(form.unitPrice),
-      amount: parseFloat(calculatedAmount),
+      quantity: parseInt(form.quantity),  // 株数（整数）
+      unitPrice: parseFloat(form.unitPrice),  // 单价（元/株）
+      amount: parseFloat(calculatedAmount),  // 已发放金额
+      distributedArea: parseFloat(form.distributedArea),  // 已发放面积（亩）
       receiverName: form.receiverName.trim(),
       receiveLocation: form.receiveLocation.trim(),
-      distributorId: managerId,
-      distributorName: managerName,
+      managerName: form.managerName.trim(),  // 发苗负责人（手动输入）
       recordIndex: recordCount + 1,  // 第几次发放
       createTime: new Date().toISOString()
     };

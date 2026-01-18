@@ -136,6 +136,16 @@
   color: #d1d5db;
 }
 
+/* 密码眼睛按钮 */
+.password-eye {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 16rpx;
+}
+
 .input-divider {
   height: 1rpx;
   background-color: #f3f4f6;
@@ -241,19 +251,27 @@
   color: #d1d5db;
 }
 
-/* 角色提示（开发阶段） */
-.role-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8rpx;
+/* 测试账号提示 */
+.test-accounts {
   margin-top: 32rpx;
-  padding: 16rpx 24rpx;
-  background-color: #f9fafb;
+  padding: 24rpx;
+  background: #f3f4f6;
   border-radius: 16rpx;
+  border: 1rpx dashed #d1d5db;
 }
 
-.role-hint-text {
-  font-size: 22rpx;
+.test-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+
+.test-item {
+  font-size: 24rpx;
   color: #9ca3af;
+  line-height: 1.8;
+  text-align: center;
+  font-family: 'Courier New', monospace;
 }
