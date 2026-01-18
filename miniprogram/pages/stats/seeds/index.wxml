@@ -1,8 +1,57 @@
 <!--
-  种苗发放统计详情页
-  管理层查看种苗发放的详细情况
+  种苗发放管理页
+  查看种苗发放记录
 -->
 <view class="page-container">
+  <!-- 顶部统计卡片 -->
+  <view class="stats-header">
+    <view class="stats-title-row">
+      <text class="stats-title">种苗发放统计</text>
+      <view class="add-btn" bindtap="goToSeedAdd">
+        <t-icon name="add" size="36rpx" color="#ffffff" />
+        <text>新增发放</text>
+      </view>
+    </view>
+    
+    <view class="stats-grid">
+      <view class="stats-item">
+        <text class="stats-value">{{summary.totalQuantity}}</text>
+        <text class="stats-label">发放总量</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-value highlight">{{summary.totalAmount}}</text>
+        <text class="stats-label">总金额</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-value">{{summary.farmerCount}}</text>
+        <text class="stats-label">涉及农户</text>
+      </view>
+    </view>
+    
+    <view class="stats-row-secondary">
+      <view class="stats-item-small">
+        <text class="stats-label-small">发放次数</text>
+        <text class="stats-value-small">{{summary.recordCount}}次</text>
+      </view>
+      <view class="stats-item-small">
+        <text class="stats-label-small">覆盖面积</text>
+        <text class="stats-value-small">{{summary.totalArea}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Tab 切换：今日/全部 -->
+  <view class="tab-bar">
+    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
+      <text>今日发放</text>
+    </view>
+    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-tab="1">
+      <text>全部记录</text>
+    </view>
+  </view>
+
   <!-- 搜索栏 -->
   <view class="search-bar">
     <view class="search-input-wrap">
@@ -18,156 +67,48 @@
         <t-icon name="close-circle-filled" size="32rpx" color="#d1d5db" />
       </view>
     </view>
-    <view class="search-btn" bindtap="onSearch">
-      <text>搜索</text>
-    </view>
   </view>
 
-  <!-- Tab 切换：昨日/全年 -->
-  <view class="tab-bar">
-    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
-      <text>昨日发放</text>
-    </view>
-    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-tab="1">
-      <text>全年度累计</text>
-    </view>
-  </view>
-
-  <!-- 汇总统计卡片 -->
-  <view class="card summary-card">
-    <view class="summary-row">
-      <view class="summary-item">
-        <text class="summary-value">{{summary.totalQuantity}}</text>
-        <text class="summary-label">发放总量</text>
-      </view>
-      <view class="summary-item">
-        <text class="summary-value highlight">{{summary.totalAmount}}</text>
-        <text class="summary-label">总金额</text>
-      </view>
-      <view class="summary-item">
-        <text class="summary-value">{{summary.farmerCount}}</text>
-        <text class="summary-label">发放农户</text>
-      </view>
-    </view>
-    
-    <!-- 收款情况 -->
-    <view class="payment-row">
-      <view class="payment-item">
-        <text class="payment-label">已收款</text>
-        <text class="payment-value paid">{{summary.paidAmount}}</text>
-      </view>
-      <view class="payment-divider"></view>
-      <view class="payment-item">
-        <text class="payment-label">欠款</text>
-        <text class="payment-value unpaid">{{summary.unpaidAmount}}</text>
-      </view>
-    </view>
-
-    <!-- 发放进度（仅全年显示） -->
-    <view class="progress-section" wx:if="{{currentTab === 1}}">
-      <view class="progress-header">
-        <text class="progress-title">发放进度</text>
-        <text class="progress-value">{{summary.progressPercent}}%</text>
-      </view>
-      <view class="progress-bar-wrap">
-        <view class="progress-bar-fill" style="width: {{summary.progressPercent}}%;"></view>
-      </view>
-      <text class="progress-desc">{{summary.distributedFarmers}} / {{summary.totalFarmers}} 户已发放</text>
-    </view>
-  </view>
-
-  <!-- 发放趋势图 -->
-  <view class="card trend-card">
-    <view class="trend-header">
-      <text class="trend-title">发放趋势</text>
-      <view class="trend-tabs">
-        <view class="trend-tab {{trendTab === 0 ? 'active' : ''}}" bindtap="switchTrendTab" data-tab="0">
-          <text>日</text>
-        </view>
-        <view class="trend-tab {{trendTab === 1 ? 'active' : ''}}" bindtap="switchTrendTab" data-tab="1">
-          <text>周</text>
-        </view>
-        <view class="trend-tab {{trendTab === 2 ? 'active' : ''}}" bindtap="switchTrendTab" data-tab="2">
-          <text>月</text>
-        </view>
-      </view>
-    </view>
-    
-    <!-- 柱状图 -->
-    <scroll-view class="chart-container" scroll-x="{{trendTab === 2}}" enhanced show-scrollbar="{{false}}">
-      <view class="chart-bars {{trendTab === 2 ? 'chart-bars-scroll' : ''}}">
-        <view class="bar-item" wx:for="{{trendData}}" wx:key="label">
-          <view class="bar-value">{{item.displayValue}}</view>
-          <view class="bar-fill-wrap">
-            <view class="bar-fill" style="height: {{item.heightPercent}}%;"></view>
-          </view>
-          <view class="bar-label">{{item.label}}</view>
-        </view>
-      </view>
-    </scroll-view>
-    
-    <!-- 图例 -->
-    <view class="chart-legend">
-      <view class="legend-item">
-        <view class="legend-dot"></view>
-        <text>发放量(kg)</text>
-      </view>
-      <view class="legend-summary">
-        <text>{{trendTabName}}发放：{{trendTotal}}</text>
-      </view>
-    </view>
-  </view>
-
-  <!-- 筛选条件 -->
-  <view class="filter-row">
-    <!-- 负责人筛选 -->
-    <view class="filter-item" bindtap="showSalesmanPicker">
-      <text>{{filterSalesmanName || '全部负责人'}}</text>
-      <t-icon name="chevron-down" size="28rpx" color="#6b7280" />
-    </view>
-    <!-- 收款状态筛选 -->
-    <view class="filter-item" bindtap="showPaymentPicker">
-      <text>{{filterPaymentName || '全部状态'}}</text>
-      <t-icon name="chevron-down" size="28rpx" color="#6b7280" />
-    </view>
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{pageLoading}}">
+    <t-loading theme="circular" size="40rpx" />
+    <text>加载中...</text>
   </view>
 
   <!-- 发放记录列表 -->
-  <view class="section-title">
-    <text>发放记录</text>
-    <text class="list-count">共 {{filteredList.length}} 条</text>
-  </view>
+  <view class="record-list" wx:if="{{!pageLoading}}">
+    <view class="section-title">
+      <text>发放记录</text>
+      <text class="list-count">共 {{filteredList.length}} 条</text>
+    </view>
 
-  <view class="record-list">
-    <view class="record-item" wx:for="{{displayList}}" wx:key="id" bindtap="goRecordDetail" data-id="{{item.id}}">
+    <view class="record-item" wx:for="{{displayList}}" wx:key="id" bindtap="goRecordDetail" data-record="{{item}}">
       <view class="record-header">
         <view class="record-farmer">
           <text class="farmer-name">{{item.farmerName}}</text>
           <text class="farmer-phone">{{item.phone}}</text>
         </view>
-        <view class="record-status status-{{item.paymentStatus}}">
-          <text>{{item.paymentStatusText}}</text>
+        <view class="record-amount">
+          <text class="amount-value">¥{{item.amount}}</text>
         </view>
       </view>
       <view class="record-body">
-        <view class="record-info">
-          <view class="info-row">
-            <text class="info-label">品种</text>
-            <text class="info-value">{{item.seedType}}</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">数量</text>
-            <text class="info-value">{{item.quantity}}kg</text>
-          </view>
-          <view class="info-row">
-            <text class="info-label">金额</text>
-            <text class="info-value amount">¥{{item.totalAmount}}</text>
-          </view>
+        <view class="info-row">
+          <text class="info-label">发放数量</text>
+          <text class="info-value">{{item.quantity}}株</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">发放面积</text>
+          <text class="info-value">{{item.distributedArea}}亩</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">领取人</text>
+          <text class="info-value">{{item.receiverName}}</text>
         </view>
       </view>
       <view class="record-footer">
         <text class="record-date">{{item.date}}</text>
-        <text class="record-salesman">发放人：{{item.distributor}}</text>
+        <text class="record-manager">操作人：{{item.managerName}}</text>
       </view>
     </view>
 
@@ -177,67 +118,15 @@
     </view>
 
     <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{filteredList.length === 0 && !loading}}">
-      <t-icon name="info-circle" size="80rpx" color="#d1d5db" />
+    <view class="empty-state" wx:if="{{filteredList.length === 0}}">
+      <t-icon name="folder-open" size="80rpx" color="#d1d5db" />
       <text class="empty-text">{{searchKeyword ? '未找到匹配的记录' : '暂无发放记录'}}</text>
+      <view class="empty-btn" bindtap="goToSeedAdd">
+        <text>去发放种苗</text>
+      </view>
     </view>
   </view>
 
   <!-- 底部安全区 -->
   <view class="safe-bottom"></view>
 </view>
-
-<!-- 负责人选择弹窗 -->
-<t-popup visible="{{showSalesmanPopup}}" placement="bottom" bind:visible-change="onSalesmanPopupChange">
-  <view class="picker-popup">
-    <view class="popup-header">
-      <text class="popup-title">选择负责人</text>
-      <view class="popup-close" bindtap="closeSalesmanPopup">
-        <t-icon name="close" size="40rpx" color="#6b7280" />
-      </view>
-    </view>
-    <scroll-view class="popup-content" scroll-y>
-      <view class="popup-item {{filterSalesman === '' ? 'active' : ''}}" bindtap="selectSalesman" data-id="" data-name="">
-        <text>全部负责人</text>
-        <t-icon wx:if="{{filterSalesman === ''}}" name="check" size="36rpx" color="#059669" />
-      </view>
-      <view class="popup-item {{filterSalesman === item.salesmanId ? 'active' : ''}}" 
-            wx:for="{{salesmanList}}" wx:key="salesmanId"
-            bindtap="selectSalesman" data-id="{{item.salesmanId}}" data-name="{{item.salesmanName}}">
-        <text>{{item.salesmanName}}</text>
-        <t-icon wx:if="{{filterSalesman === item.salesmanId}}" name="check" size="36rpx" color="#059669" />
-      </view>
-    </scroll-view>
-  </view>
-</t-popup>
-
-<!-- 收款状态选择弹窗 -->
-<t-popup visible="{{showPaymentPopup}}" placement="bottom" bind:visible-change="onPaymentPopupChange">
-  <view class="picker-popup">
-    <view class="popup-header">
-      <text class="popup-title">收款状态</text>
-      <view class="popup-close" bindtap="closePaymentPopup">
-        <t-icon name="close" size="40rpx" color="#6b7280" />
-      </view>
-    </view>
-    <view class="popup-content">
-      <view class="popup-item {{filterPayment === '' ? 'active' : ''}}" bindtap="selectPayment" data-status="" data-name="">
-        <text>全部状态</text>
-        <t-icon wx:if="{{filterPayment === ''}}" name="check" size="36rpx" color="#059669" />
-      </view>
-      <view class="popup-item {{filterPayment === 'paid' ? 'active' : ''}}" bindtap="selectPayment" data-status="paid" data-name="已收款">
-        <text>已收款</text>
-        <t-icon wx:if="{{filterPayment === 'paid'}}" name="check" size="36rpx" color="#059669" />
-      </view>
-      <view class="popup-item {{filterPayment === 'partial' ? 'active' : ''}}" bindtap="selectPayment" data-status="partial" data-name="部分收款">
-        <text>部分收款</text>
-        <t-icon wx:if="{{filterPayment === 'partial'}}" name="check" size="36rpx" color="#059669" />
-      </view>
-      <view class="popup-item {{filterPayment === 'unpaid' ? 'active' : ''}}" bindtap="selectPayment" data-status="unpaid" data-name="未收款">
-        <text>未收款</text>
-        <t-icon wx:if="{{filterPayment === 'unpaid'}}" name="check" size="36rpx" color="#059669" />
-      </view>
-    </view>
-  </view>
-</t-popup>
-

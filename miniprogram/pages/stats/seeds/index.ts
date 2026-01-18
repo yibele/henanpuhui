@@ -3,12 +3,8 @@
  * @description 管理层查看种苗发放的详细情况
  */
 
-import { 
-  MOCK_SEED_YESTERDAY,
-  MOCK_SEED_YEAR_TOTAL,
-  MOCK_SALESMAN_STATS,
-  MOCK_FARMERS
-} from '../../../models/mock-data';
+// 获取应用实例
+const app = getApp();
 
 // 格式化金额
 function formatAmount(amount: number): string {
@@ -22,115 +18,45 @@ function formatAmount(amount: number): string {
 
 // 格式化数量
 function formatQuantity(quantity: number): string {
-  if (quantity >= 1000) {
-    return (quantity / 1000).toFixed(2) + '吨';
+  if (quantity >= 10000) {
+    return (quantity / 10000).toFixed(2) + '万株';
+  } else if (quantity >= 1000) {
+    return (quantity / 1000).toFixed(2) + '千株';
   }
-  return quantity + 'kg';
+  return quantity + '株';
 }
-
-// 生成种苗发放记录
-function generateSeedRecords(count: number, isYesterday: boolean = false) {
-  const salesmen = MOCK_SALESMAN_STATS.slice(0, 10);
-  const records = [];
-  
-  for (let i = 0; i < count; i++) {
-    const farmer = MOCK_FARMERS[i % MOCK_FARMERS.length];
-    const salesman = salesmen[i % salesmen.length];
-    const quantity = Math.floor(Math.random() * 100) + 20; // 20-120kg
-    const pricePerKg = 12; // 甜叶菊单价
-    const totalAmount = quantity * pricePerKg;
-    
-    // 随机收款状态
-    const rand = Math.random();
-    let paidAmount = 0;
-    let paymentStatus = 'unpaid';
-    let paymentStatusText = '未收款';
-    
-    if (rand < 0.6) {
-      paidAmount = totalAmount;
-      paymentStatus = 'paid';
-      paymentStatusText = '已收款';
-    } else if (rand < 0.85) {
-      paidAmount = Math.floor(totalAmount * 0.5);
-      paymentStatus = 'partial';
-      paymentStatusText = '部分收款';
-    }
-    
-    const month = isYesterday ? 12 : Math.floor(Math.random() * 12) + 1;
-    const day = isYesterday ? 9 : Math.floor(Math.random() * 28) + 1;
-    
-    records.push({
-      id: `seed_${isYesterday ? 'y' : 'a'}_${i + 1}`,
-      farmerId: farmer.id,
-      farmerName: farmer.name,
-      phone: farmer.phone,
-      seedType: '甜叶菊',
-      quantity,
-      pricePerKg,
-      totalAmount,
-      paidAmount,
-      unpaidAmount: totalAmount - paidAmount,
-      paymentStatus,
-      paymentStatusText,
-      date: `2024-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-      distributor: salesman.salesmanName,
-      distributorId: salesman.salesmanId
-    });
-  }
-  
-  return records;
-}
-
-// Mock 数据
-const MOCK_SEED_RECORDS_YESTERDAY = generateSeedRecords(156, true);
-const MOCK_SEED_RECORDS_YEAR = generateSeedRecords(5810, false);
 
 Page({
   data: {
-    // 当前Tab（0:昨日, 1:全年）
+    // 当前Tab（0:今日, 1:全部）
     currentTab: 1,
     // 搜索关键词
     searchKeyword: '',
-    // 筛选条件
-    filterSalesman: '',
-    filterSalesmanName: '',
-    filterPayment: '',
-    filterPaymentName: '',
     // 汇总数据
     summary: {
       totalQuantity: '0',
       totalAmount: '0',
       farmerCount: '0',
-      paidAmount: '0',
-      unpaidAmount: '0',
-      progressPercent: 0,
-      distributedFarmers: 0,
-      totalFarmers: 0
+      recordCount: 0,
+      totalArea: '0'
     },
-    // 负责人列表
-    salesmanList: [] as any[],
+    // 发放记录列表
+    records: [] as any[],
     // 筛选后的记录列表
     filteredList: [] as any[],
     // 当前显示的列表（分页）
     displayList: [] as any[],
     // 分页
     pageSize: 20,
+    currentPage: 1,
     hasMore: false,
     loading: false,
-    // 弹窗
-    showSalesmanPopup: false,
-    showPaymentPopup: false,
-    // 趋势图
-    trendTab: 0, // 0:日, 1:周, 2:月
-    trendTabName: '本周',
-    trendData: [] as any[],
-    trendTotal: '0'
+    // 加载中
+    pageLoading: true
   },
 
   onLoad() {
-    this.initSalesmanList();
     this.loadData();
-    this.loadTrendData(0);
   },
 
   onShow() {
@@ -139,242 +65,224 @@ Page({
     }
   },
 
-  // 初始化负责人列表
-  initSalesmanList() {
-    this.setData({
-      salesmanList: MOCK_SALESMAN_STATS
-    });
+  onPullDownRefresh() {
+    this.loadData();
   },
 
-  // 加载数据
-  loadData() {
-    const { currentTab } = this.data;
-    const summaryData = currentTab === 0 ? MOCK_SEED_YESTERDAY : MOCK_SEED_YEAR_TOTAL;
-    
-    // 格式化汇总数据
-    const summary = {
-      totalQuantity: formatQuantity(summaryData.totalQuantity),
-      totalAmount: formatAmount(summaryData.totalAmount),
-      farmerCount: (summaryData.distributedFarmerCount || (currentTab === 0 ? 156 : 5810)) + '户',
-      paidAmount: formatAmount(summaryData.paidAmount),
-      unpaidAmount: formatAmount(summaryData.unpaidAmount),
-      progressPercent: summaryData.distributionPercent || 83,
-      distributedFarmers: summaryData.distributedFarmerCount || 5810,
-      totalFarmers: summaryData.totalFarmerCount || 7000
-    };
+  /**
+   * 加载数据（从云函数获取）
+   */
+  async loadData() {
+    this.setData({ pageLoading: true });
 
-    this.setData({ summary });
-    this.filterAndDisplayList();
+    try {
+      // 获取当前用户信息
+      const globalData = (app.globalData as any) || {};
+      const userInfo = globalData.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+
+      console.log('[seeds-stats] 加载发苗记录, userId:', userId);
+
+      // 调用云函数获取发苗记录
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: {
+          action: 'list',
+          userId,  // 如果是助理，只显示自己的记录
+          page: 1,
+          pageSize: 500  // 获取尽量多的数据用于统计
+        }
+      });
+
+      const result = res.result as any;
+
+      if (result.success && result.data) {
+        const rawRecords = result.data.list || [];
+
+        // 格式化记录数据
+        const records = rawRecords.map((r: any) => ({
+          id: r._id,
+          recordId: r.recordId,
+          farmerId: r.farmerId,
+          farmerName: r.farmerName,
+          phone: r.farmerPhone,
+          quantity: r.quantity || 0,
+          unitPrice: r.unitPrice || 0,
+          amount: r.amount || 0,
+          distributedArea: r.distributedArea || 0,
+          receiverName: r.receiverName || '',
+          receiveLocation: r.receiveLocation || '',
+          managerName: r.createByName || r.managerName || '',
+          date: r.distributionDate || (r.createTime ? new Date(r.createTime).toLocaleDateString('zh-CN') : ''),
+          createTime: r.createTime
+        }));
+
+        // 计算汇总数据
+        const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+        const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+        const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
+
+        // 统计涉及的农户数（去重）
+        const farmerIds = new Set(records.map((r: any) => r.farmerId));
+
+        const summary = {
+          totalQuantity: formatQuantity(totalQuantity),
+          totalAmount: formatAmount(totalAmount),
+          farmerCount: farmerIds.size + '户',
+          recordCount: records.length,
+          totalArea: totalArea.toFixed(1) + '亩'
+        };
+
+        this.setData({
+          records,
+          summary,
+          pageLoading: false
+        });
+
+        this.filterAndDisplayList();
+      } else {
+        console.error('获取发苗记录失败:', result.message);
+        this.setData({
+          records: [],
+          filteredList: [],
+          displayList: [],
+          summary: { totalQuantity: '0', totalAmount: '0', farmerCount: '0户', recordCount: 0, totalArea: '0亩' },
+          pageLoading: false
+        });
+      }
+    } catch (error) {
+      console.error('加载发苗记录失败:', error);
+      this.setData({
+        records: [],
+        filteredList: [],
+        displayList: [],
+        summary: { totalQuantity: '0', totalAmount: '0', farmerCount: '0户', recordCount: 0, totalArea: '0亩' },
+        pageLoading: false
+      });
+    }
+
+    wx.stopPullDownRefresh();
   },
 
-  // 筛选并显示列表
+  /**
+   * 筛选并显示列表
+   */
   filterAndDisplayList() {
-    const { currentTab, searchKeyword, filterSalesman, filterPayment } = this.data;
-    
-    // 选择数据源
-    let list = currentTab === 0 ? MOCK_SEED_RECORDS_YESTERDAY : MOCK_SEED_RECORDS_YEAR;
-    
+    const { records, searchKeyword, currentTab } = this.data;
+
+    let list = [...records];
+
+    // 如果是今日tab，只显示今天的记录
+    if (currentTab === 0) {
+      const today = new Date().toLocaleDateString('zh-CN');
+      list = list.filter(r => r.date === today);
+    }
+
     // 搜索过滤
     if (searchKeyword) {
       const keyword = searchKeyword.toLowerCase();
-      list = list.filter(r => 
-        r.farmerName.toLowerCase().includes(keyword) || 
-        r.phone.includes(keyword)
+      list = list.filter(r =>
+        (r.farmerName && r.farmerName.toLowerCase().includes(keyword)) ||
+        (r.phone && r.phone.includes(keyword)) ||
+        (r.managerName && r.managerName.toLowerCase().includes(keyword))
       );
     }
-    
-    // 负责人过滤
-    if (filterSalesman) {
-      list = list.filter(r => r.distributorId === filterSalesman);
-    }
-    
-    // 收款状态过滤
-    if (filterPayment) {
-      list = list.filter(r => r.paymentStatus === filterPayment);
-    }
-    
-    // 按日期倒序
-    list = [...list].sort((a, b) => b.date.localeCompare(a.date));
-    
+
+    // 按时间倒序
+    list = list.sort((a, b) => {
+      if (a.createTime && b.createTime) {
+        return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
+      }
+      return 0;
+    });
+
     // 分页
     const pageSize = this.data.pageSize;
     const displayList = list.slice(0, pageSize);
     const hasMore = list.length > pageSize;
-    
+
     this.setData({
       filteredList: list,
       displayList,
-      hasMore
+      hasMore,
+      currentPage: 1
     });
   },
 
-  // 切换Tab
+  /**
+   * 切换Tab
+   */
   switchTab(e: any) {
     const tab = parseInt(e.currentTarget.dataset.tab);
-    this.setData({ 
+    this.setData({
       currentTab: tab,
-      searchKeyword: '',
-      filterSalesman: '',
-      filterSalesmanName: '',
-      filterPayment: '',
-      filterPaymentName: ''
+      searchKeyword: ''
     });
-    this.loadData();
+    this.filterAndDisplayList();
   },
 
-  // 搜索输入
+  /**
+   * 搜索输入
+   */
   onSearchInput(e: any) {
     this.setData({ searchKeyword: e.detail.value });
   },
 
-  // 执行搜索
+  /**
+   * 执行搜索
+   */
   onSearch() {
     this.filterAndDisplayList();
   },
 
-  // 清除搜索
+  /**
+   * 清除搜索
+   */
   clearSearch() {
     this.setData({ searchKeyword: '' });
     this.filterAndDisplayList();
   },
 
-  // 显示负责人选择器
-  showSalesmanPicker() {
-    this.setData({ showSalesmanPopup: true });
-  },
-
-  closeSalesmanPopup() {
-    this.setData({ showSalesmanPopup: false });
-  },
-
-  onSalesmanPopupChange(e: any) {
-    this.setData({ showSalesmanPopup: e.detail.visible });
-  },
-
-  selectSalesman(e: any) {
-    const { id, name } = e.currentTarget.dataset;
-    this.setData({
-      filterSalesman: id,
-      filterSalesmanName: name,
-      showSalesmanPopup: false
-    });
-    this.filterAndDisplayList();
-  },
-
-  // 显示收款状态选择器
-  showPaymentPicker() {
-    this.setData({ showPaymentPopup: true });
-  },
-
-  closePaymentPopup() {
-    this.setData({ showPaymentPopup: false });
-  },
-
-  onPaymentPopupChange(e: any) {
-    this.setData({ showPaymentPopup: e.detail.visible });
-  },
-
-  selectPayment(e: any) {
-    const { status, name } = e.currentTarget.dataset;
-    this.setData({
-      filterPayment: status,
-      filterPaymentName: name,
-      showPaymentPopup: false
-    });
-    this.filterAndDisplayList();
-  },
-
-  // 加载更多
+  /**
+   * 加载更多
+   */
   loadMore() {
     if (this.data.loading || !this.data.hasMore) return;
-    
+
     this.setData({ loading: true });
-    
+
     const { filteredList, displayList, pageSize } = this.data;
-    const nextPage = displayList.length;
-    const moreItems = filteredList.slice(nextPage, nextPage + pageSize);
-    
+    const nextStart = displayList.length;
+    const moreItems = filteredList.slice(nextStart, nextStart + pageSize);
+
     setTimeout(() => {
       this.setData({
         displayList: [...displayList, ...moreItems],
-        hasMore: nextPage + pageSize < filteredList.length,
-        loading: false
+        hasMore: nextStart + pageSize < filteredList.length,
+        loading: false,
+        currentPage: this.data.currentPage + 1
       });
     }, 300);
   },
 
-  // 查看记录详情
-  goRecordDetail(e: any) {
-    const id = e.currentTarget.dataset.id;
-    wx.showToast({
-      title: '详情页开发中',
-      icon: 'none'
+  /**
+   * 跳转到发苗登记
+   */
+  goToSeedAdd() {
+    wx.navigateTo({
+      url: '/pages/operations/seed-add/index'
     });
   },
 
-  // 切换趋势图Tab
-  switchTrendTab(e: any) {
-    const tab = parseInt(e.currentTarget.dataset.tab);
-    this.loadTrendData(tab);
-  },
-
-  // 加载趋势数据
-  loadTrendData(tab: number) {
-    let data: any[] = [];
-    let tabName = '';
-    let total = 0;
-
-    if (tab === 0) {
-      // 本周七天（按日）
-      tabName = '本周';
-      const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-      data = days.map((day, i) => {
-        const value = Math.floor(Math.random() * 800) + 200; // 200-1000kg
-        total += value;
-        return { label: day, value };
-      });
-    } else if (tab === 1) {
-      // 本月（按周）
-      tabName = '本月';
-      const weeks = ['第1周', '第2周', '第3周', '第4周'];
-      data = weeks.map((week, i) => {
-        const value = Math.floor(Math.random() * 5000) + 2000; // 2000-7000kg
-        total += value;
-        return { label: week, value };
-      });
-    } else {
-      // 今年（按月）
-      tabName = '今年';
-      // 简化标签，只显示数字
-      const months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-      data = months.map((month, i) => {
-        // 模拟季节性变化，春秋多
-        let base = 30000;
-        if (i >= 2 && i <= 4) base = 50000; // 春季
-        if (i >= 8 && i <= 10) base = 45000; // 秋季
-        const value = Math.floor(Math.random() * 10000) + base;
-        total += value;
-        return { label: month, value };
-      });
-    }
-
-    // 计算高度百分比
-    const maxValue = Math.max(...data.map(d => d.value));
-    const trendData = data.map(d => ({
-      ...d,
-      heightPercent: Math.round((d.value / maxValue) * 100),
-      displayValue: d.value >= 1000 ? (d.value / 1000).toFixed(1) + '吨' : d.value + 'kg'
-    }));
-
-    // 格式化总量
-    const trendTotal = total >= 1000 ? (total / 1000).toFixed(1) + '吨' : total + 'kg';
-
-    this.setData({
-      trendTab: tab,
-      trendTabName: tabName,
-      trendData,
-      trendTotal
+  /**
+   * 查看记录详情
+   */
+  goRecordDetail(e: any) {
+    const record = e.currentTarget.dataset.record;
+    wx.showModal({
+      title: '发苗详情',
+      content: `农户：${record.farmerName}\n数量：${record.quantity}株\n金额：¥${record.amount}\n面积：${record.distributedArea}亩\n领取人：${record.receiverName}\n日期：${record.date}`,
+      showCancel: false
     });
   }
 });
-
