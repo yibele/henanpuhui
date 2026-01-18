@@ -42,10 +42,14 @@ async function distributeSeed(event) {
     }
 
     const {
-        quantity,        // 发放数量（株）
-        unitPrice,       // 单价（元/株）
-        amount,          // 金额（元）
+        quantity,         // 发放数量（株）
+        unitPrice,        // 单价（元/株）
+        amount,           // 金额（元）
+        distributedArea,  // 已发放面积（亩）
         distributionDate, // 发放日期
+        receiverName,     // 领取人
+        receiveLocation,  // 领取地点
+        managerName,      // 发苗负责人
         remark
     } = data;
 
@@ -76,6 +80,7 @@ async function distributeSeed(event) {
         // 2. 计算金额
         const price = parseFloat(unitPrice) || 0;
         const seedAmount = parseFloat(amount) || (qty * price);
+        const area = parseFloat(distributedArea) || 0;
 
         // 3. 生成记录编号
         const recordId = generateRecordId();
@@ -92,6 +97,12 @@ async function distributeSeed(event) {
                 quantity: qty,
                 unitPrice: price,
                 amount: seedAmount,
+                distributedArea: area,   // 已发放面积
+
+                // 领取信息
+                receiverName: receiverName || farmer.name,
+                receiveLocation: receiveLocation || '',
+                managerName: managerName || userName || '',
 
                 // 其他信息
                 distributionDate: distributionDate || new Date().toISOString().split('T')[0],
@@ -104,14 +115,16 @@ async function distributeSeed(event) {
             }
         });
 
-        // 5. 更新农户统计（累计发放数量和金额）
+        // 5. 更新农户统计（累计发放数量、金额和面积）
         const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
+        const currentArea = farmer.stats?.totalSeedArea || 0;
 
         await db.collection('farmers').doc(farmerId).update({
             data: {
                 'stats.totalSeedDistributed': currentDistributed + qty,
                 'stats.totalSeedAmount': currentAmount + seedAmount,
+                'stats.totalSeedArea': currentArea + area,  // 累加已发面积
                 'stats.lastSeedDistributionDate': db.serverDate(),
                 updateTime: db.serverDate()
             }
@@ -132,6 +145,12 @@ async function distributeSeed(event) {
                 unit: '株',
                 unitPrice: price,
                 totalAmount: seedAmount,
+                distributedArea: area,  // 已发面积
+
+                // 领取信息
+                receiverName: receiverName || farmer.name,
+                receiveLocation: receiveLocation || '',
+                managerName: managerName || userName || '',
 
                 remark: remark || '',
                 createTime: db.serverDate(),
