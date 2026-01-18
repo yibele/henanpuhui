@@ -77,9 +77,6 @@ Page({
       amount: 0
     },
 
-    // ========== 查看合同 ==========
-    contractPopupVisible: false,
-
     // ========== 定金管理 ==========
     depositPopupVisible: false,
     depositAction: '' as 'add' | 'reduce',
@@ -158,12 +155,15 @@ Page({
           salesmanName: farmerData.createByName || ''
         };
 
-        this.setData({ farmer, businessRecords: [] });
+        // 生成业务往来记录（签约记录作为首条）
+        const businessRecords = this.generateInitialRecords(farmer);
+        this.setData({ farmer, businessRecords });
       } else {
         // 云函数失败，尝试从mock数据获取
         const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
         if (mockFarmer) {
-          this.setData({ farmer: mockFarmer, businessRecords: [] });
+          const businessRecords = this.generateInitialRecords(mockFarmer);
+          this.setData({ farmer: mockFarmer, businessRecords });
         } else {
           wx.showToast({ title: '农户信息不存在', icon: 'none' });
           setTimeout(() => wx.navigateBack(), 1500);
@@ -175,11 +175,33 @@ Page({
       // 云函数故障，回退到mock数据
       const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
       if (mockFarmer) {
-        this.setData({ farmer: mockFarmer, businessRecords: [] });
+        const businessRecords = this.generateInitialRecords(mockFarmer);
+        this.setData({ farmer: mockFarmer, businessRecords });
       } else {
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
     }
+  },
+
+  /**
+   * 生成初始业务记录（包含签约记录）
+   */
+  generateInitialRecords(farmer: any) {
+    const records: any[] = [];
+
+    // 签约记录
+    if (farmer.contractDate) {
+      records.push({
+        id: 'contract_init',
+        type: 'contract',
+        date: farmer.contractDate,
+        name: '农户签约',
+        desc: `签约面积 ${farmer.acreage || 0} 亩，定金 ¥${farmer.deposit || 0}`,
+        operator: farmer.salesmanName || farmer.manager || '系统'
+      });
+    }
+
+    return records;
   },
 
   /**
@@ -547,28 +569,7 @@ Page({
       businessRecords: [newRecord, ...businessRecords],
       purchasePopupVisible: false
     });
-
     wx.showToast({ title: '购买成功', icon: 'success' });
-  },
-
-  // ==================== 查看合同 ====================
-
-  onViewContract() {
-    this.setData({ contractPopupVisible: true });
-  },
-
-  onCloseContractPopup() {
-    this.setData({ contractPopupVisible: false });
-  },
-
-  onPreviewContract(e: WechatMiniprogram.TouchEvent) {
-    const { url } = e.currentTarget.dataset;
-    const { farmer } = this.data;
-
-    wx.previewImage({
-      current: url,
-      urls: farmer?.contractImages || []
-    });
   },
 
   // ==================== 定金管理 ====================

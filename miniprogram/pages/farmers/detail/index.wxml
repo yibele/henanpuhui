@@ -80,12 +80,6 @@
           </view>
           <text class="action-name">预付款</text>
         </view>
-        <view class="action-item" bindtap="onViewContract">
-          <view class="action-icon-bg bg-purple">
-            <t-icon name="file-contract" size="44rpx" color="#8b5cf6" />
-          </view>
-          <text class="action-name">查看合同</text>
-        </view>
       </view>
     </view>
     
@@ -254,34 +248,7 @@
     </view>
   </t-popup>
 
-  <!-- 4. 查看合同弹窗 -->
-  <t-popup visible="{{contractPopupVisible}}" placement="center" bind:visible-change="onCloseContractPopup">
-    <view class="popup-container-center">
-      <view class="popup-header-bar">
-        <text class="popup-title">合同附件</text>
-        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseContractPopup" />
-      </view>
-      <scroll-view class="contract-scroll" scroll-y>
-        <view class="contract-list" wx:if="{{farmer.contractImages && farmer.contractImages.length > 0}}">
-          <image 
-            wx:for="{{farmer.contractImages}}" 
-            wx:key="*this"
-            class="contract-img"
-            src="{{item}}"
-            mode="widthFix"
-            bindtap="onPreviewContract"
-            data-url="{{item}}"
-          />
-        </view>
-        <view wx:else class="empty-contract">
-          <t-icon name="file" size="64rpx" color="#d1d5db" />
-          <text>暂无合同附件</text>
-        </view>
-      </scroll-view>
-    </view>
-  </t-popup>
-
-  <!-- 5. 发放种苗/化肥/农药 (复用之前的逻辑，简化弹窗样式) -->
+  <!-- 4. 发放种苗/化肥/农药 (复用之前的逻辑，简化弹窗样式) -->
   <!-- (这里为了简洁，省略了生产发放的弹窗代码，假设复用相同的样式类 popup-container) -->
   <t-popup visible="{{seedPopupVisible}}" placement="bottom" bind:visible-change="onCloseSeedPopup">
     <view class="popup-container">

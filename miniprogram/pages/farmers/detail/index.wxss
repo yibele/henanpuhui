@@ -242,6 +242,8 @@
 .dot-advance { background-color: #f59e0b; box-shadow: 0 0 0 2rpx #fef3c7; }
 .dot-deposit { background-color: #059669; box-shadow: 0 0 0 2rpx #d1fae5; }
 .dot-acreage { background-color: #3b82f6; box-shadow: 0 0 0 2rpx #dbeafe; }
+.dot-contract { background-color: #8b5cf6; box-shadow: 0 0 0 2rpx #f5f3ff; }
+.dot-pesticide { background-color: #ef4444; box-shadow: 0 0 0 2rpx #fee2e2; }
 
 .timeline-connector {
   flex: 1;
