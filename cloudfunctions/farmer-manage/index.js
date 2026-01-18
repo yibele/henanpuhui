@@ -590,6 +590,9 @@ exports.main = async (event, context) => {
     case 'addendum':
       return await addFarmerAddendum(event);
 
+    case 'getBusinessRecords':
+      return await getBusinessRecords(event);
+
     default:
       return {
         success: false,
@@ -597,3 +600,51 @@ exports.main = async (event, context) => {
       };
   }
 };
+
+/**
+ * 获取农户的业务往来记录
+ */
+async function getBusinessRecords(event) {
+  const { farmerId, page = 1, pageSize = 50 } = event;
+
+  if (!farmerId) {
+    return {
+      success: false,
+      message: '缺少农户ID'
+    };
+  }
+
+  try {
+    const skip = (page - 1) * pageSize;
+
+    // 获取总数
+    const countRes = await db.collection('business_records')
+      .where({ farmerId })
+      .count();
+
+    // 获取列表，按时间倒序
+    const listRes = await db.collection('business_records')
+      .where({ farmerId })
+      .orderBy('createTime', 'desc')
+      .skip(skip)
+      .limit(pageSize)
+      .get();
+
+    return {
+      success: true,
+      data: {
+        list: listRes.data,
+        total: countRes.total,
+        page,
+        pageSize
+      }
+    };
+
+  } catch (error) {
+    console.error('获取业务记录失败:', error);
+    return {
+      success: false,
+      message: error.message || '获取业务记录失败'
+    };
+  }
+}

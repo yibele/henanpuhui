@@ -163,9 +163,10 @@ Page({
           salesmanName: farmerData.createByName || ''
         };
 
-        // 生成业务往来记录（签约记录作为首条）
-        const businessRecords = this.generateInitialRecords(farmer);
-        this.setData({ farmer, businessRecords });
+        this.setData({ farmer });
+
+        // 从数据库加载业务往来记录
+        await this.loadBusinessRecords(farmerData._id || id, farmer);
       } else {
         // 云函数失败，尝试从mock数据获取
         const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
@@ -188,6 +189,83 @@ Page({
       } else {
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
+    }
+  },
+
+  /**
+   * 从数据库加载业务往来记录
+   */
+  async loadBusinessRecords(farmerId: string, farmer: any) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'getBusinessRecords',
+          farmerId
+        }
+      });
+
+      const result = res.result as any;
+      let records: any[] = [];
+
+      if (result.success && result.data) {
+        // 格式化数据库返回的记录
+        records = (result.data.list || []).map((r: any) => ({
+          id: r._id,
+          type: r.type,
+          date: r.createTime ? new Date(r.createTime).toLocaleDateString('zh-CN') : '',
+          name: this.getRecordTypeName(r.type),
+          desc: this.buildRecordDesc(r),
+          amount: r.totalAmount || r.amount || 0,
+          operator: r.createByName || '系统'
+        }));
+      }
+
+      // 添加签约记录作为最后一条（显示在最下面）
+      const initialRecords = this.generateInitialRecords(farmer);
+      const businessRecords = [...records, ...initialRecords];
+
+      this.setData({ businessRecords });
+    } catch (error) {
+      console.error('加载业务记录失败:', error);
+      // 失败时至少显示签约记录
+      const businessRecords = this.generateInitialRecords(farmer);
+      this.setData({ businessRecords });
+    }
+  },
+
+  /**
+   * 获取记录类型名称
+   */
+  getRecordTypeName(type: string): string {
+    const typeNames: Record<string, string> = {
+      'seed': '种苗发放',
+      'fertilizer': '化肥发放',
+      'pesticide': '农药发放',
+      'advance': '预付款',
+      'deposit': '追加定金',
+      'addendum': '追加签约',
+      'acreage': '追加面积',
+      'contract': '农户签约'
+    };
+    return typeNames[type] || '业务记录';
+  },
+
+  /**
+   * 构建记录描述
+   */
+  buildRecordDesc(record: any): string {
+    switch (record.type) {
+      case 'seed':
+        return `发放 ${record.quantity || 0} ${record.unit || '株'}，金额 ¥${record.totalAmount || 0}`;
+      case 'addendum':
+        return `面积 +${record.addedAcreage || 0} 亩${record.addedDeposit ? `，定金 +¥${record.addedDeposit}` : ''}`;
+      case 'advance':
+        return `预付款 ¥${record.amount || 0}`;
+      case 'deposit':
+        return `追加定金 ¥${record.amount || 0}`;
+      default:
+        return record.remark || '';
     }
   },
 
