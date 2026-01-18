@@ -41,13 +41,13 @@ exports.main = async (event, context) => {
     switch (action) {
       case 'getAssistantStats':
         return await getAssistantStats(currentUser);
-      
+
       case 'getWarehouseStats':
         return await getWarehouseStats(currentUser);
-      
+
       case 'getFinanceStats':
         return await getFinanceStats(currentUser);
-      
+
       default:
         return {
           success: false,
@@ -71,7 +71,7 @@ exports.main = async (event, context) => {
 async function getAssistantStats(user) {
   try {
     const userId = user._id;
-    
+
     // 获取我录入的农户总数
     const farmersRes = await db.collection('farmers').where({
       createBy: userId,
@@ -86,15 +86,17 @@ async function getAssistantStats(user) {
 
     const farmers = farmersList.data;
 
-    // 计算总面积
+    // 计算总面积、应收款、欠款、定金
     let totalAcreage = 0;
     let totalReceivable = 0;
     let totalDebt = 0;
+    let totalDeposit = 0;
 
     farmers.forEach(farmer => {
       totalAcreage += farmer.acreage || 0;
       totalReceivable += farmer.receivableAmount || 0;
       totalDebt += farmer.seedDebt || 0;
+      totalDeposit += farmer.deposit || 0;
     });
 
     // 获取发苗记录统计
@@ -114,6 +116,7 @@ async function getAssistantStats(user) {
         totalAcreage: totalAcreage,
         totalReceivable: totalReceivable,
         totalDebt: totalDebt,
+        totalDeposit: totalDeposit,
         totalDistributedAmount: totalDistributedAmount,
         farmers: farmers.slice(0, 10) // 返回最近10个农户
       }
@@ -141,7 +144,7 @@ async function getWarehouseStats(user) {
 
     // 获取仓库信息
     const warehouseRes = await db.collection('warehouses').doc(warehouseId).get();
-    
+
     if (!warehouseRes.data) {
       return {
         success: false,

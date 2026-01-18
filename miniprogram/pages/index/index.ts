@@ -299,8 +299,8 @@ Page({
       const myStats = {
         farmerCount: data.farmerCount || 0,
         acreage: data.totalAcreage || 0,
-        deposit: data.totalReceivable || 0,
-        depositFormat: this.formatMoney(data.totalReceivable || 0),
+        deposit: data.totalDeposit || 0,
+        depositFormat: this.formatMoney(data.totalDeposit || 0),
         seedCount: 0, // TODO: 从发苗记录获取
         seedQuantity: 0,
         seedAmount: data.totalDistributedAmount || 0,
