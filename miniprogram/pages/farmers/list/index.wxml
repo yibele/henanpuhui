@@ -68,7 +68,6 @@
                 <text class="farmer-name">{{item.name}}</text>
                 <text class="grade-tag grade-tag-{{item.grade}}">{{item.gradeText}}</text>
               </view>
-              <text class="farmer-address">{{item.addressText || item.address.village || '未填写地址'}}</text>
             </view>
             <view class="farmer-right">
               <view class="metric-box">
