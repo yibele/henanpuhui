@@ -1,0 +1,305 @@
+/* 仓库管理列表页面样式 */
+
+.page-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 页面标题 */
+.page-header {
+  padding: 32rpx 32rpx 24rpx;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.page-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.page-subtitle {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 8rpx;
+}
+
+/* 加载状态 */
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+/* 仓库列表 */
+.warehouse-list {
+  padding: 24rpx;
+}
+
+/* 仓库卡片 */
+.warehouse-card {
+  background-color: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.warehouse-card.my-warehouse {
+  border: 3rpx solid #059669;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.warehouse-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.warehouse-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.my-tag {
+  background-color: #059669;
+  color: #ffffff;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 6rpx;
+}
+
+.stock-badge {
+  display: flex;
+  align-items: baseline;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  padding: 8rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.stock-badge .stock-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.stock-badge .stock-unit {
+  font-size: 22rpx;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 4rpx;
+}
+
+/* 今日数据 */
+.today-section {
+  background-color: #f0fdf4;
+  border-radius: 12rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-label {
+  font-size: 24rpx;
+  color: #059669;
+  font-weight: 500;
+  margin-bottom: 12rpx;
+}
+
+.data-row {
+  display: flex;
+  justify-content: space-around;
+}
+
+.data-item {
+  text-align: center;
+}
+
+.data-label {
+  display: block;
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.data-value {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #059669;
+  margin-top: 4rpx;
+}
+
+/* 库存数据 */
+.stock-section {
+  margin-bottom: 16rpx;
+}
+
+.stock-row {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.stock-item {
+  width: 50%;
+  padding: 8rpx 0;
+  display: flex;
+  justify-content: space-between;
+  padding-right: 24rpx;
+}
+
+.stock-item.highlight {
+  width: 100%;
+  background-color: #fef3c7;
+  padding: 12rpx;
+  border-radius: 8rpx;
+  margin-top: 8rpx;
+}
+
+.stock-label {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.stock-num {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #374151;
+}
+
+.stock-item.highlight .stock-num {
+  color: #d97706;
+  font-weight: 600;
+}
+
+/* 操作按钮 */
+.action-row {
+  margin-top: 8rpx;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #9ca3af;
+  margin-top: 16rpx;
+}
+
+/* 底部安全区 */
+.safe-bottom {
+  height: 120rpx;
+}
+
+/* ==================== 操作弹窗 ==================== */
+
+.popup-content {
+  background-color: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx;
+  padding-bottom: calc(32rpx + env(safe-area-inset-bottom));
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.popup-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.popup-close {
+  padding: 8rpx;
+}
+
+/* 操作类型切换 */
+.operation-tabs {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 12rpx;
+  padding: 6rpx;
+  margin-bottom: 24rpx;
+}
+
+.op-tab {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  color: #6b7280;
+  border-radius: 8rpx;
+  transition: all 0.3s;
+}
+
+.op-tab.active {
+  background-color: #059669;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* 表单 */
+.form-section {
+  margin-bottom: 16rpx;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.form-label {
+  width: 160rpx;
+  font-size: 28rpx;
+  color: #374151;
+}
+
+.form-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #111827;
+  text-align: right;
+}
+
+.form-input.full {
+  flex: 1;
+  text-align: left;
+}
+
+.form-unit {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-left: 8rpx;
+}
+
+/* 提交按钮 */
+.popup-footer {
+  margin-top: 32rpx;
+}

@@ -16,6 +16,7 @@
     "pages/stats/supplies/index",
     "pages/stats/farmers/index",
     "pages/stats/seeds/index",
+    "pages/stats/warehouse/index",
     "pages/stats/warehouse-detail/index"
   ],
   "window": {
@@ -43,6 +44,10 @@
       {
         "pagePath": "pages/operations/index/index",
         "text": "作业"
+      },
+      {
+        "pagePath": "pages/stats/warehouse/index",
+        "text": "仓库"
       },
       {
         "pagePath": "pages/finance/index/index",
