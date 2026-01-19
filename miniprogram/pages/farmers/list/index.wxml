@@ -70,15 +70,8 @@
               </view>
             </view>
             <view class="farmer-right">
-              <view class="metric-box">
-                <text class="metric-value">{{item.acreage}}</text>
-                <text class="metric-unit">亩</text>
-              </view>
-              <view class="metric-divider"></view>
-              <view class="metric-box">
-                <text class="metric-value seed">{{item.seedTotal}}</text>
-                <text class="metric-unit">万株</text>
-              </view>
+              <text class="acreage-value">{{item.acreage}}</text>
+              <text class="acreage-unit">亩</text>
             </view>
           </view>
           
