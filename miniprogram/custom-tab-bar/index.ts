@@ -103,16 +103,38 @@ Component({
           return;
         }
 
-        wx.switchTab({
-          url: item.pagePath,
-          fail: (err) => {
-            console.error('切换 Tab 失败:', err);
-            // 如果 switchTab 失败，尝试 navigateTo
-            wx.navigateTo({
-              url: item.pagePath
-            });
-          }
-        });
+        // app.json中tabBar.list里的页面路径（不带前导斜杠）
+        const tabBarPages = [
+          'pages/index/index',
+          'pages/farmers/list/index',
+          'pages/operations/index/index',
+          'pages/stats/warehouse/index',
+          'pages/finance/index/index',
+          'pages/stats/acquisition/index',
+          'pages/stats/supplies/index',
+          'pages/stats/seeds/index',
+          'pages/stats/farmers/index'
+        ];
+
+        // 检查目标页面是否在tabBar.list中
+        const pagePath = item.pagePath.startsWith('/') ? item.pagePath.slice(1) : item.pagePath;
+        const isTabBarPage = tabBarPages.includes(pagePath);
+
+        if (isTabBarPage) {
+          wx.switchTab({
+            url: item.pagePath,
+            fail: (err) => {
+              console.error('switchTab 失败:', err);
+              // 备选方案：使用 reLaunch
+              wx.reLaunch({ url: item.pagePath });
+            }
+          });
+        } else {
+          // 非TabBar页面使用 reLaunch
+          wx.reLaunch({
+            url: item.pagePath
+          });
+        }
       }
     }
   }
