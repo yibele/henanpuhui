@@ -180,14 +180,13 @@ Page({
   },
 
   /**
-   * 查看记录详情
+   * 点击记录 - 跳转到编辑页面
    */
   onRecordTap(e: any) {
     const record = e.currentTarget.dataset.record;
-    wx.showModal({
-      title: '发苗详情',
-      content: `农户：${record.farmerName}\n数量：${record.quantity}株\n金额：¥${record.amount}\n面积：${record.distributedArea}亩\n领取人：${record.receiverName}\n日期：${record.date}`,
-      showCancel: false
+    // 跳转到编辑页面，传递记录 ID
+    wx.navigateTo({
+      url: `/pages/operations/seed-add/index?recordId=${record.id}&mode=edit`
     });
   },
 

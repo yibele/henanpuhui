@@ -1,12 +1,12 @@
 <!--
   发放种苗页面
-  助理录入种苗发放信息
+  助理录入/编辑种苗发放信息
 -->
 <view class="seed-add-page">
   <!-- 页面标题 -->
   <view class="page-header">
-    <text class="page-title">种苗发放登记</text>
-    <text class="page-subtitle">录入农户领取种苗信息</text>
+    <text class="page-title">{{pageTitle}}</text>
+    <text class="page-subtitle">{{isEditMode ? '修改发苗记录信息' : '录入农户领取种苗信息'}}</text>
   </view>
 
   <!-- 选择农户卡片 -->
@@ -206,7 +206,7 @@
       bindtap="onSubmit"
       loading="{{submitting}}"
       disabled="{{!canSubmit}}"
-    >确认发放</button>
+    >{{submitBtnText}}</button>
   </view>
 </view>
 

@@ -1,7 +1,6 @@
 /**
  * 发放种苗页面
- * @description 助理录入种苗发放信息
- * 每个农户支持10次录入
+ * @description 助理录入/编辑种苗发放信息
  */
 
 // 获取应用实例
@@ -16,6 +15,12 @@ const GRADE_TEXT: Record<string, string> = {
 
 Page({
   data: {
+    // 编辑模式相关
+    isEditMode: false,          // 是否为编辑模式
+    recordId: '',               // 编辑的记录 ID
+    pageTitle: '种苗发放登记',  // 页面标题
+    submitBtnText: '确认发放',  // 提交按钮文字
+
     // 表单数据
     form: {
       distributeTime: '',     // 发放时间
@@ -54,9 +59,92 @@ Page({
     canSubmit: false
   },
 
-  onLoad() {
-    this.loadFarmers();
-    this.setDefaultTime();
+  onLoad(options: any) {
+    const { recordId, mode } = options || {};
+
+    if (mode === 'edit' && recordId) {
+      // 编辑模式
+      this.setData({
+        isEditMode: true,
+        recordId,
+        pageTitle: '编辑发苗记录',
+        submitBtnText: '保存修改'
+      });
+      // 设置导航栏标题
+      wx.setNavigationBarTitle({ title: '编辑发苗记录' });
+      // 加载记录详情
+      this.loadRecordDetail(recordId);
+    } else {
+      // 新增模式
+      this.loadFarmers();
+      this.setDefaultTime();
+    }
+  },
+
+  /**
+   * 加载记录详情（编辑模式）
+   */
+  async loadRecordDetail(recordId: string) {
+    wx.showLoading({ title: '加载中...' });
+
+    try {
+      // 调用云函数获取记录详情
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: {
+          action: 'getDetail',
+          recordId
+        }
+      });
+
+      const result = res.result as any;
+      wx.hideLoading();
+
+      if (result.success && result.data) {
+        const record = result.data;
+
+        // 加载农户列表
+        await this.loadFarmers();
+
+        // 查找对应农户
+        const farmer = this.data.farmers.find((f: any) => f.id === record.farmerId);
+
+        // 填充表单数据
+        this.setData({
+          selectedFarmer: farmer || {
+            id: record.farmerId,
+            name: record.farmerName,
+            phone: record.farmerPhone || '',
+            acreage: 0
+          },
+          'form.distributeTime': record.distributionDate || '',
+          'form.quantity': String(record.quantity || ''),
+          'form.unitPrice': String(record.unitPrice || ''),
+          'form.distributedArea': String(record.distributedArea || ''),
+          'form.receiverName': record.receiverName || '',
+          'form.receiveLocation': record.receiveLocation || '',
+          'form.managerName': record.managerName || '',
+          calculatedAmount: (record.amount || 0).toFixed(2)
+        });
+
+        // 加载面积统计
+        if (farmer) {
+          this.setData({
+            'areaStats.totalArea': farmer.acreage || 0
+          });
+          await this.loadFarmerDistributedArea(farmer.id);
+        }
+
+        this.checkCanSubmit();
+      } else {
+        wx.showToast({ title: result.message || '加载失败', icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 1500);
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('加载记录详情失败:', error);
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
   },
 
   /**
@@ -444,45 +532,61 @@ Page({
   async onSubmit() {
     if (!this.data.canSubmit || this.data.submitting) return;
 
-    const { form, selectedFarmer, calculatedAmount } = this.data;
+    const { form, selectedFarmer, calculatedAmount, isEditMode, recordId } = this.data;
 
     this.setData({ submitting: true });
 
     try {
       // 获取当前用户信息
       const userInfo = (app.globalData as any)?.currentUser || {};
-      // 兼容 id 和 _id（登录时保存的是 id）
       const userId = userInfo.id || userInfo._id || '';
       const userName = userInfo.name || form.managerName;
 
-      // 调用云函数提交数据
-      const res = await wx.cloud.callFunction({
-        name: 'seed-manage',
-        data: {
-          action: 'distribute',
-          userId,
-          userName,
-          farmerId: selectedFarmer.id,
+      // 构建数据
+      const submitData = {
+        quantity: parseInt(form.quantity),
+        unitPrice: parseFloat(form.unitPrice),
+        amount: parseFloat(calculatedAmount),
+        distributedArea: parseFloat(form.distributedArea),
+        distributionDate: form.distributeTime.split(' ')[0],
+        receiverName: form.receiverName.trim(),
+        receiveLocation: form.receiveLocation.trim(),
+        managerName: form.managerName.trim(),
+        remark: `领取人：${form.receiverName}，地点：${form.receiveLocation}`
+      };
+
+      let res;
+
+      if (isEditMode) {
+        // 编辑模式：调用更新接口
+        res = await wx.cloud.callFunction({
+          name: 'seed-manage',
           data: {
-            quantity: parseInt(form.quantity),           // 发放数量（株）
-            unitPrice: parseFloat(form.unitPrice),       // 单价（元/株）
-            amount: parseFloat(calculatedAmount),        // 已发放金额
-            distributedArea: parseFloat(form.distributedArea),  // 已发放面积（亩）
-            distributionDate: form.distributeTime.split(' ')[0], // 发放日期
-            receiverName: form.receiverName.trim(),      // 领取人
-            receiveLocation: form.receiveLocation.trim(), // 领取地点
-            managerName: form.managerName.trim(),        // 发苗负责人
-            remark: `领取人：${form.receiverName}，地点：${form.receiveLocation}`
+            action: 'update',
+            recordId,
+            data: submitData
           }
-        }
-      });
+        });
+      } else {
+        // 新增模式：调用发放接口
+        res = await wx.cloud.callFunction({
+          name: 'seed-manage',
+          data: {
+            action: 'distribute',
+            userId,
+            userName,
+            farmerId: selectedFarmer.id,
+            data: submitData
+          }
+        });
+      }
 
       const result = res.result as any;
       this.setData({ submitting: false });
 
       if (result.success) {
         wx.showToast({
-          title: '发放登记成功',
+          title: isEditMode ? '修改成功' : '发放登记成功',
           icon: 'success',
           duration: 1500
         });
@@ -492,11 +596,11 @@ Page({
           wx.navigateBack();
         }, 1500);
       } else {
-        wx.showToast({ title: result.message || '发放失败', icon: 'none' });
+        wx.showToast({ title: result.message || '操作失败', icon: 'none' });
       }
     } catch (error) {
       this.setData({ submitting: false });
-      console.error('发放种苗失败:', error);
+      console.error('提交失败:', error);
       wx.showToast({ title: '网络错误，请重试', icon: 'none' });
     }
   },

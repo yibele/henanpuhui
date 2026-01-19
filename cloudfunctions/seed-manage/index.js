@@ -278,6 +278,86 @@ async function listSeedRecords(event) {
 }
 
 /**
+ * 获取单条记录详情
+ */
+async function getRecordDetail(event) {
+    const { recordId } = event;
+
+    if (!recordId) {
+        return {
+            success: false,
+            message: '缺少记录ID'
+        };
+    }
+
+    try {
+        const res = await db.collection('seed_records').doc(recordId).get();
+
+        if (res.data) {
+            return {
+                success: true,
+                data: res.data
+            };
+        } else {
+            return {
+                success: false,
+                message: '记录不存在'
+            };
+        }
+    } catch (error) {
+        console.error('获取记录详情失败:', error);
+        return {
+            success: false,
+            message: error.message || '获取记录详情失败'
+        };
+    }
+}
+
+/**
+ * 更新发放记录
+ */
+async function updateSeedRecord(event) {
+    const { recordId, data } = event;
+
+    if (!recordId || !data) {
+        return {
+            success: false,
+            message: '缺少必要参数'
+        };
+    }
+
+    try {
+        // 更新记录
+        await db.collection('seed_records').doc(recordId).update({
+            data: {
+                quantity: data.quantity,
+                unitPrice: data.unitPrice,
+                amount: data.amount,
+                distributedArea: data.distributedArea,
+                distributionDate: data.distributionDate,
+                receiverName: data.receiverName,
+                receiveLocation: data.receiveLocation,
+                managerName: data.managerName,
+                remark: data.remark,
+                updateTime: db.serverDate()
+            }
+        });
+
+        return {
+            success: true,
+            message: '更新成功'
+        };
+
+    } catch (error) {
+        console.error('更新发放记录失败:', error);
+        return {
+            success: false,
+            message: error.message || '更新发放记录失败'
+        };
+    }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -292,6 +372,12 @@ exports.main = async (event, context) => {
 
         case 'list':
             return await listSeedRecords(event);
+
+        case 'getDetail':
+            return await getRecordDetail(event);
+
+        case 'update':
+            return await updateSeedRecord(event);
 
         default:
             return {
