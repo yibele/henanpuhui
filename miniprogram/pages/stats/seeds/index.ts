@@ -1,10 +1,15 @@
 /**
  * 种苗发放统计详情页
- * @description 管理层查看种苗发放的详细情况
+ * @description 管理层查看种苗发放的详细情况，支持缓存和下拉刷新
  */
+
+import { getCache, setCache } from '../../../utils/cache';
 
 // 获取应用实例
 const app = getApp();
+
+// 缓存时间：10分钟
+const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
 
 // 格式化金额
 function formatAmount(amount: number): string {
@@ -52,11 +57,14 @@ Page({
     hasMore: false,
     loading: false,
     // 加载中
-    pageLoading: true
+    pageLoading: true,
+    // 是否来自缓存
+    fromCache: false
   },
 
   onLoad() {
-    this.loadData();
+    // 首次加载：优先使用缓存
+    this.loadData(false);
   },
 
   onShow() {
@@ -66,31 +74,50 @@ Page({
   },
 
   onPullDownRefresh() {
-    this.loadData();
+    // 下拉刷新：强制从服务器获取
+    this.loadData(true);
   },
 
   /**
-   * 加载数据（从云函数获取）
+   * 加载数据
+   * @param forceRefresh 是否强制刷新
    */
-  async loadData() {
-    this.setData({ pageLoading: true });
+  async loadData(forceRefresh: boolean = false) {
+    const cacheKey = 'cache_seed_stats_all';
+
+    // 先尝试从缓存加载
+    if (!forceRefresh) {
+      const cached = getCache<any>(cacheKey);
+      if (cached) {
+        console.log('[seeds-stats] 从缓存加载数据');
+        this.setData({
+          records: cached.records,
+          summary: cached.summary,
+          fromCache: true,
+          pageLoading: false
+        });
+        this.filterAndDisplayList();
+        return;
+      }
+    }
+
+    // 从服务器加载
+    this.setData({ pageLoading: true, fromCache: false });
 
     try {
-      // 获取当前用户信息
       const globalData = (app.globalData as any) || {};
       const userInfo = globalData.currentUser || {};
       const userId = userInfo.id || userInfo._id || '';
 
-      console.log('[seeds-stats] 加载发苗记录, userId:', userId);
+      console.log('[seeds-stats] 从服务器加载数据, userId:', userId);
 
-      // 调用云函数获取发苗记录
       const res = await wx.cloud.callFunction({
         name: 'seed-manage',
         data: {
           action: 'list',
-          userId,  // 如果是助理，只显示自己的记录
+          userId,
           page: 1,
-          pageSize: 500  // 获取尽量多的数据用于统计
+          pageSize: 500
         }
       });
 
@@ -99,7 +126,6 @@ Page({
       if (result.success && result.data) {
         const rawRecords = result.data.list || [];
 
-        // 格式化记录数据
         const records = rawRecords.map((r: any) => ({
           id: r._id,
           recordId: r.recordId,
@@ -117,12 +143,9 @@ Page({
           createTime: r.createTime
         }));
 
-        // 计算汇总数据
         const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
         const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
         const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
-
-        // 统计涉及的农户数（去重）
         const farmerIds = new Set(records.map((r: any) => r.farmerId));
 
         const summary = {
@@ -133,13 +156,21 @@ Page({
           totalArea: totalArea.toFixed(1) + '亩'
         };
 
+        // 保存到缓存
+        setCache(cacheKey, { records, summary }, CACHE_EXPIRE_TIME);
+
         this.setData({
           records,
           summary,
-          pageLoading: false
+          pageLoading: false,
+          fromCache: false
         });
 
         this.filterAndDisplayList();
+
+        if (forceRefresh) {
+          wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+        }
       } else {
         console.error('获取发苗记录失败:', result.message);
         this.setData({
@@ -152,13 +183,28 @@ Page({
       }
     } catch (error) {
       console.error('加载发苗记录失败:', error);
-      this.setData({
-        records: [],
-        filteredList: [],
-        displayList: [],
-        summary: { totalQuantity: '0', totalAmount: '0', farmerCount: '0户', recordCount: 0, totalArea: '0亩' },
-        pageLoading: false
-      });
+
+      // 请求失败时尝试使用过期缓存
+      const staleCache = getCache<any>('cache_seed_stats_all', true);
+      if (staleCache) {
+        console.log('[seeds-stats] 请求失败，使用过期缓存');
+        this.setData({
+          records: staleCache.records,
+          summary: staleCache.summary,
+          fromCache: true,
+          pageLoading: false
+        });
+        this.filterAndDisplayList();
+        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+      } else {
+        this.setData({
+          records: [],
+          filteredList: [],
+          displayList: [],
+          summary: { totalQuantity: '0', totalAmount: '0', farmerCount: '0户', recordCount: 0, totalArea: '0亩' },
+          pageLoading: false
+        });
+      }
     }
 
     wx.stopPullDownRefresh();

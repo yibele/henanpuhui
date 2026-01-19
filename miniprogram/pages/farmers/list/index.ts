@@ -1,7 +1,9 @@
 /**
  * 农户列表页面
- * @description 展示所有签约农户
+ * @description 展示所有签约农户，支持缓存和下拉刷新
  */
+
+import { getCache, setCache, CacheKeys } from '../../../utils/cache';
 
 // 获取应用实例
 const app = getApp();
@@ -13,6 +15,9 @@ const GRADE_TEXT_MAP: Record<string, string> = {
   bronze: '铜牌'
 };
 
+// 缓存时间：10分钟
+const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
+
 Page({
   data: {
     // 搜索关键词
@@ -23,16 +28,19 @@ Page({
     filteredFarmers: [] as any[],
     // 统计数据
     stats: {
-      totalFarmers: 0 as any,    // 签约农户数
-      totalAcreage: '0' as any,  // 总面积（格式化后的字符串）
-      totalDeposit: '0' as any   // 总定金（格式化后的字符串）
+      totalFarmers: 0 as any,
+      totalAcreage: '0' as any,
+      totalDeposit: '0' as any
     },
     // 加载状态
-    loading: false
+    loading: false,
+    // 是否来自缓存
+    fromCache: false
   },
 
   onLoad() {
-    this.loadFarmers();
+    // 首次加载：优先使用缓存
+    this.loadFarmers(false);
   },
 
   onShow() {
@@ -40,32 +48,48 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ value: 1 });
     }
-    // 刷新数据
-    this.loadFarmers();
+    // 页面显示时：使用缓存，后台静默刷新
+    this.loadFarmers(false);
   },
 
   /**
-   * 加载农户列表（从云函数获取真实数据）
+   * 加载农户列表
+   * @param forceRefresh 是否强制刷新（忽略缓存）
    */
-  async loadFarmers() {
-    this.setData({ loading: true });
+  async loadFarmers(forceRefresh: boolean = false) {
+    // 先尝试从缓存加载
+    if (!forceRefresh) {
+      const cached = getCache<any>(CacheKeys.FARMER_LIST);
+      if (cached) {
+        console.log('[farmer-list] 从缓存加载数据');
+        this.setData({
+          farmers: cached.farmers,
+          stats: cached.stats,
+          fromCache: true,
+          loading: false
+        });
+        this.filterFarmers();
+        return;
+      }
+    }
+
+    // 从服务器加载
+    this.setData({ loading: true, fromCache: false });
 
     try {
-      // 获取当前用户信息
       const globalData = (app.globalData as any) || {};
       const userInfo = globalData.currentUser || {};
       const userId = userInfo.id || userInfo._id || '';
 
-      console.log('[farmer-list] 加载农户列表, userId:', userId);
+      console.log('[farmer-list] 从服务器加载数据, userId:', userId);
 
-      // 调用云函数获取农户列表
       const res = await wx.cloud.callFunction({
         name: 'farmer-manage',
         data: {
           action: 'list',
           userId,
           page: 1,
-          pageSize: 100  // 获取足够多的数据
+          pageSize: 100
         }
       });
 
@@ -99,8 +123,15 @@ Page({
           totalDeposit: this.formatMoney(totalDeposit)
         };
 
-        this.setData({ farmers, stats, loading: false });
+        // 保存到缓存
+        setCache(CacheKeys.FARMER_LIST, { farmers, stats }, CACHE_EXPIRE_TIME);
+
+        this.setData({ farmers, stats, loading: false, fromCache: false });
         this.filterFarmers();
+
+        if (forceRefresh) {
+          wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+        }
       } else {
         console.error('获取农户列表失败:', result.message);
         this.setData({
@@ -112,17 +143,32 @@ Page({
       }
     } catch (error) {
       console.error('加载农户列表失败:', error);
-      this.setData({
-        farmers: [],
-        filteredFarmers: [],
-        stats: { totalFarmers: 0, totalAcreage: '0', totalDeposit: '0' },
-        loading: false
-      });
+
+      // 请求失败时尝试使用过期缓存
+      const staleCache = getCache<any>(CacheKeys.FARMER_LIST, true);
+      if (staleCache) {
+        console.log('[farmer-list] 请求失败，使用过期缓存');
+        this.setData({
+          farmers: staleCache.farmers,
+          stats: staleCache.stats,
+          fromCache: true,
+          loading: false
+        });
+        this.filterFarmers();
+        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+      } else {
+        this.setData({
+          farmers: [],
+          filteredFarmers: [],
+          stats: { totalFarmers: 0, totalAcreage: '0', totalDeposit: '0' },
+          loading: false
+        });
+      }
     }
   },
 
   /**
-   * 格式化数字（保留1位小数）
+   * 格式化数字
    */
   formatNumber(num: number): string {
     if (num >= 10000) {
@@ -132,7 +178,7 @@ Page({
   },
 
   /**
-   * 格式化金额（显示为X.X万）
+   * 格式化金额
    */
   formatMoney(amount: number): string {
     if (amount >= 10000) {
@@ -144,14 +190,12 @@ Page({
   },
 
   /**
-   * 筛选农户（仅按搜索词）
+   * 筛选农户
    */
   filterFarmers() {
     const { farmers, searchValue } = this.data;
-
     let filtered = [...farmers];
 
-    // 按搜索词筛选（支持姓名、手机号、客户编码）
     if (searchValue) {
       const keyword = searchValue.toLowerCase();
       filtered = filtered.filter(f =>
@@ -181,7 +225,7 @@ Page({
   },
 
   /**
-   * 点击农户项，查看详情
+   * 点击农户项
    */
   onFarmerTap(e: WechatMiniprogram.TouchEvent) {
     const { id } = e.currentTarget.dataset;
@@ -200,10 +244,10 @@ Page({
   },
 
   /**
-   * 下拉刷新
+   * 下拉刷新 - 强制从服务器获取最新数据
    */
   onPullDownRefresh() {
-    this.loadFarmers();
+    this.loadFarmers(true);  // 强制刷新
     wx.stopPullDownRefresh();
   }
 });

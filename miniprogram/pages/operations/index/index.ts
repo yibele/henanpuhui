@@ -1,10 +1,15 @@
 /**
  * 发苗管理页面（助理）
- * @description 显示种苗发放记录列表
+ * @description 显示种苗发放记录列表，支持缓存和下拉刷新
  */
+
+import { getCache, setCache, CacheKeys } from '../../../utils/cache';
 
 // 获取应用实例
 const app = getApp();
+
+// 缓存时间：10分钟
+const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
 
 // 格式化数量
 function formatQuantity(quantity: number): string {
@@ -36,11 +41,14 @@ Page({
     // 种苗发放记录
     seedRecords: [] as any[],
     // 加载状态
-    loading: true
+    loading: true,
+    // 是否来自缓存
+    fromCache: false
   },
 
   onLoad() {
-    this.loadData();
+    // 首次加载：优先使用缓存
+    this.loadData(false);
   },
 
   onShow() {
@@ -48,30 +56,45 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().initTabBar();
     }
-    // 刷新数据
-    this.loadData();
+    // 页面显示时：使用缓存
+    this.loadData(false);
   },
 
   /**
-   * 加载数据（从云函数获取）
+   * 加载数据
+   * @param forceRefresh 是否强制刷新
    */
-  async loadData() {
-    this.setData({ loading: true });
+  async loadData(forceRefresh: boolean = false) {
+    // 先尝试从缓存加载
+    if (!forceRefresh) {
+      const cached = getCache<any>(CacheKeys.SEED_RECORDS);
+      if (cached) {
+        console.log('[operations-index] 从缓存加载数据');
+        this.setData({
+          seedRecords: cached.seedRecords,
+          stats: cached.stats,
+          fromCache: true,
+          loading: false
+        });
+        return;
+      }
+    }
+
+    // 从服务器加载
+    this.setData({ loading: true, fromCache: false });
 
     try {
-      // 获取当前用户信息
       const globalData = (app.globalData as any) || {};
       const userInfo = globalData.currentUser || {};
       const userId = userInfo.id || userInfo._id || '';
 
-      console.log('[operations-index] 加载发苗记录, userId:', userId);
+      console.log('[operations-index] 从服务器加载数据, userId:', userId);
 
-      // 调用云函数获取发苗记录
       const res = await wx.cloud.callFunction({
         name: 'seed-manage',
         data: {
           action: 'list',
-          userId,  // 助理只显示自己的记录
+          userId,
           page: 1,
           pageSize: 100
         }
@@ -82,7 +105,6 @@ Page({
       if (result.success && result.data) {
         const rawRecords = result.data.list || [];
 
-        // 格式化记录数据
         const records = rawRecords.map((r: any) => ({
           id: r._id,
           recordId: r.recordId,
@@ -99,24 +121,31 @@ Page({
           date: r.distributionDate || (r.createTime ? new Date(r.createTime).toLocaleDateString('zh-CN') : '')
         }));
 
-        // 计算统计数据
         const totalCount = records.length;
         const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
         const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
-
-        // 统计涉及的农户数（去重）
         const farmerIds = new Set(records.map((r: any) => r.farmerId));
+
+        const stats = {
+          totalCount: totalCount.toString(),
+          totalQuantity: formatQuantity(totalQuantity),
+          totalAmount: formatAmount(totalAmount),
+          farmerCount: farmerIds.size.toString()
+        };
+
+        // 保存到缓存
+        setCache(CacheKeys.SEED_RECORDS, { seedRecords: records, stats }, CACHE_EXPIRE_TIME);
 
         this.setData({
           seedRecords: records,
-          stats: {
-            totalCount: totalCount.toString(),
-            totalQuantity: formatQuantity(totalQuantity),
-            totalAmount: formatAmount(totalAmount),
-            farmerCount: farmerIds.size.toString()
-          },
-          loading: false
+          stats,
+          loading: false,
+          fromCache: false
         });
+
+        if (forceRefresh) {
+          wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+        }
       } else {
         console.error('获取发苗记录失败:', result.message);
         this.setData({
@@ -127,11 +156,25 @@ Page({
       }
     } catch (error) {
       console.error('加载发苗记录失败:', error);
-      this.setData({
-        seedRecords: [],
-        stats: { totalCount: '0', totalQuantity: '0株', totalAmount: '¥0', farmerCount: '0' },
-        loading: false
-      });
+
+      // 请求失败时尝试使用过期缓存
+      const staleCache = getCache<any>(CacheKeys.SEED_RECORDS, true);
+      if (staleCache) {
+        console.log('[operations-index] 请求失败，使用过期缓存');
+        this.setData({
+          seedRecords: staleCache.seedRecords,
+          stats: staleCache.stats,
+          fromCache: true,
+          loading: false
+        });
+        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+      } else {
+        this.setData({
+          seedRecords: [],
+          stats: { totalCount: '0', totalQuantity: '0株', totalAmount: '¥0', farmerCount: '0' },
+          loading: false
+        });
+      }
     }
   },
 
@@ -157,10 +200,10 @@ Page({
   },
 
   /**
-   * 下拉刷新
+   * 下拉刷新 - 强制从服务器获取
    */
   onPullDownRefresh() {
-    this.loadData();
+    this.loadData(true);  // 强制刷新
     wx.stopPullDownRefresh();
   }
 });
