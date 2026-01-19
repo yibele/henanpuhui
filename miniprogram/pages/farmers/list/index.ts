@@ -83,7 +83,7 @@ Page({
           action: 'list',
           userId,
           page: 1,
-          pageSize: 100
+          pageSize: 500  // 一次性加载所有农户（最多支持 500 个）
         }
       });
 
