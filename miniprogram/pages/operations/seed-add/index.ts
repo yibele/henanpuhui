@@ -103,6 +103,9 @@ Page({
       if (result.success && result.data) {
         const record = result.data;
 
+        // 调试日志：打印云函数返回的数据
+        console.log('[seed-add] 编辑模式 - 记录详情:', record);
+
         // 加载农户列表
         await this.loadFarmers();
 
@@ -110,7 +113,7 @@ Page({
         const farmer = this.data.farmers.find((f: any) => f.id === record.farmerId);
 
         // 填充表单数据
-        this.setData({
+        const formData = {
           selectedFarmer: farmer || {
             id: record.farmerId,
             name: record.farmerName,
@@ -123,9 +126,12 @@ Page({
           'form.distributedArea': String(record.distributedArea || ''),
           'form.receiverName': record.receiverName || '',
           'form.receiveLocation': record.receiveLocation || '',
-          'form.managerName': record.managerName || '',
+          'form.managerName': record.managerName || record.createByName || '',
           calculatedAmount: (record.amount || 0).toFixed(2)
-        });
+        };
+
+        console.log('[seed-add] 回填数据:', formData);
+        this.setData(formData);
 
         // 加载面积统计
         if (farmer) {
