@@ -678,6 +678,156 @@ async function completePayment(event, context) {
   }
 }
 
+/**
+ * 重新计算结算金额（财务操作）
+ * 结算公式：收购总额 - 种苗欠款 - 农资款 - 预支款项
+ */
+async function recalculateSettlement(event) {
+  const { userId, settlementId, agriculturalDebt, advancePayment, remark } = event;
+
+  if (!userId || !settlementId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  try {
+    // 获取当前用户信息
+    const userRes = await db.collection('users').doc(userId).get();
+
+    if (!userRes.data) {
+      return {
+        success: false,
+        message: '用户不存在'
+      };
+    }
+
+    const currentUser = userRes.data;
+
+    // 权限检查：只有财务和管理员可以操作
+    if (!['finance_admin', 'admin'].includes(currentUser.role)) {
+      return {
+        success: false,
+        message: '无权限重新计算结算'
+      };
+    }
+
+    // 获取结算单信息
+    const settlementRes = await db.collection('settlements')
+      .where({ settlementId })
+      .get();
+
+    if (settlementRes.data.length === 0) {
+      return {
+        success: false,
+        message: '结算单不存在'
+      };
+    }
+
+    const settlement = settlementRes.data[0];
+
+    // 获取农户信息
+    const farmerRes = await db.collection('farmers')
+      .where({ farmerId: settlement.farmerId })
+      .get();
+
+    if (farmerRes.data.length === 0) {
+      return {
+        success: false,
+        message: '农户不存在'
+      };
+    }
+
+    const farmer = farmerRes.data[0];
+
+    // 计算各项扣款
+    const grossAmount = settlement.grossAmount || 0;  // 收购总额
+    const seedDebt = farmer.seedDebt || 0;            // 种苗欠款
+    const agriDebt = parseFloat(agriculturalDebt) || farmer.agriculturalDebt || 0;  // 农资款
+    const advPay = parseFloat(advancePayment) || farmer.advancePayment || 0;        // 预支款
+
+    // 新结算公式
+    const totalDeductions = seedDebt + agriDebt + advPay;
+    const actualPayment = grossAmount - totalDeductions;
+
+    // 记录修改日志
+    await db.collection('modification_logs').add({
+      data: {
+        targetType: 'settlement',
+        targetId: settlementId,
+        action: 'recalculate',
+        beforeData: {
+          grossAmount: settlement.grossAmount,
+          seedDebt: settlement.seedDebt,
+          agriculturalDebt: settlement.agriculturalDebt || 0,
+          advancePayment: settlement.advancePayment || 0,
+          actualPayment: settlement.actualPayment
+        },
+        afterData: {
+          grossAmount,
+          seedDebt,
+          agriculturalDebt: agriDebt,
+          advancePayment: advPay,
+          actualPayment
+        },
+        reason: remark || '财务重新计算结算金额',
+        operatorId: userId,
+        operatorName: currentUser.name,
+        createTime: db.serverDate()
+      }
+    });
+
+    // 更新结算单
+    await db.collection('settlements')
+      .where({ settlementId })
+      .update({
+        data: {
+          seedDebt,
+          agriculturalDebt: agriDebt,
+          advancePayment: advPay,
+          totalDeductions,
+          actualPayment: Number(actualPayment.toFixed(2)),
+          recalculateBy: currentUser.name,
+          recalculateById: userId,
+          recalculateTime: db.serverDate(),
+          recalculateRemark: remark || '',
+          updateTime: db.serverDate()
+        }
+      });
+
+    // 更新农户的农资款和预支款记录
+    await db.collection('farmers')
+      .where({ farmerId: settlement.farmerId })
+      .update({
+        data: {
+          agriculturalDebt: agriDebt,
+          advancePayment: advPay,
+          updateTime: db.serverDate()
+        }
+      });
+
+    return {
+      success: true,
+      message: '结算金额已更新',
+      data: {
+        grossAmount,
+        seedDebt,
+        agriculturalDebt: agriDebt,
+        advancePayment: advPay,
+        totalDeductions,
+        actualPayment: Number(actualPayment.toFixed(2))
+      }
+    };
+  } catch (error) {
+    console.error('重新计算结算失败:', error);
+    return {
+      success: false,
+      message: error.message || '重新计算结算失败'
+    };
+  }
+}
+
 // 主函数
 exports.main = async (event, context) => {
   const { action } = event;
@@ -693,6 +843,8 @@ exports.main = async (event, context) => {
       return await markPayment(event, context);
     case 'completePayment':
       return await completePayment(event, context);
+    case 'recalculate':
+      return await recalculateSettlement(event);
     default:
       return {
         success: false,

@@ -611,6 +611,317 @@ async function updateAcquisition(event, context) {
   }
 }
 
+/**
+ * 获取农户收购汇总（分仓库统计）
+ */
+async function getFarmerAcquisitionSummary(event) {
+  const { farmerId } = event;
+
+  if (!farmerId) {
+    return {
+      success: false,
+      message: '缺少农户ID'
+    };
+  }
+
+  try {
+    // 获取该农户的所有收购记录
+    const acquisitionsRes = await db.collection('acquisitions')
+      .where({
+        farmerId: farmerId,
+        status: _.neq('deleted')
+      })
+      .orderBy('createTime', 'desc')
+      .get();
+
+    const acquisitions = acquisitionsRes.data;
+
+    if (acquisitions.length === 0) {
+      return {
+        success: true,
+        data: {
+          totalCount: 0,
+          totalWeight: 0,
+          totalAmount: 0,
+          warehouseStats: [],
+          recentRecords: []
+        }
+      };
+    }
+
+    // 按仓库分组统计
+    const warehouseMap = {};
+    let totalWeight = 0;
+    let totalAmount = 0;
+
+    acquisitions.forEach(acq => {
+      const wId = acq.warehouseId;
+      const wName = acq.warehouseName || '未知仓库';
+
+      if (!warehouseMap[wId]) {
+        warehouseMap[wId] = {
+          warehouseId: wId,
+          warehouseName: wName,
+          count: 0,
+          weight: 0,
+          amount: 0
+        };
+      }
+
+      warehouseMap[wId].count += 1;
+      warehouseMap[wId].weight += acq.netWeight || acq.weight || 0;
+      warehouseMap[wId].amount += acq.totalAmount || 0;
+
+      totalWeight += acq.netWeight || acq.weight || 0;
+      totalAmount += acq.totalAmount || 0;
+    });
+
+    const warehouseStats = Object.values(warehouseMap).map(w => ({
+      ...w,
+      weight: Number(w.weight.toFixed(2)),
+      amount: Number(w.amount.toFixed(2)),
+      amountWan: Number((w.amount / 10000).toFixed(4))
+    }));
+
+    // 获取最近5条记录
+    const recentRecords = acquisitions.slice(0, 5).map(acq => ({
+      acquisitionId: acq.acquisitionId,
+      warehouseName: acq.warehouseName,
+      netWeight: acq.netWeight || acq.weight || 0,
+      unitPrice: acq.unitPrice,
+      totalAmount: acq.totalAmount,
+      acquisitionDate: acq.acquisitionDate,
+      createTime: acq.createTime
+    }));
+
+    return {
+      success: true,
+      data: {
+        totalCount: acquisitions.length,
+        totalWeight: Number(totalWeight.toFixed(2)),
+        totalAmount: Number(totalAmount.toFixed(2)),
+        totalAmountWan: Number((totalAmount / 10000).toFixed(4)),
+        warehouseStats,
+        recentRecords
+      }
+    };
+  } catch (error) {
+    console.error('获取农户收购汇总失败:', error);
+    return {
+      success: false,
+      message: error.message || '获取农户收购汇总失败'
+    };
+  }
+}
+
+/**
+ * 删除收购记录（软删除，仅财务/管理员可操作）
+ */
+async function deleteAcquisition(event) {
+  const { userId, acquisitionId, reason } = event;
+
+  if (!userId || !acquisitionId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  if (!reason || reason.trim().length < 5) {
+    return {
+      success: false,
+      message: '请填写删除原因（至少5个字）'
+    };
+  }
+
+  try {
+    // 获取当前用户信息
+    const userRes = await db.collection('users').doc(userId).get();
+
+    if (!userRes.data) {
+      return {
+        success: false,
+        message: '用户不存在'
+      };
+    }
+
+    const currentUser = userRes.data;
+
+    // 权限检查：只有财务和管理员可以删除
+    if (!['finance_admin', 'admin'].includes(currentUser.role)) {
+      return {
+        success: false,
+        message: '无权限删除收购记录'
+      };
+    }
+
+    // 获取收购记录
+    const acquisitionRes = await db.collection('acquisitions')
+      .where({ acquisitionId })
+      .get();
+
+    if (acquisitionRes.data.length === 0) {
+      return {
+        success: false,
+        message: '收购记录不存在'
+      };
+    }
+
+    const acquisition = acquisitionRes.data[0];
+
+    // 记录修改日志
+    await db.collection('modification_logs').add({
+      data: {
+        targetType: 'acquisition',
+        targetId: acquisitionId,
+        action: 'delete',
+        beforeData: acquisition,
+        afterData: null,
+        reason: reason.trim(),
+        operatorId: userId,
+        operatorName: currentUser.name,
+        createTime: db.serverDate()
+      }
+    });
+
+    // 软删除：更新状态为 deleted
+    await db.collection('acquisitions')
+      .where({ acquisitionId })
+      .update({
+        data: {
+          status: 'deleted',
+          deleteReason: reason.trim(),
+          deleteBy: currentUser.name,
+          deleteById: userId,
+          deleteTime: db.serverDate(),
+          updateTime: db.serverDate()
+        }
+      });
+
+    // 同时删除对应的结算单
+    await db.collection('settlements')
+      .where({ acquisitionId })
+      .update({
+        data: {
+          status: 'deleted',
+          deleteReason: reason.trim(),
+          deleteBy: currentUser.name,
+          deleteById: userId,
+          deleteTime: db.serverDate(),
+          updateTime: db.serverDate()
+        }
+      });
+
+    return {
+      success: true,
+      message: '删除成功'
+    };
+  } catch (error) {
+    console.error('删除收购记录失败:', error);
+    return {
+      success: false,
+      message: error.message || '删除收购记录失败'
+    };
+  }
+}
+
+/**
+ * 财务修改收购记录
+ */
+async function financeUpdateAcquisition(event) {
+  const { userId, acquisitionId, updateData, reason } = event;
+
+  if (!userId || !acquisitionId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  if (!reason || reason.trim().length < 5) {
+    return {
+      success: false,
+      message: '请填写修改原因（至少5个字）'
+    };
+  }
+
+  try {
+    // 获取当前用户信息
+    const userRes = await db.collection('users').doc(userId).get();
+
+    if (!userRes.data) {
+      return {
+        success: false,
+        message: '用户不存在'
+      };
+    }
+
+    const currentUser = userRes.data;
+
+    // 权限检查：只有财务和管理员可以修改
+    if (!['finance_admin', 'admin'].includes(currentUser.role)) {
+      return {
+        success: false,
+        message: '无权限修改收购记录'
+      };
+    }
+
+    // 获取收购记录
+    const acquisitionRes = await db.collection('acquisitions')
+      .where({ acquisitionId })
+      .get();
+
+    if (acquisitionRes.data.length === 0) {
+      return {
+        success: false,
+        message: '收购记录不存在'
+      };
+    }
+
+    const acquisition = acquisitionRes.data[0];
+
+    // 记录修改日志
+    await db.collection('modification_logs').add({
+      data: {
+        targetType: 'acquisition',
+        targetId: acquisitionId,
+        action: 'update',
+        beforeData: acquisition,
+        afterData: { ...acquisition, ...updateData },
+        reason: reason.trim(),
+        operatorId: userId,
+        operatorName: currentUser.name,
+        createTime: db.serverDate()
+      }
+    });
+
+    // 更新收购记录
+    await db.collection('acquisitions')
+      .where({ acquisitionId })
+      .update({
+        data: {
+          ...updateData,
+          lastModifyReason: reason.trim(),
+          lastModifyBy: currentUser.name,
+          lastModifyById: userId,
+          lastModifyTime: db.serverDate(),
+          updateTime: db.serverDate()
+        }
+      });
+
+    return {
+      success: true,
+      message: '修改成功'
+    };
+  } catch (error) {
+    console.error('修改收购记录失败:', error);
+    return {
+      success: false,
+      message: error.message || '修改收购记录失败'
+    };
+  }
+}
+
 // 主函数
 exports.main = async (event, context) => {
   const { action } = event;
@@ -624,6 +935,12 @@ exports.main = async (event, context) => {
       return await listAcquisitions(event, context);
     case 'update':
       return await updateAcquisition(event, context);
+    case 'getFarmerSummary':
+      return await getFarmerAcquisitionSummary(event);
+    case 'delete':
+      return await deleteAcquisition(event);
+    case 'financeUpdate':
+      return await financeUpdateAcquisition(event);
     default:
       return {
         success: false,

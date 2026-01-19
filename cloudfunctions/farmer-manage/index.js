@@ -138,6 +138,8 @@ async function createFarmer(event) {
       seedUnitPrice: parseFloat(seedUnitPrice) || 0,
       receivableAmount: parseFloat(receivableAmount) || 0,
       seedDebt: parseFloat(seedDebt) || 0,
+      agriculturalDebt: 0,  // 农资款欠款
+      advancePayment: 0,    // 预支款项
       status: 'active',
       isDeleted: false,
       createBy: userId,

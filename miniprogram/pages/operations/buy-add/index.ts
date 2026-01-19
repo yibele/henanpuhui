@@ -58,7 +58,16 @@ Page({
 
     // 提交状态
     submitting: false,
-    canSubmit: false
+    canSubmit: false,
+
+    // 农户历史收购汇总
+    farmerSummary: {
+      totalCount: 0,
+      totalWeight: 0,
+      totalAmount: 0,
+      totalAmountWan: 0,
+      warehouseStats: [] as any[]
+    }
   },
 
   onLoad() {
@@ -218,12 +227,40 @@ Page({
       searchedOnce: false
     });
 
+    // 获取农户历史收购汇总
+    this.loadFarmerSummary(farmer.id);
+
     this.checkCanSubmit();
 
     wx.showToast({
       title: '已选择农户',
       icon: 'success'
     });
+  },
+
+  /**
+   * 加载农户历史收购汇总
+   */
+  async loadFarmerSummary(farmerId: string) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'acquisition-manage',
+        data: {
+          action: 'getFarmerSummary',
+          farmerId: farmerId
+        }
+      });
+
+      const result = res.result as any;
+
+      if (result.success && result.data) {
+        this.setData({
+          farmerSummary: result.data
+        });
+      }
+    } catch (error) {
+      console.error('获取农户收购汇总失败:', error);
+    }
   },
 
   // ==================== 日期选择 ====================
