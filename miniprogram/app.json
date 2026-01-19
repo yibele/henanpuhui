@@ -49,10 +49,6 @@
         "text": "结算"
       },
       {
-        "pagePath": "pages/ai/index/index",
-        "text": "助手"
-      },
-      {
         "pagePath": "pages/stats/acquisition/index",
         "text": "收苗"
       },

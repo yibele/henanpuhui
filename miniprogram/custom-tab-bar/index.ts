@@ -11,8 +11,7 @@ const app = getApp<IAppOption>();
 
 // 默认导航栏配置（未登录时或角色未知时使用）
 const DEFAULT_TAB_LIST: TabBarItem[] = [
-  { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
-  { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
+  { icon: 'home', text: '首页', pagePath: '/pages/index/index' }
 ];
 
 Component({
@@ -44,7 +43,7 @@ Component({
      */
     initTabBar() {
       const userRole = app.globalData.userRole;
-      
+
       // 根据角色获取导航栏配置
       let tabList: TabBarItem[];
       if (userRole) {
@@ -52,15 +51,15 @@ Component({
       } else {
         tabList = DEFAULT_TAB_LIST;
       }
-      
+
       // 只有当 list 真正变化时才更新，避免闪动
       const currentListStr = JSON.stringify(this.data.list);
       const newListStr = JSON.stringify(tabList);
-      
+
       if (currentListStr !== newListStr) {
         this.setData({ list: tabList });
       }
-      
+
       // 更新选中状态
       this.updateSelected();
     },
@@ -72,14 +71,14 @@ Component({
     updateSelected() {
       const pages = getCurrentPages();
       if (pages.length === 0) return;
-      
+
       const currentPage = pages[pages.length - 1];
       const currentPath = '/' + currentPage.route;
-      
+
       const index = this.data.list.findIndex(
         (item: TabBarItem) => item.pagePath === currentPath
       );
-      
+
       if (index !== -1 && index !== this.data.value) {
         this.setData({ value: index });
       }
@@ -92,7 +91,7 @@ Component({
     onChange(e: WechatMiniprogram.CustomEvent) {
       const index = e.detail.value;
       const item = this.data.list[index] as TabBarItem;
-      
+
       if (item && item.pagePath) {
         // 检查页面访问权限
         if (!app.canAccessPage(item.pagePath)) {
@@ -103,7 +102,7 @@ Component({
           });
           return;
         }
-        
+
         wx.switchTab({
           url: item.pagePath,
           fail: (err) => {

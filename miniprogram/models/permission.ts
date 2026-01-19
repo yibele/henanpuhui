@@ -77,20 +77,18 @@ export interface TabBarItem {
 
 /** 各角色的底部导航栏配置 */
 export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
-  // 助理导航栏：首页、农户、发苗、助手
+  // 助理导航栏：首页、农户、发苗
   [UserRole.ASSISTANT]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
     { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' },
-    { icon: 'corn', text: '发苗', pagePath: '/pages/operations/index/index' },
-    { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
+    { icon: 'corn', text: '发苗', pagePath: '/pages/operations/index/index' }
   ],
 
-  // 仓库管理员导航栏：首页、收苗、仓库、助手
+  // 仓库管理员导航栏：首页、收苗、仓库
   [UserRole.WAREHOUSE_MANAGER]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
     { icon: 'cart', text: '收苗', pagePath: '/pages/operations/index/index' },
-    { icon: 'location', text: '仓库', pagePath: '/pages/warehouse/index/index' },
-    { icon: 'chat', text: '助手', pagePath: '/pages/ai/index/index' }
+    { icon: 'location', text: '仓库', pagePath: '/pages/warehouse/index/index' }
   ],
 
   // 财务/管理层导航栏：总览、签约、发苗、收苗、结算
