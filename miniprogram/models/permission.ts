@@ -84,10 +84,10 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'corn', text: '发苗', pagePath: '/pages/operations/index/index' }
   ],
 
-  // 仓库管理员导航栏：首页、收苗、仓库
+  // 仓库管理员导航栏：首页、收购、仓库
   [UserRole.WAREHOUSE_MANAGER]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
-    { icon: 'cart', text: '收苗', pagePath: '/pages/operations/index/index' },
+    { icon: 'cart', text: '收购', pagePath: '/pages/operations/index/index' },
     { icon: 'location', text: '仓库', pagePath: '/pages/warehouse/index/index' }
   ],
 
