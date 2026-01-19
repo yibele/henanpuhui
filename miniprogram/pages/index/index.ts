@@ -882,5 +882,30 @@ Page({
   goFarmerDetail(e: WechatMiniprogram.TouchEvent) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({ url: `/pages/farmers/detail/index?id=${id}` });
+  },
+
+  /**
+   * 退出登录
+   */
+  async onLogout() {
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '退出登录',
+        content: '确定要退出登录吗？',
+        confirmText: '退出',
+        confirmColor: '#dc2626',
+        cancelText: '取消',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+
+    if (!confirmed) return;
+
+    // 调用 app 的退出方法
+    const app = getApp<IAppOption>();
+    app.logout();
+
+    // 跳转到登录页
+    wx.reLaunch({ url: '/pages/login/index' });
   }
 });

@@ -13,6 +13,9 @@
         <text class="greeting-text">{{greeting}}，{{userName}}</text>
         <text class="greeting-sub">今天也要加油哦 💪</text>
       </view>
+      <view class="header-logout" bindtap="onLogout">
+        <t-icon name="poweroff" size="40rpx" color="#ffffff" />
+      </view>
     </view>
 
     <!-- 我录入的农户卡片 -->
