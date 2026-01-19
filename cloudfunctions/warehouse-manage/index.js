@@ -67,13 +67,19 @@ async function listWarehouses(event) {
                 todayAcquisitionWeight += acq.netWeight || acq.weight || 0;
             });
 
-            // 获取今日日志数据
-            const todayLogs = await db.collection('warehouse_logs')
-                .where({
-                    warehouseId: warehouse._id,
-                    date: today
-                })
-                .get();
+            // 获取今日日志数据（集合可能不存在）
+            let todayLogs = { data: [] };
+            try {
+                todayLogs = await db.collection('warehouse_logs')
+                    .where({
+                        warehouseId: warehouse._id,
+                        date: today
+                    })
+                    .get();
+            } catch (e) {
+                // 集合不存在时忽略错误
+                console.log('warehouse_logs集合可能不存在，跳过查询');
+            }
 
             let todayPackCount = 0;
             let todayOutboundWeight = 0;
@@ -171,13 +177,18 @@ async function getWarehouseDetail(event) {
             todayAcquisitionWeight += acq.netWeight || acq.weight || 0;
         });
 
-        // 获取今日日志数据
-        const todayLogs = await db.collection('warehouse_logs')
-            .where({
-                warehouseId: warehouseId,
-                date: today
-            })
-            .get();
+        // 获取今日日志数据（集合可能不存在）
+        let todayLogs = { data: [] };
+        try {
+            todayLogs = await db.collection('warehouse_logs')
+                .where({
+                    warehouseId: warehouseId,
+                    date: today
+                })
+                .get();
+        } catch (e) {
+            console.log('warehouse_logs集合可能不存在，跳过查询');
+        }
 
         let todayPackCount = 0;
         let todayOutboundWeight = 0;
