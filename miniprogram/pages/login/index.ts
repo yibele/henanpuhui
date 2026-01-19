@@ -163,13 +163,29 @@ Page({
 
   /**
    * 页面加载
+   * 不自动跳转，让用户重新登录以确保登录信息有效
    */
   onLoad() {
-    // 如果已登录，直接跳转首页
-    if (app.globalData.isLoggedIn) {
-      wx.switchTab({
-        url: '/pages/index/index'
+    // 清除可能过期的登录状态，让用户重新登录
+    // 这样可以避免使用旧的登录信息导致问题
+    app.globalData.isLoggedIn = false;
+    app.globalData.token = '';
+    app.globalData.userInfo = null;
+    app.globalData.userRole = null;
+
+    // 清除本地存储的登录信息
+    try {
+      wx.removeStorageSync('token');
+      wx.removeStorageSync('userInfo');
+
+      // 同时清除业务缓存
+      const info = wx.getStorageInfoSync();
+      const cacheKeys = info.keys.filter((key: string) => key.startsWith('cache_'));
+      cacheKeys.forEach((key: string) => {
+        wx.removeStorageSync(key);
       });
+    } catch (e) {
+      console.error('清除缓存失败:', e);
     }
   }
 });
