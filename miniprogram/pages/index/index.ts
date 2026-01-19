@@ -22,6 +22,10 @@ import {
 } from '../../models/mock-data';
 import { UserRole, UserRoleNames } from '../../models/types';
 import type { SeedDistributionStats, FarmerSummaryStats, SalesmanFarmerStats } from '../../models/types';
+import { getCache, setCache } from '../../utils/cache';
+
+// 缓存键
+const CACHE_KEY_DASHBOARD = 'cache_dashboard_data';
 
 // 获取应用实例
 const app = getApp<IAppOption>();
@@ -243,14 +247,14 @@ Page({
 
   /**
    * 加载仪表盘数据
-   * 根据角色加载不同数据
+   * @param forceRefresh 是否强制刷新
    */
-  loadDashboardData() {
+  loadDashboardData(forceRefresh: boolean = false) {
     const roleKey = this.data.currentRoleKey;
 
     // 业务员：只加载自己的数据
     if (roleKey === 'salesman') {
-      this.loadSalesmanData();
+      this.loadSalesmanData(forceRefresh);
       return;
     }
 
@@ -266,9 +270,22 @@ Page({
 
   /**
    * 加载业务员专属数据
-   * 只展示自己签约的农户和发苗记录
+   * @param forceRefresh 是否强制刷新
    */
-  async loadSalesmanData() {
+  async loadSalesmanData(forceRefresh: boolean = false) {
+    // 先尝试从缓存加载
+    if (!forceRefresh) {
+      const cached = getCache<any>(CACHE_KEY_DASHBOARD);
+      if (cached) {
+        console.log('[dashboard] 从缓存加载助理数据');
+        this.setData({
+          myStats: cached.myStats,
+          recentFarmers: cached.recentFarmers
+        });
+        return;
+      }
+    }
+
     try {
       wx.showLoading({ title: '加载中...' });
 
@@ -318,11 +335,31 @@ Page({
         contractDate: f.createTime ? new Date(f.createTime).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }) : ''
       }));
 
+      // 保存到缓存
+      setCache(CACHE_KEY_DASHBOARD, { myStats, recentFarmers });
+
       this.setData({ myStats, recentFarmers });
+
+      if (forceRefresh) {
+        wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+      }
 
     } catch (error: any) {
       console.error('加载助理数据失败:', error);
       wx.hideLoading();
+
+      // 请求失败时尝试使用缓存
+      const cached = getCache<any>(CACHE_KEY_DASHBOARD);
+      if (cached) {
+        console.log('[dashboard] 请求失败，使用缓存');
+        this.setData({
+          myStats: cached.myStats,
+          recentFarmers: cached.recentFarmers
+        });
+        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+        return;
+      }
+
       wx.showToast({
         title: error.message || '加载数据失败',
         icon: 'none'
@@ -641,10 +678,10 @@ Page({
   },
 
   /**
-   * 下拉刷新
+   * 下拉刷新 - 强制从服务器获取最新数据
    */
   onPullDownRefresh() {
-    this.loadDashboardData();
+    this.loadDashboardData(true);  // 强制刷新
     wx.stopPullDownRefresh();
   },
 
