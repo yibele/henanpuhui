@@ -92,16 +92,16 @@ exports.main = async (event, context) => {
   // 1. 初始化仓库数据
   try {
     console.log('开始初始化仓库数据...');
-    
+
     for (const warehouse of WAREHOUSES) {
       try {
-        // 检查是否已存在
-        const existRes = await db.collection('warehouses').doc(warehouse._id).get();
-        
-        if (existRes.data) {
+        // 使用 where 查询检查是否已存在（避免 doc.get 在不存在时报错）
+        const existRes = await db.collection('warehouses').where({ _id: warehouse._id }).get();
+
+        if (existRes.data && existRes.data.length > 0) {
           console.log(`⚠️  仓库 ${warehouse.name} 已存在，跳过`);
         } else {
-          // 不存在则添加
+          // 不存在则添加（使用 add 并指定 _id）
           await db.collection('warehouses').add({
             data: {
               ...warehouse,
@@ -115,13 +115,13 @@ exports.main = async (event, context) => {
         console.error(`❌ 仓库 ${warehouse.name} 初始化失败:`, error);
       }
     }
-    
+
     results.warehouses = {
       success: true,
       message: '仓库数据初始化完成'
     };
     console.log('仓库数据初始化完成！');
-    
+
   } catch (error) {
     console.error('❌ 仓库数据初始化失败:', error);
     results.warehouses = {
@@ -133,14 +133,14 @@ exports.main = async (event, context) => {
   // 2. 初始化测试用户
   try {
     console.log('开始初始化测试用户...');
-    
+
     for (const user of TEST_USERS) {
       try {
         // 检查手机号是否已存在
         const existRes = await db.collection('users').where({
           phone: user.phone
         }).get();
-        
+
         if (existRes.data.length > 0) {
           console.log(`⚠️  用户 ${user.name} (${user.phone}) 已存在，跳过`);
         } else {
@@ -154,13 +154,13 @@ exports.main = async (event, context) => {
         console.error(`❌ 用户 ${user.name} 初始化失败:`, error);
       }
     }
-    
+
     results.users = {
       success: true,
       message: '测试用户初始化完成'
     };
     console.log('测试用户初始化完成！');
-    
+
   } catch (error) {
     console.error('❌ 测试用户初始化失败:', error);
     results.users = {
