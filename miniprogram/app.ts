@@ -31,7 +31,7 @@ App<IAppOption>({
     } else {
       const cloudEnv = 'cloud1-5g8kf9072047ce03'; // 云环境ID
       console.log('正在初始化云开发，环境ID:', cloudEnv);
-      
+
       try {
         wx.cloud.init({
           env: cloudEnv,
@@ -59,7 +59,7 @@ App<IAppOption>({
     try {
       const token = wx.getStorageSync('token');
       const userInfo = wx.getStorageSync('userInfo') as User | null;
-      
+
       if (token && userInfo) {
         this.globalData.isLoggedIn = true;
         this.globalData.token = token;
@@ -91,11 +91,11 @@ App<IAppOption>({
     this.globalData.token = token;
     this.globalData.userInfo = userInfo;
     this.globalData.userRole = userInfo.role;
-    
+
     // 持久化存储
     wx.setStorageSync('token', token);
     wx.setStorageSync('userInfo', userInfo);
-    
+
     console.log('登录成功，角色:', userInfo.role);
   },
 
@@ -157,11 +157,23 @@ App<IAppOption>({
     this.globalData.token = '';
     this.globalData.userInfo = null;
     this.globalData.userRole = null;
-    
-    // 清除本地存储
+
+    // 清除本地存储（登录信息）
     wx.removeStorageSync('token');
     wx.removeStorageSync('userInfo');
-    
+
+    // 清除业务缓存数据
+    try {
+      const info = wx.getStorageInfoSync();
+      const cacheKeys = info.keys.filter((key: string) => key.startsWith('cache_'));
+      cacheKeys.forEach((key: string) => {
+        wx.removeStorageSync(key);
+      });
+      console.log('已清除缓存:', cacheKeys.length, '项');
+    } catch (e) {
+      console.error('清除缓存失败:', e);
+    }
+
     // 跳转到登录页
     wx.reLaunch({
       url: '/pages/login/index'

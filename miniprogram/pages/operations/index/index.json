@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "发苗管理",
+  "enablePullDownRefresh": true,
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon"
   }

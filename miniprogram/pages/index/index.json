@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "普惠农录",
+  "enablePullDownRefresh": true,
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-grid": "tdesign-miniprogram/grid/grid",

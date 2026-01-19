@@ -1,5 +1,6 @@
 {
   "navigationBarTitleText": "签约农户",
+  "enablePullDownRefresh": true,
   "usingComponents": {
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-search": "tdesign-miniprogram/search/search",
@@ -8,4 +9,3 @@
     "t-fab": "tdesign-miniprogram/fab/fab"
   }
 }
-
