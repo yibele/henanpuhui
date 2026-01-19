@@ -30,18 +30,19 @@
   <!-- 搜索区域 -->
   <view class="search-area">
     <view class="search-row">
-      <view class="search-wrapper">
-        <t-search
+      <view class="search-box">
+        <t-icon name="search" size="36rpx" color="#9ca3af" />
+        <input 
+          class="search-input"
           value="{{searchValue}}"
           placeholder="搜索姓名、电话、编码"
-          shape="round"
-          left-icon="search"
-          bind:change="onSearchChange"
-          bind:clear="onSearchClear"
+          placeholder-class="search-placeholder"
+          bindinput="onSearchChange"
         />
+        <t-icon wx:if="{{searchValue}}" name="close-circle-filled" size="36rpx" color="#d1d5db" bindtap="onSearchClear" />
       </view>
       <view class="add-btn" bindtap="onAddFarmer">
-        <t-icon name="add" size="48rpx" color="#ffffff" />
+        <t-icon name="add" size="48rpx" color="#059669" />
       </view>
     </view>
   </view>
@@ -60,39 +61,25 @@
         <view class="grade-line-mark grade-mark-{{item.grade}}"></view>
         
         <view class="farmer-card-body">
-          <!-- 顶部：姓名和关键数据 -->
-          <view class="card-top">
-            <view class="farmer-identity">
+          <!-- 主要信息：姓名 + 面积 -->
+          <view class="card-main">
+            <view class="farmer-left">
               <view class="name-row">
                 <text class="farmer-name">{{item.name}}</text>
                 <text class="grade-tag grade-tag-{{item.grade}}">{{item.gradeText}}</text>
               </view>
-              <text class="farmer-phone">{{item.phone}}</text>
+              <text class="farmer-address">{{item.addressText || item.address.village || '未填写地址'}}</text>
             </view>
-            
-            <view class="farmer-metrics">
-              <view class="metric-item">
-                <text class="metric-value">{{item.acreage}}</text>
-                <text class="metric-unit">亩</text>
-              </view>
-              <view class="metric-item">
-                <text class="metric-value metric-money">¥{{item.deposit || 0}}</text>
-                <text class="metric-unit">定金</text>
-              </view>
+            <view class="farmer-right">
+              <text class="acreage-value">{{item.acreage}}</text>
+              <text class="acreage-unit">亩</text>
             </view>
           </view>
           
-          <!-- 分割线 -->
-          <view class="card-divider"></view>
-          
-          <!-- 底部：次要信息 -->
-          <view class="card-bottom">
-            <view class="info-group">
-              <text class="info-text code">{{item.customerCode}}</text>
-              <text class="info-dot">·</text>
-              <text class="info-text">{{item.addressText || item.address.village}}</text>
-            </view>
-            <text class="date-text">{{item.contractDate}}</text>
+          <!-- 次要信息：电话 + 定金 -->
+          <view class="card-sub">
+            <text class="farmer-phone">{{item.phone}}</text>
+            <text class="farmer-deposit">定金 ¥{{item.deposit || 0}}</text>
           </view>
         </view>
       </view>

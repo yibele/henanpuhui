@@ -74,23 +74,37 @@
   align-items: center;
 }
 
-.search-wrapper {
+.search-box {
   flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 0 24rpx;
+  height: 88rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #1f2937;
+}
+
+.search-placeholder {
+  color: #9ca3af;
 }
 
 .add-btn {
   width: 88rpx;
   height: 88rpx;
   background: #ffffff;
-  border-radius: 20rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-}
-
-.add-btn t-icon {
-  color: #059669;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
 
 .add-btn:active {
@@ -106,8 +120,8 @@
 .farmer-card {
   display: flex;
   background-color: #ffffff;
-  border-radius: 20rpx;
-  margin-bottom: 20rpx;
+  border-radius: 16rpx;
+  margin-bottom: 16rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
   overflow: hidden;
   position: relative;
@@ -119,8 +133,7 @@
 
 /* 左侧竖线 */
 .grade-line-mark {
-  width: 8rpx;
-  height: 100%;
+  width: 6rpx;
   position: absolute;
   left: 0;
   top: 0;
@@ -134,23 +147,23 @@
 /* 卡片主体 */
 .farmer-card-body {
   flex: 1;
-  padding: 24rpx 24rpx 24rpx 32rpx; /* 左侧留出一点空间 */
-  display: flex;
-  flex-direction: column;
+  padding: 20rpx 24rpx 20rpx 28rpx;
 }
 
-/* 顶部区域：左右布局 */
-.card-top {
+/* 主要信息行 */
+.card-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20rpx;
+  margin-bottom: 12rpx;
 }
 
-.farmer-identity {
+.farmer-left {
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 6rpx;
+  flex: 1;
+  overflow: hidden;
 }
 
 .name-row {
@@ -177,64 +190,7 @@
 .grade-tag-silver { color: #4b5563; background-color: #f3f4f6; }
 .grade-tag-bronze { color: #9a3412; background-color: #ffedd5; }
 
-.farmer-phone {
-  font-size: 26rpx;
-  color: #9ca3af;
-  font-family: 'SF Mono', monospace;
-}
-
-/* 右侧关键数值 */
-.farmer-metrics {
-  display: flex;
-  gap: 32rpx;
-}
-
-.metric-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4rpx;
-}
-
-.metric-value {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #1f2937;
-  line-height: 1;
-}
-
-.metric-money {
-  color: #059669;
-}
-
-.metric-unit {
-  font-size: 22rpx;
-  color: #9ca3af;
-}
-
-/* 分割线 */
-.card-divider {
-  height: 1rpx;
-  background-color: #f3f4f6;
-  margin-bottom: 16rpx;
-}
-
-/* 底部区域 */
-.card-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.info-group {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  flex: 1;
-  overflow: hidden;
-}
-
-.info-text {
+.farmer-address {
   font-size: 24rpx;
   color: #6b7280;
   white-space: nowrap;
@@ -242,20 +198,44 @@
   text-overflow: ellipsis;
 }
 
-.info-text.code {
-  color: #4b5563;
-  font-weight: 500;
-}
-
-.info-dot {
-  color: #d1d5db;
-  font-size: 20rpx;
-}
-
-.date-text {
-  font-size: 22rpx;
-  color: #9ca3af;
+/* 右侧面积 */
+.farmer-right {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
   flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.acreage-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #059669;
+}
+
+.acreage-unit {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+/* 次要信息行 */
+.card-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #f3f4f6;
+}
+
+.farmer-phone {
+  font-size: 26rpx;
+  color: #9ca3af;
+  font-family: 'SF Mono', monospace;
+}
+
+.farmer-deposit {
+  font-size: 24rpx;
+  color: #9ca3af;
 }
 
 /* ==================== 加载状态 ==================== */
