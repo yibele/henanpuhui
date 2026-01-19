@@ -8,9 +8,6 @@ import { getCache, setCache } from '../../../utils/cache';
 // 获取应用实例
 const app = getApp();
 
-// 缓存时间：10分钟
-const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
-
 // 格式化金额
 function formatAmount(amount: number): string {
   if (amount >= 10000) {
@@ -157,7 +154,7 @@ Page({
         };
 
         // 保存到缓存
-        setCache(cacheKey, { records, summary }, CACHE_EXPIRE_TIME);
+        setCache(cacheKey, { records, summary });
 
         this.setData({
           records,
@@ -184,10 +181,10 @@ Page({
     } catch (error) {
       console.error('加载发苗记录失败:', error);
 
-      // 请求失败时尝试使用过期缓存
-      const staleCache = getCache<any>('cache_seed_stats_all', true);
+      // 请求失败时尝试使用缓存
+      const staleCache = getCache<any>('cache_seed_stats_all');
       if (staleCache) {
-        console.log('[seeds-stats] 请求失败，使用过期缓存');
+        console.log('[seeds-stats] 请求失败，使用缓存');
         this.setData({
           records: staleCache.records,
           summary: staleCache.summary,

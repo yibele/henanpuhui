@@ -1,12 +1,11 @@
 /**
  * 本地缓存工具类
- * 支持带过期时间的缓存，用于减少网络请求
+ * 缓存永不过期，只有手动下拉刷新才会更新
  */
 
 interface CacheData<T> {
     data: T;
     timestamp: number;  // 缓存时间戳
-    expireAt: number;   // 过期时间戳
 }
 
 // 缓存键名枚举
@@ -23,21 +22,16 @@ export const CacheKeys = {
     USER_INFO: 'cache_user_info',
 };
 
-// 默认缓存时间：5分钟
-const DEFAULT_EXPIRE_TIME = 5 * 60 * 1000;
-
 /**
- * 设置缓存
+ * 设置缓存（永不过期）
  * @param key 缓存键
  * @param data 缓存数据
- * @param expireTime 过期时间（毫秒），默认5分钟
  */
-export function setCache<T>(key: string, data: T, expireTime: number = DEFAULT_EXPIRE_TIME): void {
+export function setCache<T>(key: string, data: T): void {
     const now = Date.now();
     const cacheData: CacheData<T> = {
         data,
-        timestamp: now,
-        expireAt: now + expireTime
+        timestamp: now
     };
 
     try {
@@ -51,24 +45,15 @@ export function setCache<T>(key: string, data: T, expireTime: number = DEFAULT_E
 /**
  * 获取缓存
  * @param key 缓存键
- * @param ignoreExpire 是否忽略过期时间（用于先显示旧数据再刷新）
- * @returns 缓存数据，如果不存在或已过期返回 null
+ * @returns 缓存数据，如果不存在返回 null
  */
-export function getCache<T>(key: string, ignoreExpire: boolean = false): T | null {
+export function getCache<T>(key: string): T | null {
     try {
         const raw = wx.getStorageSync(key);
         if (!raw) return null;
 
         const cacheData: CacheData<T> = JSON.parse(raw);
-        const now = Date.now();
-
-        // 检查是否过期
-        if (!ignoreExpire && now > cacheData.expireAt) {
-            console.log(`[Cache] 缓存已过期: ${key}`);
-            return null;
-        }
-
-        console.log(`[Cache] 读取缓存: ${key}, 剩余时间: ${Math.round((cacheData.expireAt - now) / 1000)}秒`);
+        console.log(`[Cache] 读取缓存: ${key}`);
         return cacheData.data;
     } catch (error) {
         console.error(`[Cache] 读取缓存失败: ${key}`, error);
@@ -106,61 +91,15 @@ export function clearAllCache(): void {
 }
 
 /**
- * 检查缓存是否有效
+ * 检查缓存是否存在
  * @param key 缓存键
- * @returns 是否有效
+ * @returns 是否存在
  */
-export function isCacheValid(key: string): boolean {
+export function hasCache(key: string): boolean {
     try {
         const raw = wx.getStorageSync(key);
-        if (!raw) return false;
-
-        const cacheData: CacheData<any> = JSON.parse(raw);
-        return Date.now() <= cacheData.expireAt;
+        return !!raw;
     } catch {
         return false;
-    }
-}
-
-/**
- * 带缓存的数据加载器
- * @param key 缓存键
- * @param fetcher 数据获取函数
- * @param options 选项
- */
-export async function loadWithCache<T>(
-    key: string,
-    fetcher: () => Promise<T>,
-    options: {
-        expireTime?: number;      // 缓存过期时间
-        forceRefresh?: boolean;   // 是否强制刷新
-        showStale?: boolean;      // 刷新时是否先显示旧数据
-    } = {}
-): Promise<{ data: T; fromCache: boolean }> {
-    const { expireTime = DEFAULT_EXPIRE_TIME, forceRefresh = false, showStale = true } = options;
-
-    // 如果不强制刷新，先尝试读取缓存
-    if (!forceRefresh) {
-        const cached = getCache<T>(key);
-        if (cached !== null) {
-            return { data: cached, fromCache: true };
-        }
-    }
-
-    // 从服务器获取数据
-    try {
-        const data = await fetcher();
-        setCache(key, data, expireTime);
-        return { data, fromCache: false };
-    } catch (error) {
-        // 如果请求失败，尝试返回过期的缓存数据
-        if (showStale) {
-            const staleData = getCache<T>(key, true);  // 忽略过期时间
-            if (staleData !== null) {
-                console.log(`[Cache] 请求失败，使用过期缓存: ${key}`);
-                return { data: staleData, fromCache: true };
-            }
-        }
-        throw error;
     }
 }

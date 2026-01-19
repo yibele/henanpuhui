@@ -8,9 +8,6 @@ import { getCache, setCache, CacheKeys } from '../../../utils/cache';
 // 获取应用实例
 const app = getApp();
 
-// 缓存时间：10分钟
-const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
-
 // 格式化数量
 function formatQuantity(quantity: number): string {
   if (quantity >= 10000) {
@@ -41,9 +38,7 @@ Page({
     // 种苗发放记录
     seedRecords: [] as any[],
     // 加载状态
-    loading: true,
-    // 是否来自缓存
-    fromCache: false
+    loading: true
   },
 
   onLoad() {
@@ -73,7 +68,6 @@ Page({
         this.setData({
           seedRecords: cached.seedRecords,
           stats: cached.stats,
-          fromCache: true,
           loading: false
         });
         return;
@@ -81,7 +75,7 @@ Page({
     }
 
     // 从服务器加载
-    this.setData({ loading: true, fromCache: false });
+    this.setData({ loading: true });
 
     try {
       const globalData = (app.globalData as any) || {};
@@ -134,13 +128,12 @@ Page({
         };
 
         // 保存到缓存
-        setCache(CacheKeys.SEED_RECORDS, { seedRecords: records, stats }, CACHE_EXPIRE_TIME);
+        setCache(CacheKeys.SEED_RECORDS, { seedRecords: records, stats });
 
         this.setData({
           seedRecords: records,
           stats,
-          loading: false,
-          fromCache: false
+          loading: false
         });
 
         if (forceRefresh) {
@@ -157,14 +150,13 @@ Page({
     } catch (error) {
       console.error('加载发苗记录失败:', error);
 
-      // 请求失败时尝试使用过期缓存
-      const staleCache = getCache<any>(CacheKeys.SEED_RECORDS, true);
+      // 请求失败时尝试使用缓存
+      const staleCache = getCache<any>(CacheKeys.SEED_RECORDS);
       if (staleCache) {
-        console.log('[operations-index] 请求失败，使用过期缓存');
+        console.log('[operations-index] 请求失败，使用缓存');
         this.setData({
           seedRecords: staleCache.seedRecords,
           stats: staleCache.stats,
-          fromCache: true,
           loading: false
         });
         wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });

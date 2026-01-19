@@ -15,9 +15,6 @@ const GRADE_TEXT_MAP: Record<string, string> = {
   bronze: '铜牌'
 };
 
-// 缓存时间：10分钟
-const CACHE_EXPIRE_TIME = 10 * 60 * 1000;
-
 Page({
   data: {
     // 搜索关键词
@@ -33,9 +30,7 @@ Page({
       totalDeposit: '0' as any
     },
     // 加载状态
-    loading: false,
-    // 是否来自缓存
-    fromCache: false
+    loading: false
   },
 
   onLoad() {
@@ -48,7 +43,7 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ value: 1 });
     }
-    // 页面显示时：使用缓存，后台静默刷新
+    // 页面显示时：使用缓存
     this.loadFarmers(false);
   },
 
@@ -65,7 +60,6 @@ Page({
         this.setData({
           farmers: cached.farmers,
           stats: cached.stats,
-          fromCache: true,
           loading: false
         });
         this.filterFarmers();
@@ -74,7 +68,7 @@ Page({
     }
 
     // 从服务器加载
-    this.setData({ loading: true, fromCache: false });
+    this.setData({ loading: true });
 
     try {
       const globalData = (app.globalData as any) || {};
@@ -124,9 +118,9 @@ Page({
         };
 
         // 保存到缓存
-        setCache(CacheKeys.FARMER_LIST, { farmers, stats }, CACHE_EXPIRE_TIME);
+        setCache(CacheKeys.FARMER_LIST, { farmers, stats });
 
-        this.setData({ farmers, stats, loading: false, fromCache: false });
+        this.setData({ farmers, stats, loading: false });
         this.filterFarmers();
 
         if (forceRefresh) {
@@ -144,14 +138,13 @@ Page({
     } catch (error) {
       console.error('加载农户列表失败:', error);
 
-      // 请求失败时尝试使用过期缓存
-      const staleCache = getCache<any>(CacheKeys.FARMER_LIST, true);
+      // 请求失败时尝试使用缓存
+      const staleCache = getCache<any>(CacheKeys.FARMER_LIST);
       if (staleCache) {
-        console.log('[farmer-list] 请求失败，使用过期缓存');
+        console.log('[farmer-list] 请求失败，使用缓存');
         this.setData({
           farmers: staleCache.farmers,
           stats: staleCache.stats,
-          fromCache: true,
           loading: false
         });
         this.filterFarmers();
