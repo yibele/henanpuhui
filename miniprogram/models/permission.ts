@@ -88,7 +88,7 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
   [UserRole.WAREHOUSE_MANAGER]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
     { icon: 'cart', text: '收购', pagePath: '/pages/operations/buy-add/index' },
-    { icon: 'location', text: '仓库', pagePath: '/pages/warehouse/index/index' }
+    { icon: 'location', text: '仓库', pagePath: '/pages/stats/warehouse/index' }
   ],
 
   // 财务/管理层导航栏：总览、签约、发苗、收苗、结算
@@ -180,9 +180,8 @@ export const PagePermissions: Record<string, Permission[]> = {
   '/pages/operations/buy-add/index': [Permission.ACQUISITION_CREATE],
 
   // 仓库相关页面
-  '/pages/warehouse/index/index': [Permission.INVENTORY_VIEW],
-  '/pages/warehouse/in/index': [Permission.INVENTORY_IN],
-  '/pages/warehouse/out/index': [Permission.INVENTORY_OUT],
+  '/pages/stats/warehouse/index': [Permission.INVENTORY_VIEW],
+  '/pages/stats/warehouse-detail/index': [Permission.INVENTORY_VIEW],
 
   // 结算相关页面
   '/pages/finance/index/index': [Permission.SETTLEMENT_VIEW],
