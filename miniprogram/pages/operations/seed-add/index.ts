@@ -21,7 +21,7 @@ Page({
       distributeTime: '',     // 发放时间
       quantity: '',           // 发放数量（株）
       unitPrice: '',          // 单价（元/株）
-      distributedArea: '',    // 已发放面积（亩）
+      distributedArea: '',    // 本次发放面积（亩）
       receiverName: '',       // 领取人
       receiveLocation: '',    // 领取地点
       managerName: ''         // 发苗负责人
@@ -36,6 +36,13 @@ Page({
     searchValue: '',
     // 选中的农户
     selectedFarmer: null as any,
+    // 面积统计
+    areaStats: {
+      totalArea: 0,           // 签约总面积
+      distributedArea: 0,     // 已发放面积
+      remainingArea: 0,       // 剩余可发放面积
+      currentArea: 0          // 本次发放面积
+    },
     // 选择农户弹窗
     showFarmerPopup: false,
     // 日期选择器
@@ -221,7 +228,7 @@ Page({
   /**
    * 选中农户
    */
-  onSelectFarmer(e: WechatMiniprogram.TouchEvent) {
+  async onSelectFarmer(e: WechatMiniprogram.TouchEvent) {
     const farmer = e.currentTarget.dataset.farmer;
 
     this.setData({
@@ -229,14 +236,55 @@ Page({
       showFarmerPopup: false,
       searchValue: '',
       // 自动填充领取人为农户姓名
-      'form.receiverName': farmer.name
+      'form.receiverName': farmer.name,
+      // 初始化面积统计
+      'areaStats.totalArea': farmer.acreage || 0,
+      'areaStats.distributedArea': 0,
+      'areaStats.remainingArea': farmer.acreage || 0,
+      'areaStats.currentArea': 0
     });
 
     // 重置筛选列表
     this.setData({ filteredFarmers: this.data.farmers });
 
+    // 加载该农户的已发放面积
+    await this.loadFarmerDistributedArea(farmer.id);
+
     // 检查是否可提交
     this.checkCanSubmit();
+  },
+
+  /**
+   * 加载农户已发放面积
+   */
+  async loadFarmerDistributedArea(farmerId: string) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: {
+          action: 'getByFarmer',
+          farmerId
+        }
+      });
+
+      const result = res.result as any;
+      if (result.success && result.data) {
+        const records = result.data.list || [];
+        // 计算已发放面积总和
+        const distributedArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
+        const totalArea = this.data.areaStats.totalArea;
+        const remainingArea = Math.max(0, totalArea - distributedArea);
+
+        this.setData({
+          'areaStats.distributedArea': distributedArea,
+          'areaStats.remainingArea': remainingArea
+        });
+
+        console.log('[seed-add] 面积统计:', { totalArea, distributedArea, remainingArea });
+      }
+    } catch (error) {
+      console.error('加载已发放面积失败:', error);
+    }
   },
 
   // ==================== 日期时间选择 ====================
@@ -307,7 +355,7 @@ Page({
   },
 
   /**
-   * 输入已发放面积（亩）
+   * 输入本次发放面积（亩）
    */
   onDistributedAreaInput(e: WechatMiniprogram.CustomEvent) {
     let value = e.detail.value.replace(/[^\d.]/g, '');
@@ -321,7 +369,12 @@ Page({
       value = parts[0] + '.' + parts[1].substring(0, 2);
     }
 
-    this.setData({ 'form.distributedArea': value });
+    const currentArea = parseFloat(value) || 0;
+
+    this.setData({
+      'form.distributedArea': value,
+      'areaStats.currentArea': currentArea
+    });
     this.checkCanSubmit();
   },
 

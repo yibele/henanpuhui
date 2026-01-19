@@ -21,16 +21,32 @@
         <view class="farmer-info" wx:if="{{selectedFarmer}}">
           <text class="farmer-name">{{selectedFarmer.name}}</text>
           <text class="farmer-phone">{{selectedFarmer.phone}}</text>
-          <view class="farmer-acreage-info">
-            <text class="acreage-label">签约面积</text>
-            <text class="acreage-value">{{selectedFarmer.acreage || 0}} 亩</text>
-          </view>
         </view>
         <view class="farmer-placeholder" wx:else>
           <t-icon name="user-add" size="48rpx" color="#9ca3af" />
           <text>点击选择农户</text>
         </view>
         <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
+      </view>
+    </view>
+
+    <!-- 面积统计（选择农户后显示） -->
+    <view class="area-stats-card" wx:if="{{selectedFarmer}}">
+      <view class="area-stats-row">
+        <view class="area-stat-item">
+          <text class="area-stat-label">签约总面积</text>
+          <text class="area-stat-value total">{{areaStats.totalArea}} 亩</text>
+        </view>
+        <view class="area-stat-divider"></view>
+        <view class="area-stat-item">
+          <text class="area-stat-label">已发放面积</text>
+          <text class="area-stat-value used">{{areaStats.distributedArea}} 亩</text>
+        </view>
+        <view class="area-stat-divider"></view>
+        <view class="area-stat-item">
+          <text class="area-stat-label">剩余面积</text>
+          <text class="area-stat-value remaining">{{areaStats.remainingArea}} 亩</text>
+        </view>
       </view>
     </view>
   </view>

@@ -88,19 +88,26 @@ Page({
         // 登录成功
         const userData = result.data;
 
-        // 保存用户信息到全局（同时保存 id 和 _id，确保兼容）
-        app.globalData.currentUser = {
+        // 构建用户信息对象
+        const userInfo = {
           id: userData.userId,
-          _id: userData.userId,  // 统一添加 _id，与数据库字段保持一致
+          _id: userData.userId,
           name: userData.name,
           phone: userData.phone,
           role: userData.role,
           avatar: userData.avatar,
           nickName: userData.nickName
         };
-        app.globalData.userInfo = app.globalData.currentUser;
+
+        // 保存用户信息到全局
+        app.globalData.currentUser = userInfo;
+        app.globalData.userInfo = userInfo;
         app.globalData.isLoggedIn = true;
         app.globalData.userRole = userData.role;
+
+        // 持久化存储到本地（重要！这样下次打开可以恢复登录状态）
+        wx.setStorageSync('token', userData.userId);  // 用 userId 作为 token
+        wx.setStorageSync('userInfo', userInfo);
 
         // 如果是仓库管理员，保存仓库信息
         if (userData.warehouseInfo) {

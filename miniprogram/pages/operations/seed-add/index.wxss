@@ -210,6 +210,57 @@
   border-radius: 8rpx;
 }
 
+/* 面积统计卡片 */
+.area-stats-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-top: 16rpx;
+  border: 1rpx solid #bbf7d0;
+}
+
+.area-stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.area-stat-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.area-stat-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-bottom: 8rpx;
+}
+
+.area-stat-value {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.area-stat-value.total {
+  color: #1f2937;
+}
+
+.area-stat-value.used {
+  color: #ea580c;
+}
+
+.area-stat-value.remaining {
+  color: #059669;
+}
+
+.area-stat-divider {
+  width: 1rpx;
+  height: 60rpx;
+  background-color: #bbf7d0;
+}
+
 .form-label-row {
   display: flex;
   align-items: baseline;
