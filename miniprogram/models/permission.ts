@@ -87,7 +87,7 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
   // 仓库管理员导航栏：首页、收购、仓库
   [UserRole.WAREHOUSE_MANAGER]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
-    { icon: 'cart', text: '收购', pagePath: '/pages/operations/index/index' },
+    { icon: 'cart', text: '收购', pagePath: '/pages/operations/buy-add/index' },
     { icon: 'location', text: '仓库', pagePath: '/pages/warehouse/index/index' }
   ],
 
@@ -187,8 +187,8 @@ export const PagePermissions: Record<string, Permission[]> = {
   // 结算相关页面
   '/pages/finance/index/index': [Permission.SETTLEMENT_VIEW],
 
-  // 统计页面 - 仅管理层可访问
-  '/pages/stats/acquisition/index': [Permission.STATS_ALL],
+  // 统计页面 - 管理层可访问，收苗统计仓库管理员也可访问
+  '/pages/stats/acquisition/index': [Permission.STATS_ALL, Permission.ACQUISITION_VIEW],
   '/pages/stats/supplies/index': [Permission.STATS_ALL],
   '/pages/stats/farmers/index': [Permission.STATS_ALL],
   '/pages/stats/seeds/index': [Permission.STATS_ALL],

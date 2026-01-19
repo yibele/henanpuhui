@@ -1,4 +1,4 @@
-/* 收购登记页面样式 */
+/* 收购登记页面样式 - TDesign 版本 */
 
 .acquisition-page {
   min-height: 100vh;
@@ -68,21 +68,38 @@
   color: #111827;
 }
 
+/* ==================== t-cell-group 样式适配 ==================== */
+
+.form-card-group {
+  margin: 0 24rpx !important;
+}
+
+/* 覆盖 t-cell 默认样式 */
+.form-card-group .t-cell {
+  --td-cell-left-icon-color: #f97316;
+  --td-cell-note-color: #111827;
+  --td-cell-required-color: #ef4444;
+}
+
+/* ==================== 简化表单行 ==================== */
+
 .form-card {
   background-color: #ffffff;
   border-radius: 16rpx;
   margin: 0 24rpx;
-  padding: 8rpx 0;
+  padding: 8rpx 24rpx;
 }
 
-/* ==================== 表单项 ==================== */
-
-.form-item {
+.form-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx 32rpx;
-  min-height: 100rpx;
+  padding: 28rpx 0;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.form-row:last-child {
+  border-bottom: none;
 }
 
 .form-label {
@@ -90,153 +107,82 @@
   color: #374151;
   font-weight: 500;
   flex-shrink: 0;
-  margin-right: 24rpx;
 }
 
 .form-label.required::before {
-  content: '* ';
+  content: '*';
   color: #ef4444;
-  font-weight: 600;
+  margin-right: 4rpx;
 }
 
-.form-value-row {
+.form-input-wrap {
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  flex: 1;
   justify-content: flex-end;
-}
-
-.form-value {
-  font-size: 30rpx;
-  color: #111827;
-  text-align: right;
-}
-
-.form-placeholder {
-  color: #9ca3af;
-}
-
-.form-divider {
-  height: 1rpx;
-  background-color: #f3f4f6;
-  margin: 0 32rpx;
-}
-
-/* ==================== 输入框 ==================== */
-
-.input-with-unit {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
   flex: 1;
-  justify-content: flex-end;
-  position: relative;
-}
-
-.input-prefix {
-  font-size: 30rpx;
-  color: #059669;
-  font-weight: 600;
+  margin-left: 40rpx;
 }
 
 .form-input {
   flex: 1;
-  font-size: 32rpx;
+  max-width: 200rpx;
+  height: 64rpx;
+  font-size: 30rpx;
   color: #111827;
   text-align: right;
-  padding: 12rpx 16rpx;
+  padding: 0 16rpx;
   background-color: #f9fafb;
   border-radius: 8rpx;
-  border: 2rpx solid #e5e7eb;
-  min-width: 200rpx;
-  max-width: 300rpx;
+  border: 1rpx solid #e5e7eb;
 }
 
-.weight-input {
-  border-color: #bfdbfe;
-  background-color: #eff6ff;
-}
-
-.price-input {
-  border-color: #d1fae5;
-  background-color: #ecfdf5;
-}
-
-.input-unit {
+.form-unit {
   font-size: 26rpx;
   color: #6b7280;
+  margin-left: 12rpx;
   flex-shrink: 0;
+  min-width: 60rpx;
 }
 
-/* ==================== 只读值显示 ==================== */
-
-.readonly-value-row {
+.form-value-wrap {
   display: flex;
   align-items: baseline;
-  gap: 12rpx;
-  flex: 1;
   justify-content: flex-end;
-}
-
-.readonly-value {
-  font-size: 36rpx;
-  color: #6b7280;
-  font-weight: 600;
-}
-
-.readonly-highlight {
-  color: #3b82f6;
-  font-size: 40rpx;
-}
-
-.readonly-unit {
-  font-size: 26rpx;
-  color: #9ca3af;
-}
-
-/* ==================== 金额显示 ==================== */
-
-.amount-display {
   flex: 1;
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
 }
 
-.amount-value {
-  display: inline-block;
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #059669;
-}
-
-.amount-unit {
-  display: inline-block;
-  font-size: 28rpx;
-  color: #059669;
+.form-value {
+  font-size: 32rpx;
+  color: #374151;
   font-weight: 600;
-  margin-left: 8rpx;
-  margin-bottom: 8rpx;
 }
 
-.amount-formula {
+.form-value.highlight-blue {
+  font-size: 36rpx;
+  color: #3b82f6;
+}
+
+.form-value.highlight-green {
+  font-size: 36rpx;
+  color: #059669;
+}
+
+.formula-row {
+  padding: 16rpx 0 8rpx;
+  text-align: right;
+}
+
+.formula-text {
   font-size: 24rpx;
   color: #9ca3af;
-  margin-top: 4rpx;
 }
 
 /* ==================== 预估收购重量 ==================== */
 
 .estimated-weight-display {
-  flex: 1;
-  text-align: right;
   display: flex;
   align-items: baseline;
-  justify-content: flex-end;
   gap: 8rpx;
-  flex-wrap: wrap;
 }
 
 .estimated-value {
@@ -252,42 +198,67 @@
 }
 
 .estimated-note {
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: #9ca3af;
-  width: 100%;
-  text-align: right;
-  margin-top: 4rpx;
+}
+
+/* ==================== 净重显示 ==================== */
+
+.net-weight-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
+.net-weight-value {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.net-weight-unit {
+  font-size: 26rpx;
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+/* ==================== 金额显示 ==================== */
+
+.amount-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
+.amount-value {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #059669;
+}
+
+.amount-unit {
+  font-size: 28rpx;
+  color: #059669;
+  font-weight: 600;
+}
+
+.amount-formula {
+  font-size: 24rpx;
+  color: #9ca3af;
 }
 
 /* ==================== 备注输入 ==================== */
 
-.form-item-textarea {
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 28rpx 32rpx;
+.form-card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  margin: 0 24rpx;
+  padding: 24rpx;
 }
 
-.form-item-textarea .form-label {
-  margin-bottom: 16rpx;
-}
-
-.form-textarea {
-  width: 100%;
-  min-height: 160rpx;
-  padding: 16rpx;
-  background-color: #f9fafb;
-  border-radius: 8rpx;
-  border: 2rpx solid #e5e7eb;
-  font-size: 28rpx;
-  color: #111827;
-  line-height: 1.6;
-}
-
-.textarea-counter {
-  align-self: flex-end;
-  margin-top: 8rpx;
-  font-size: 24rpx;
-  color: #9ca3af;
+.form-card .t-textarea {
+  --td-textarea-background-color: #f9fafb;
+  --td-textarea-border-radius: 12rpx;
 }
 
 /* ==================== 提示信息 ==================== */
@@ -329,33 +300,8 @@
   box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
-.btn {
+.bottom-actions .t-button {
   flex: 1;
-  height: 88rpx;
-  border-radius: 44rpx;
-  font-size: 32rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-}
-
-.btn-cancel {
-  background-color: #f3f4f6;
-  color: #6b7280;
-}
-
-.btn-submit {
-  color: #ffffff;
-}
-
-.btn-orange {
-  background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-}
-
-.btn-disabled {
-  opacity: 0.5;
 }
 
 /* ==================== 弹窗样式 ==================== */
@@ -396,32 +342,13 @@
 /* ==================== 搜索栏 ==================== */
 
 .popup-search {
-  padding: 24rpx 32rpx;
+  padding: 16rpx 24rpx;
   border-bottom: 1rpx solid #f3f4f6;
   flex-shrink: 0;
 }
 
-.search-input-wrap {
-  display: flex;
-  align-items: center;
-  gap: 16rpx;
-  background-color: #f3f4f6;
-  border-radius: 48rpx;
-  padding: 16rpx 24rpx;
-}
-
-.search-input {
-  flex: 1;
-  font-size: 28rpx;
-  color: #111827;
-}
-
-.search-clear {
-  width: 48rpx;
-  height: 48rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.popup-search .t-search {
+  --td-search-bg-color: #f3f4f6;
 }
 
 /* ==================== 列表项 ==================== */
@@ -429,6 +356,7 @@
 .popup-list {
   flex: 1;
   overflow-y: auto;
+  max-height: 60vh;
 }
 
 .popup-item {
@@ -511,4 +439,196 @@
 .empty-state text {
   font-size: 28rpx;
   color: #9ca3af;
+}
+
+/* ==================== 农户信息显示 ==================== */
+
+.farmer-info-slot {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.farmer-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.farmer-phone {
+  font-size: 28rpx;
+  color: #6b7280;
+}
+
+/* ==================== 提示圆点 ==================== */
+
+.tip-dot {
+  color: #f97316;
+  font-weight: bold;
+  margin-right: 8rpx;
+}
+
+/* ==================== 农户搜索弹窗 ==================== */
+
+.popup-container {
+  background-color: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  min-height: 50vh;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.popup-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.popup-close {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 32rpx;
+  background-color: #f3f4f6;
+}
+
+.search-section {
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+}
+
+.search-row .t-input {
+  flex: 1;
+  --td-input-bg-color: #f3f4f6;
+  --td-input-border-radius: 12rpx;
+}
+
+.search-hint {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.search-result {
+  flex: 1;
+  padding: 24rpx 32rpx;
+}
+
+.result-header {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-bottom: 16rpx;
+}
+
+.result-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f0fdf4;
+  border: 2rpx solid #86efac;
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+
+.result-info {
+  flex: 1;
+}
+
+.result-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.result-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.result-phone {
+  display: block;
+  font-size: 28rpx;
+  color: #059669;
+  margin-bottom: 4rpx;
+}
+
+.result-id {
+  display: block;
+  font-size: 26rpx;
+  color: #f97316;
+  font-weight: 500;
+  margin-bottom: 4rpx;
+}
+
+.result-address {
+  display: block;
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 4rpx;
+}
+
+.result-acreage {
+  display: block;
+  font-size: 26rpx;
+  color: #9ca3af;
+}
+
+.result-action {
+  flex-shrink: 0;
+  margin-left: 24rpx;
+}
+
+.search-empty {
+  padding: 80rpx 32rpx;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #9ca3af;
+}
+
+/* ==================== 等级标签 ==================== */
+
+.grade-badge {
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.grade-A, .grade-gold {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.grade-B, .grade-silver {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.grade-C, .grade-bronze {
+  background-color: #fed7aa;
+  color: #9a3412;
 }

@@ -1,5 +1,6 @@
 <!--
   收购登记页面（仓库工作人员填写）
+  使用 TDesign 组件库
 -->
 <view class="acquisition-page">
   <!-- 页面标题 -->
@@ -15,54 +16,58 @@
       <text class="section-title">基本信息</text>
     </view>
     
-    <view class="form-card">
+    <t-cell-group theme="card" class="form-card-group">
       <!-- 收购日期 -->
-      <view class="form-item" bindtap="showDatePicker">
-        <text class="form-label required">收购日期</text>
-        <view class="form-value-row">
-          <text class="form-value">{{form.date || '选择日期'}}</text>
-          <t-icon name="calendar" size="40rpx" color="#9ca3af" />
-        </view>
-      </view>
+      <t-cell
+        title="收购日期"
+        arrow
+        hover
+        note="{{form.date || '选择日期'}}"
+        required
+        bind:click="showDatePicker"
+      />
       
-      <view class="form-divider"></view>
-      
-      <!-- 仓库选择 -->
-      <view class="form-item" bindtap="showWarehouseSelect">
-        <text class="form-label required">仓库</text>
-        <view class="form-value-row">
-          <text class="form-value {{selectedWarehouse ? '' : 'form-placeholder'}}">
-            {{selectedWarehouse.name || '选择仓库'}}
-          </text>
-          <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
-        </view>
-      </view>
-      
-      <view class="form-divider"></view>
+      <!-- 仓库显示（自动获取，不可选择）-->
+      <t-cell
+        title="仓库"
+        note="{{warehouseInfo.name || '未绑定仓库'}}"
+        required
+      />
       
       <!-- 农户选择 -->
-      <view class="form-item" bindtap="showFarmerSelect">
-        <text class="form-label required">农户姓名</text>
-        <view class="form-value-row">
-          <text class="form-value {{selectedFarmer ? '' : 'form-placeholder'}}">
-            {{selectedFarmer.name || '选择农户'}}
-          </text>
-          <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
-        </view>
-      </view>
+      <t-cell
+        title="农户"
+        arrow
+        hover
+        note="{{selectedFarmer.name || '点击搜索农户'}}"
+        required
+        bind:click="showFarmerSearch"
+      />
       
-      <view class="form-divider" wx:if="{{selectedFarmer.id}}"></view>
+      <!-- 搜索到的农户信息 -->
+      <t-cell
+        wx:if="{{selectedFarmer.id}}"
+        title="已选农户"
+        description="编号：{{selectedFarmer.farmerId}} | {{selectedFarmer.addressText}}"
+      >
+        <view slot="note" class="farmer-info-slot">
+          <text class="farmer-phone">{{selectedFarmer.phone}}</text>
+          <view class="grade-badge grade-{{selectedFarmer.grade}}">{{selectedFarmer.gradeText}}</view>
+        </view>
+      </t-cell>
       
       <!-- 预估收购重量 -->
-      <view class="form-item" wx:if="{{selectedFarmer.id}}">
-        <text class="form-label">预估收购重量</text>
-        <view class="estimated-weight-display">
+      <t-cell
+        wx:if="{{selectedFarmer.id}}"
+        title="预估收购重量"
+      >
+        <view slot="note" class="estimated-weight-display">
           <text class="estimated-value">{{estimatedWeight}}</text>
           <text class="estimated-unit">KG</text>
-          <text class="estimated-note">（基于种植面积 {{selectedFarmer.acreage || 0}} 亩）</text>
         </view>
-      </view>
-    </view>
+        <text slot="description" class="estimated-note">基于种植面积 {{selectedFarmer.acreage || 0}} 亩</text>
+      </t-cell>
+    </t-cell-group>
   </view>
 
   <!-- 称重信息 -->
@@ -73,74 +78,66 @@
     </view>
     
     <view class="form-card">
-      <!-- 手重（毛重）-->
-      <view class="form-item">
-        <text class="form-label required">手重（毛重 KG）</text>
-        <view class="input-with-unit">
-          <input 
-            class="form-input weight-input"
-            type="digit"
-            placeholder="输入毛重"
-            value="{{form.grossWeight}}"
-            bindinput="onGrossWeightInput"
-          />
-          <text class="input-unit">KG</text>
-        </view>
-      </view>
-      
-      <view class="form-divider"></view>
-      
-      <!-- 皮重（容器重量）-->
-      <view class="form-item">
-        <text class="form-label required">皮重（容器 KG）</text>
-        <view class="input-with-unit">
-          <input 
-            class="form-input weight-input"
-            type="digit"
-            placeholder="输入皮重"
-            value="{{form.tareWeight}}"
-            bindinput="onTareWeightInput"
-          />
-          <text class="input-unit">KG</text>
-        </view>
-      </view>
-      
-      <view class="form-divider"></view>
-      
-      <!-- 水杂率 -->
-      <view class="form-item">
-        <text class="form-label required">水杂率</text>
-        <view class="input-with-unit">
+      <!-- 毛重 -->
+      <view class="form-row">
+        <text class="form-label required">毛重</text>
+        <view class="form-input-wrap">
           <input 
             class="form-input"
             type="digit"
-            placeholder="输入水杂率"
+            placeholder="请输入"
+            value="{{form.grossWeight}}"
+            bindinput="onGrossWeightInput"
+          />
+          <text class="form-unit">KG</text>
+        </view>
+      </view>
+      
+      <!-- 皮重 -->
+      <view class="form-row">
+        <text class="form-label required">皮重</text>
+        <view class="form-input-wrap">
+          <input 
+            class="form-input"
+            type="digit"
+            placeholder="请输入"
+            value="{{form.tareWeight}}"
+            bindinput="onTareWeightInput"
+          />
+          <text class="form-unit">KG</text>
+        </view>
+      </view>
+      
+      <!-- 水杂率 -->
+      <view class="form-row">
+        <text class="form-label required">水杂率</text>
+        <view class="form-input-wrap">
+          <input 
+            class="form-input"
+            type="digit"
+            placeholder="请输入"
             value="{{form.moistureRate}}"
             bindinput="onMoistureRateInput"
           />
-          <text class="input-unit">%</text>
+          <text class="form-unit">%</text>
         </view>
       </view>
       
-      <view class="form-divider"></view>
-      
-      <!-- 水杂（自动计算）-->
-      <view class="form-item">
-        <text class="form-label">水杂（自动计算）</text>
-        <view class="readonly-value-row">
-          <text class="readonly-value">{{moistureWeight}}</text>
-          <text class="readonly-unit">KG</text>
+      <!-- 水杂 -->
+      <view class="form-row">
+        <text class="form-label">水杂</text>
+        <view class="form-value-wrap">
+          <text class="form-value">{{moistureWeight}}</text>
+          <text class="form-unit">KG</text>
         </view>
       </view>
       
-      <view class="form-divider"></view>
-      
-      <!-- 净重（自动计算）-->
-      <view class="form-item">
-        <text class="form-label">净重（自动计算）</text>
-        <view class="readonly-value-row">
-          <text class="readonly-value readonly-highlight">{{netWeight}}</text>
-          <text class="readonly-unit">KG</text>
+      <!-- 净重 -->
+      <view class="form-row">
+        <text class="form-label">净重</text>
+        <view class="form-value-wrap">
+          <text class="form-value highlight-blue">{{netWeight}}</text>
+          <text class="form-unit">KG</text>
         </view>
       </view>
     </view>
@@ -155,33 +152,32 @@
     
     <view class="form-card">
       <!-- 单价 -->
-      <view class="form-item">
-        <text class="form-label required">单价（元/KG）</text>
-        <view class="input-with-unit">
-          <text class="input-prefix">¥</text>
+      <view class="form-row">
+        <text class="form-label required">单价</text>
+        <view class="form-input-wrap">
           <input 
-            class="form-input price-input"
+            class="form-input"
             type="digit"
-            placeholder="输入单价"
+            placeholder="请输入"
             value="{{form.unitPrice}}"
             bindinput="onUnitPriceInput"
           />
-          <text class="input-unit">元/KG</text>
+          <text class="form-unit">元/KG</text>
         </view>
       </view>
       
-      <view class="form-divider"></view>
-      
-      <!-- 金额（自动计算）-->
-      <view class="form-item">
-        <text class="form-label">金额（自动计算）</text>
-        <view class="amount-display">
-          <text class="amount-value">{{totalAmountWan}}</text>
-          <text class="amount-unit">万元</text>
-          <view class="amount-formula" wx:if="{{netWeight && form.unitPrice}}">
-            <text>{{netWeight}} KG × {{form.unitPrice}} 元 = ¥{{totalAmount}}</text>
-          </view>
+      <!-- 金额 -->
+      <view class="form-row">
+        <text class="form-label">金额</text>
+        <view class="form-value-wrap">
+          <text class="form-value highlight-green">{{totalAmountWan}}</text>
+          <text class="form-unit">万元</text>
         </view>
+      </view>
+      
+      <!-- 计算公式 -->
+      <view class="formula-row" wx:if="{{netWeight && form.unitPrice}}">
+        <text class="formula-text">{{netWeight}} KG × {{form.unitPrice}} 元 = ¥{{totalAmount}}</text>
       </view>
     </view>
   </view>
@@ -194,91 +190,54 @@
     </view>
     
     <view class="form-card">
-      <view class="form-item form-item-textarea">
-        <text class="form-label">备注</text>
-        <textarea 
-          class="form-textarea"
-          placeholder="请输入备注信息（选填）"
-          value="{{form.remark}}"
-          bindinput="onRemarkInput"
-          maxlength="200"
-          show-confirm-bar="{{false}}"
-        />
-        <view class="textarea-counter">{{form.remark.length}}/200</view>
-      </view>
+      <t-textarea
+        placeholder="请输入备注信息（选填）"
+        value="{{form.remark}}"
+        maxlength="200"
+        indicator
+        autosize
+        bind:change="onRemarkInput"
+      />
     </view>
   </view>
 
   <!-- 提示信息 -->
   <view class="tips">
     <view class="tip-item">
-      <t-icon name="info-circle-filled" size="28rpx" color="#f97316" />
+      <text class="tip-dot">•</text>
       <text>预估收购重量 = 种植面积 × 300 KG/亩</text>
     </view>
     <view class="tip-item">
-      <t-icon name="info-circle-filled" size="28rpx" color="#f97316" />
-      <text>净重 = 手重 - 皮重 - 水杂</text>
+      <text class="tip-dot">•</text>
+      <text>净重 = 毛重 - 皮重 - 水杂</text>
     </view>
     <view class="tip-item">
-      <t-icon name="info-circle-filled" size="28rpx" color="#f97316" />
-      <text>水杂 = (手重 - 皮重) × 水杂率</text>
-    </view>
-    <view class="tip-item">
-      <t-icon name="info-circle-filled" size="28rpx" color="#f97316" />
-      <text>金额 = 净重 × 单价 ÷ 10000（万元）</text>
+      <text class="tip-dot">•</text>
+      <text>水杂 = (毛重 - 皮重) × 水杂率</text>
     </view>
   </view>
 
   <!-- 底部按钮 -->
   <view class="bottom-actions">
-    <button class="btn btn-cancel" bindtap="onCancel">取消</button>
-    <button 
-      class="btn btn-submit btn-orange {{!canSubmit ? 'btn-disabled' : ''}}" 
-      bindtap="onSubmit"
+    <t-button 
+      theme="light" 
+      size="large" 
+      block 
+      bind:tap="onCancel"
+    >取消</t-button>
+    <t-button 
+      theme="primary" 
+      size="large" 
+      block 
       loading="{{submitting}}"
       disabled="{{!canSubmit}}"
-    >确认收购</button>
+      bind:tap="onSubmit"
+      style="--td-button-primary-bg-color: #f97316; --td-button-primary-border-color: #f97316;"
+    >确认收购</t-button>
   </view>
 </view>
 
-<!-- 仓库选择弹窗 -->
-<t-popup 
-  visible="{{showWarehousePopup}}" 
-  placement="bottom"
-  bind:visible-change="onWarehousePopupChange"
->
-  <view class="popup-container">
-    <view class="popup-header">
-      <text class="popup-title">选择仓库</text>
-      <view class="popup-close" bindtap="closeWarehousePopup">
-        <t-icon name="close" size="44rpx" color="#6b7280" />
-      </view>
-    </view>
-    
-    <scroll-view class="popup-list" scroll-y>
-      <view 
-        wx:for="{{warehouses}}" 
-        wx:key="id"
-        class="popup-item {{selectedWarehouse.id === item.id ? 'selected' : ''}}"
-        data-warehouse="{{item}}"
-        bindtap="onSelectWarehouse"
-      >
-        <view class="popup-item-left">
-          <text class="popup-item-name">{{item.name}}</text>
-          <text class="popup-item-sub">编号：{{item.code}} | {{item.location}}</text>
-        </view>
-        <t-icon 
-          wx:if="{{selectedWarehouse.id === item.id}}" 
-          name="check-circle-filled" 
-          size="44rpx" 
-          color="#f97316" 
-        />
-      </view>
-    </scroll-view>
-  </view>
-</t-popup>
-
-<!-- 农户选择弹窗 -->
+<!-- 农户搜索弹窗 -->
 <t-popup 
   visible="{{showFarmerPopup}}" 
   placement="bottom"
@@ -286,57 +245,65 @@
 >
   <view class="popup-container">
     <view class="popup-header">
-      <text class="popup-title">选择农户</text>
+      <text class="popup-title">搜索农户</text>
       <view class="popup-close" bindtap="closeFarmerPopup">
         <t-icon name="close" size="44rpx" color="#6b7280" />
       </view>
     </view>
     
-    <!-- 搜索栏 -->
-    <view class="popup-search">
-      <view class="search-input-wrap">
-        <t-icon name="search" size="36rpx" color="#9ca3af" />
-        <input 
-          class="search-input"
-          placeholder="搜索姓名或手机号"
-          value="{{searchValue}}"
-          bindinput="onSearchFarmer"
+    <!-- 搜索输入区域 -->
+    <view class="search-section">
+      <view class="search-row">
+        <t-input
+          placeholder="请输入农户手机号"
+          type="number"
+          maxlength="11"
+          value="{{searchPhone}}"
+          clearable
+          bind:change="onSearchPhoneChange"
+          style="flex: 1;"
         />
-        <view class="search-clear" wx:if="{{searchValue}}" bindtap="clearSearch">
-          <t-icon name="close-circle-filled" size="32rpx" color="#d1d5db" />
+        <t-button 
+          theme="primary" 
+          size="medium"
+          bind:tap="searchFarmer"
+          loading="{{searching}}"
+          disabled="{{searchPhone.length !== 11}}"
+          style="--td-button-primary-bg-color: #f97316; --td-button-primary-border-color: #f97316; margin-left: 20rpx;"
+        >搜索</t-button>
+      </view>
+      <text class="search-hint">请输入农户的11位手机号码进行搜索</text>
+    </view>
+    
+    <!-- 搜索结果 -->
+    <view class="search-result" wx:if="{{searchResult.id}}">
+      <view class="result-header">搜索结果</view>
+      <view class="result-card">
+        <view class="result-info" bindtap="confirmSelectFarmer">
+          <view class="result-name-row">
+            <text class="result-name">{{searchResult.name}}</text>
+            <view class="grade-badge grade-{{searchResult.grade}}">{{searchResult.gradeText}}</view>
+          </view>
+          <text class="result-id">编号：{{searchResult.farmerId}}</text>
+          <text class="result-phone">{{searchResult.phone}}</text>
+          <text class="result-address">{{searchResult.addressText}}</text>
+          <text class="result-acreage">种植面积：{{searchResult.acreage}} 亩</text>
+        </view>
+        <view class="result-action">
+          <t-button 
+            theme="primary" 
+            size="small"
+            catchtap="confirmSelectFarmer"
+            style="--td-button-primary-bg-color: #059669; --td-button-primary-border-color: #059669;"
+          >选择</t-button>
         </view>
       </view>
     </view>
     
-    <scroll-view class="popup-list" scroll-y>
-      <view 
-        wx:for="{{filteredFarmers}}" 
-        wx:key="id"
-        class="popup-item {{selectedFarmer.id === item.id ? 'selected' : ''}}"
-        data-farmer="{{item}}"
-        bindtap="onSelectFarmer"
-      >
-        <view class="popup-item-left">
-          <view class="popup-item-name-row">
-            <text class="popup-item-name">{{item.name}}</text>
-            <view class="grade-badge grade-{{item.grade}}">{{item.gradeText}}</view>
-          </view>
-          <text class="popup-item-sub">{{item.phone}} | {{item.addressText}}</text>
-        </view>
-        <t-icon 
-          wx:if="{{selectedFarmer.id === item.id}}" 
-          name="check-circle-filled" 
-          size="44rpx" 
-          color="#f97316" 
-        />
-      </view>
-      
-      <!-- 空状态 -->
-      <view class="empty-state" wx:if="{{filteredFarmers.length === 0}}">
-        <t-icon name="search" size="80rpx" color="#d1d5db" />
-        <text>未找到匹配的农户</text>
-      </view>
-    </scroll-view>
+    <!-- 未搜索或无结果提示 -->
+    <view class="search-empty" wx:if="{{!searchResult.id && searchedOnce}}">
+      <text class="empty-text">未找到该手机号对应的农户</text>
+    </view>
   </view>
 </t-popup>
 

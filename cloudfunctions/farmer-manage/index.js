@@ -593,6 +593,9 @@ exports.main = async (event, context) => {
     case 'getBusinessRecords':
       return await getBusinessRecords(event);
 
+    case 'searchByPhone':
+      return await searchFarmerByPhone(event);
+
     default:
       return {
         success: false,
@@ -645,6 +648,71 @@ async function getBusinessRecords(event) {
     return {
       success: false,
       message: error.message || '获取业务记录失败'
+    };
+  }
+}
+
+/**
+ * 通过手机号搜索农户
+ */
+async function searchFarmerByPhone(event) {
+  const { phone } = event;
+
+  if (!phone) {
+    return {
+      success: false,
+      message: '请输入手机号'
+    };
+  }
+
+  // 验证手机号格式
+  if (!/^1[3-9]\d{9}$/.test(phone)) {
+    return {
+      success: false,
+      message: '请输入正确的手机号'
+    };
+  }
+
+  try {
+    const result = await db.collection('farmers')
+      .where({
+        phone: phone,
+        isDeleted: false
+      })
+      .get();
+
+    if (result.data.length === 0) {
+      return {
+        success: false,
+        message: '未找到该手机号对应的农户'
+      };
+    }
+
+    const farmer = result.data[0];
+
+    return {
+      success: true,
+      data: {
+        _id: farmer._id,
+        farmerId: farmer.farmerId,
+        name: farmer.name,
+        phone: farmer.phone,
+        grade: farmer.grade || 'C',
+        acreage: farmer.acreage || 0,
+        county: farmer.address?.county || farmer.county || '',
+        township: farmer.address?.township || farmer.township || '',
+        village: farmer.address?.village || farmer.village || '',
+        addressText: farmer.addressText || `${farmer.address?.county || ''}${farmer.address?.township || ''}${farmer.address?.village || ''}`,
+        deposit: farmer.deposit || 0,
+        status: farmer.status
+      }
+    };
+
+  } catch (error) {
+    console.error('搜索农户失败:', error);
+    return {
+      success: false,
+      message: error.message || '搜索农户失败'
     };
   }
 }

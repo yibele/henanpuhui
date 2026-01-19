@@ -3,110 +3,113 @@
  * @description 登记收购信息：日期、仓库、农户、称重、金额、备注
  */
 
-import { MOCK_FARMERS, MOCK_WAREHOUSES } from '../../../models/mock-data';
-import type { Farmer, Warehouse } from '../../../models/types';
-
 // 农户评级文本映射
 const GRADE_TEXT_MAP: Record<string, string> = {
   A: 'A级',
   B: 'B级',
-  C: 'C级'
+  C: 'C级',
+  gold: '金牌',
+  silver: '银牌',
+  bronze: '铜牌'
 };
+
+// 获取应用实例
+const app = getApp();
 
 Page({
   data: {
-    // 仓库数据
-    warehouses: [] as Warehouse[],
-    selectedWarehouse: {} as Warehouse,
-    showWarehousePopup: false,
-    
-    // 农户数据
-    farmers: [] as Farmer[],
-    filteredFarmers: [] as Farmer[],
-    selectedFarmer: {} as Farmer,
+    // 仓库信息（从登录用户获取）
+    warehouseInfo: {
+      id: '',
+      name: '',
+      code: ''
+    },
+
+    // 农户搜索弹窗
     showFarmerPopup: false,
-    searchValue: '',
-    
+    searchPhone: '',
+    searching: false,
+    searchedOnce: false,
+    searchResult: {} as any,
+    selectedFarmer: {} as any,
+
     // 表单数据
     form: {
       date: '',           // 收购日期
-      grossWeight: '',    // 手重（毛重）KG
-      tareWeight: '',     // 皮重（容器重量）KG
+      grossWeight: '',    // 毛重 KG
+      tareWeight: '',     // 皮重 KG
       moistureRate: '',   // 水杂率 %
       unitPrice: '',      // 单价 元/KG
       remark: ''          // 备注
     },
-    
+
+    // 计算值
+    moistureWeight: '0.00',
+    netWeight: '0.00',
+    totalAmount: '0.00',
+    totalAmountWan: '0.0000',
+
     // 预估收购重量
     estimatedWeight: '0.00',
-    
+
     // 日期选择
     showDatePicker: false,
     datePickerValue: 0,
-    
+
     // 提交状态
     submitting: false,
     canSubmit: false
   },
 
   onLoad() {
-    // 加载仓库列表
-    this.setData({ warehouses: MOCK_WAREHOUSES });
-    
-    // 加载农户列表（只显示已签约的）
-    const farmers = MOCK_FARMERS.filter(f => f.status === 'active').map(f => ({
-      ...f,
-      gradeText: GRADE_TEXT_MAP[f.grade] || f.grade,
-      addressText: `${f.county}${f.township}${f.village}`
-    }));
-    this.setData({ farmers, filteredFarmers: farmers });
-    
+    // 从全局数据获取仓库管理员的仓库信息
+    this.loadWarehouseInfo();
+
     // 设置默认日期为今天
     const today = this.formatDate(new Date());
-    this.setData({ 
+    this.setData({
       'form.date': today,
       datePickerValue: Date.now()
     });
   },
 
-  // ==================== 仓库选择 ====================
-  
-  showWarehouseSelect() {
-    this.setData({ showWarehousePopup: true });
-  },
+  /**
+   * 加载仓库管理员的仓库信息
+   */
+  loadWarehouseInfo() {
+    const globalData = (app.globalData as any) || {};
+    const currentUser = globalData.currentUser || {};
 
-  closeWarehousePopup() {
-    this.setData({ showWarehousePopup: false });
-  },
-
-  onWarehousePopupChange(e: WechatMiniprogram.CustomEvent) {
-    if (!e.detail.visible) {
-      this.closeWarehousePopup();
+    // 仓库管理员的仓库信息保存在 currentUser 中
+    if (currentUser.warehouseId && currentUser.warehouseName) {
+      this.setData({
+        warehouseInfo: {
+          id: currentUser.warehouseId,
+          name: currentUser.warehouseName,
+          code: currentUser.warehouseCode || ''
+        }
+      });
+    } else {
+      wx.showToast({
+        title: '未绑定仓库',
+        icon: 'none'
+      });
     }
   },
 
-  onSelectWarehouse(e: WechatMiniprogram.TouchEvent) {
-    const warehouse = e.currentTarget.dataset.warehouse as Warehouse;
-    this.setData({ 
-      selectedWarehouse: warehouse,
-      showWarehousePopup: false
-    }, () => {
-      this.checkCanSubmit();
-    });
-  },
+  // ==================== 农户搜索弹窗 ====================
 
-  // ==================== 农户选择 ====================
-  
-  showFarmerSelect() {
-    this.setData({ showFarmerPopup: true });
+  showFarmerSearch() {
+    this.setData({
+      showFarmerPopup: true,
+      searchPhone: '',
+      searchResult: {},
+      searchedOnce: false
+    });
   },
 
   closeFarmerPopup() {
-    this.setData({ 
-      showFarmerPopup: false,
-      searchValue: '',
-      filteredFarmers: this.data.farmers
-    });
+    this.setData({ showFarmerPopup: false });
   },
 
   onFarmerPopupChange(e: WechatMiniprogram.CustomEvent) {
@@ -115,46 +118,116 @@ Page({
     }
   },
 
-  onSearchFarmer(e: WechatMiniprogram.Input) {
-    const value = e.detail.value.trim();
-    this.setData({ searchValue: value });
-    
-    const filtered = value 
-      ? this.data.farmers.filter(f => 
-          f.name.includes(value) || f.phone.includes(value)
-        )
-      : this.data.farmers;
-    
-    this.setData({ filteredFarmers: filtered });
-  },
-
-  clearSearch() {
-    this.setData({ 
-      searchValue: '',
-      filteredFarmers: this.data.farmers
+  onSearchPhoneChange(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail.value || '').replace(/\D/g, '');
+    this.setData({
+      searchPhone: value.substring(0, 11),
+      searchResult: {},
+      searchedOnce: false
     });
   },
 
-  onSelectFarmer(e: WechatMiniprogram.TouchEvent) {
-    const farmer = e.currentTarget.dataset.farmer as Farmer;
-    
+  /**
+   * 搜索农户
+   */
+  async searchFarmer() {
+    const phone = this.data.searchPhone;
+    if (phone.length !== 11) {
+      wx.showToast({
+        title: '请输入11位手机号',
+        icon: 'none'
+      });
+      return;
+    }
+
+    this.setData({ searching: true, searchedOnce: true });
+
+    try {
+      // 调用云函数搜索农户
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'searchByPhone',
+          phone: phone
+        }
+      });
+
+      const result = res.result as any;
+
+      if (result.success && result.data) {
+        const farmer = result.data;
+
+        // 处理农户数据
+        const processedFarmer = {
+          id: farmer._id,
+          name: farmer.name,
+          phone: farmer.phone,
+          grade: farmer.grade || 'C',
+          gradeText: GRADE_TEXT_MAP[farmer.grade] || farmer.grade || 'C级',
+          acreage: farmer.acreage || 0,
+          addressText: `${farmer.county || ''}${farmer.township || ''}${farmer.village || ''}`
+        };
+
+        this.setData({
+          searchResult: processedFarmer,
+          searching: false
+        });
+
+      } else {
+        this.setData({
+          searchResult: {},
+          searching: false
+        });
+
+        wx.showToast({
+          title: result.message || '未找到该农户',
+          icon: 'none'
+        });
+      }
+
+    } catch (error: any) {
+      console.error('搜索农户失败:', error);
+      this.setData({
+        searchResult: {},
+        searching: false
+      });
+
+      wx.showToast({
+        title: '搜索失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
+   * 确认选择农户
+   */
+  confirmSelectFarmer() {
+    const farmer = this.data.searchResult;
+    if (!farmer.id) return;
+
     // 计算预估收购重量：种植面积 × 300 KG/亩
-    const acreage = farmer.acreage || 0;
-    const estimated = acreage * 300;
-    
-    this.setData({ 
+    const estimated = (farmer.acreage || 0) * 300;
+
+    this.setData({
       selectedFarmer: farmer,
       estimatedWeight: estimated.toFixed(2),
       showFarmerPopup: false,
-      searchValue: '',
-      filteredFarmers: this.data.farmers
-    }, () => {
-      this.checkCanSubmit();
+      searchPhone: '',
+      searchResult: {},
+      searchedOnce: false
+    });
+
+    this.checkCanSubmit();
+
+    wx.showToast({
+      title: '已选择农户',
+      icon: 'success'
     });
   },
 
   // ==================== 日期选择 ====================
-  
+
   showDatePicker() {
     this.setData({ showDatePicker: true });
   },
@@ -162,7 +235,7 @@ Page({
   onDateConfirm(e: WechatMiniprogram.CustomEvent) {
     const timestamp = e.detail.value;
     const date = this.formatDate(new Date(timestamp));
-    this.setData({ 
+    this.setData({
       'form.date': date,
       datePickerValue: timestamp,
       showDatePicker: false
@@ -181,11 +254,9 @@ Page({
   },
 
   // ==================== 表单输入 ====================
-  
-  // 手重（毛重）输入
-  onGrossWeightInput(e: WechatMiniprogram.Input) {
-    const value = e.detail.value;
-    // 允许输入小数，最多保留2位
+
+  onGrossWeightInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail.value || '');
     const formattedValue = this.formatDecimal(value, 2);
     this.setData({ 'form.grossWeight': formattedValue }, () => {
       this.calculateWeights();
@@ -193,9 +264,8 @@ Page({
     });
   },
 
-  // 皮重（容器重量）输入
-  onTareWeightInput(e: WechatMiniprogram.Input) {
-    const value = e.detail.value;
+  onTareWeightInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail.value || '');
     const formattedValue = this.formatDecimal(value, 2);
     this.setData({ 'form.tareWeight': formattedValue }, () => {
       this.calculateWeights();
@@ -203,10 +273,8 @@ Page({
     });
   },
 
-  // 水杂率输入
-  onMoistureRateInput(e: WechatMiniprogram.Input) {
-    const value = e.detail.value;
-    // 水杂率最多保留1位小数，最大100
+  onMoistureRateInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail.value || '');
     let numValue = parseFloat(value);
     if (isNaN(numValue)) {
       this.setData({ 'form.moistureRate': '' }, () => {
@@ -223,9 +291,8 @@ Page({
     });
   },
 
-  // 单价输入
-  onUnitPriceInput(e: WechatMiniprogram.Input) {
-    const value = e.detail.value;
+  onUnitPriceInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail.value || '');
     const formattedValue = this.formatDecimal(value, 2);
     this.setData({ 'form.unitPrice': formattedValue }, () => {
       this.calculateAmount();
@@ -233,30 +300,24 @@ Page({
     });
   },
 
-  // 备注输入
-  onRemarkInput(e: WechatMiniprogram.Input) {
-    const value = e.detail.value;
+  onRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    const value = String(e.detail.value || '');
     this.setData({ 'form.remark': value });
   },
 
   // ==================== 计算逻辑 ====================
-  
-  // 计算水杂和净重
+
   calculateWeights() {
     const { grossWeight, tareWeight, moistureRate } = this.data.form;
-    
+
     const gross = parseFloat(grossWeight) || 0;
     const tare = parseFloat(tareWeight) || 0;
     const rate = parseFloat(moistureRate) || 0;
-    
-    // 水杂 = (手重 - 皮重) × 水杂率
+
     const netBeforeMoisture = gross - tare;
     const moisture = netBeforeMoisture * (rate / 100);
-    
-    // 净重 = 手重 - 皮重 - 水杂
     const net = gross - tare - moisture;
-    
-    // 更新页面数据
+
     this.setData({
       moistureWeight: moisture > 0 ? moisture.toFixed(2) : '0.00',
       netWeight: net > 0 ? net.toFixed(2) : '0.00'
@@ -265,14 +326,12 @@ Page({
     });
   },
 
-  // 计算金额
   calculateAmount() {
-    const netWeight = parseFloat((this.data as any).netWeight) || 0;
+    const netWeight = parseFloat(this.data.netWeight) || 0;
     const unitPrice = parseFloat(this.data.form.unitPrice) || 0;
     const amount = netWeight * unitPrice;
-    // 转换为万元，保留4位小数
     const amountInWan = amount / 10000;
-    
+
     this.setData({
       totalAmount: amount > 0 ? amount.toFixed(2) : '0.00',
       totalAmountWan: amountInWan > 0 ? amountInWan.toFixed(4) : '0.0000'
@@ -280,18 +339,14 @@ Page({
   },
 
   // ==================== 辅助函数 ====================
-  
-  // 格式化小数
+
   formatDecimal(value: string, decimals: number): string {
     if (!value) return '';
-    // 移除非数字和小数点的字符
     let cleaned = value.replace(/[^\d.]/g, '');
-    // 只保留第一个小数点
     const parts = cleaned.split('.');
     if (parts.length > 2) {
       cleaned = parts[0] + '.' + parts.slice(1).join('');
     }
-    // 限制小数位数
     if (parts.length === 2 && parts[1].length > decimals) {
       cleaned = parts[0] + '.' + parts[1].substring(0, decimals);
     }
@@ -299,14 +354,14 @@ Page({
   },
 
   // ==================== 表单验证和提交 ====================
-  
+
   checkCanSubmit() {
-    const { selectedWarehouse, selectedFarmer, form } = this.data;
-    const netWeight = parseFloat((this.data as any).netWeight) || 0;
-    
+    const { warehouseInfo, selectedFarmer, form, netWeight } = this.data;
+    const netWeightNum = parseFloat(netWeight) || 0;
+
     const canSubmit = !!(
       form.date &&
-      selectedWarehouse.id &&
+      warehouseInfo.id &&
       selectedFarmer.id &&
       form.grossWeight &&
       parseFloat(form.grossWeight) > 0 &&
@@ -314,55 +369,49 @@ Page({
       parseFloat(form.tareWeight) >= 0 &&
       form.moistureRate &&
       parseFloat(form.moistureRate) >= 0 &&
-      netWeight > 0 &&
+      netWeightNum > 0 &&
       form.unitPrice &&
       parseFloat(form.unitPrice) > 0
     );
-    
+
     this.setData({ canSubmit });
   },
 
   async onSubmit() {
     if (!this.data.canSubmit) return;
-    
-    const { selectedWarehouse, selectedFarmer, form } = this.data;
-    const netWeight = parseFloat((this.data as any).netWeight) || 0;
-    const totalAmount = parseFloat((this.data as any).totalAmount) || 0;
-    const moistureWeight = parseFloat((this.data as any).moistureWeight) || 0;
-    const estimatedWeight = parseFloat(this.data.estimatedWeight) || 0;
-    
-    // 构建收购数据
+
+    const { warehouseInfo, selectedFarmer, form, netWeight, totalAmount, moistureWeight, estimatedWeight } = this.data;
+
     const acquisitionData = {
       date: form.date,
-      warehouseId: selectedWarehouse.id,
+      warehouseId: warehouseInfo.id,
+      warehouseName: warehouseInfo.name,
       farmerId: selectedFarmer.id,
+      farmerName: selectedFarmer.name,
+      farmerPhone: selectedFarmer.phone,
       farmerAcreage: selectedFarmer.acreage,
-      estimatedWeight: estimatedWeight,
+      estimatedWeight: parseFloat(estimatedWeight),
       grossWeight: parseFloat(form.grossWeight),
       tareWeight: parseFloat(form.tareWeight),
       moistureRate: parseFloat(form.moistureRate),
-      moistureWeight: moistureWeight,
-      weight: netWeight,  // 实际净重
+      moistureWeight: parseFloat(moistureWeight),
+      weight: parseFloat(netWeight),
       unitPrice: parseFloat(form.unitPrice),
-      totalAmount: totalAmount,
-      productType: form.productType || '辣椒',
+      totalAmount: parseFloat(totalAmount),
       remark: form.remark || ''
     };
-    
+
     console.log('收购数据：', acquisitionData);
-    
+
     try {
-      // 显示提交中状态
       this.setData({ submitting: true });
-      
-      // 获取当前用户ID
-      const app = getApp<IAppOption>();
-      const currentUser = app.globalData.currentUser;
-      if (!currentUser || !currentUser.id) {
+
+      const globalData = (app.globalData as any) || {};
+      const currentUser = globalData.currentUser || {};
+      if (!currentUser.id) {
         throw new Error('用户信息不存在，请重新登录');
       }
-      
-      // 调用云函数创建收购记录
+
       const res = await wx.cloud.callFunction({
         name: 'acquisition-manage',
         data: {
@@ -371,27 +420,27 @@ Page({
           data: acquisitionData
         }
       });
-      
+
       if (!res.result || !(res.result as any).success) {
         throw new Error((res.result as any)?.message || '收购登记失败');
       }
-      
+
       this.setData({ submitting: false });
-      
+
       wx.showToast({
         title: '收购登记成功',
         icon: 'success',
         duration: 2000
       });
-      
+
       setTimeout(() => {
         wx.navigateBack();
       }, 2000);
-      
+
     } catch (error: any) {
       console.error('收购登记失败:', error);
       this.setData({ submitting: false });
-      
+
       wx.showModal({
         title: '收购登记失败',
         content: error.message || '请稍后重试',

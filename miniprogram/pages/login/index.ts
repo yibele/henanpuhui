@@ -96,7 +96,10 @@ Page({
           phone: userData.phone,
           role: userData.role,
           avatar: userData.avatar,
-          nickName: userData.nickName
+          nickName: userData.nickName,
+          warehouseId: userData.warehouseId || '',
+          warehouseName: userData.warehouseName || '',
+          warehouseCode: userData.warehouseInfo?.code || ''
         };
 
         // 保存用户信息到全局
