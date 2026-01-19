@@ -61,7 +61,7 @@
         <view class="grade-line-mark grade-mark-{{item.grade}}"></view>
         
         <view class="farmer-card-body">
-          <!-- 主要信息：姓名 + 面积 -->
+          <!-- 主要信息：姓名 + 面积/苗数 -->
           <view class="card-main">
             <view class="farmer-left">
               <view class="name-row">
@@ -71,8 +71,15 @@
               <text class="farmer-address">{{item.addressText || item.address.village || '未填写地址'}}</text>
             </view>
             <view class="farmer-right">
-              <text class="acreage-value">{{item.acreage}}</text>
-              <text class="acreage-unit">亩</text>
+              <view class="metric-box">
+                <text class="metric-value">{{item.acreage}}</text>
+                <text class="metric-unit">亩</text>
+              </view>
+              <view class="metric-divider"></view>
+              <view class="metric-box">
+                <text class="metric-value seed">{{item.seedTotal}}</text>
+                <text class="metric-unit">万株</text>
+              </view>
             </view>
           </view>
           

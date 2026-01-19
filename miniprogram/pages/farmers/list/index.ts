@@ -101,6 +101,7 @@ Page({
           grade: f.grade || 'bronze',
           gradeText: GRADE_TEXT_MAP[f.grade] || '铜牌',
           acreage: f.acreage || 0,
+          seedTotal: f.seedTotal || 0,  // 种苗合计（万株）
           deposit: f.deposit || 0,
           address: f.address || {},
           addressText: f.addressText || '',

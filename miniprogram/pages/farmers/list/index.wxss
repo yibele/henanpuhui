@@ -198,24 +198,40 @@
   text-overflow: ellipsis;
 }
 
-/* 右侧面积 */
+/* 右侧数据 */
 .farmer-right {
   display: flex;
-  align-items: baseline;
-  gap: 4rpx;
+  align-items: center;
+  gap: 12rpx;
   flex-shrink: 0;
   margin-left: 16rpx;
 }
 
-.acreage-value {
-  font-size: 40rpx;
+.metric-box {
+  display: flex;
+  align-items: baseline;
+  gap: 2rpx;
+}
+
+.metric-value {
+  font-size: 32rpx;
   font-weight: 700;
   color: #059669;
 }
 
-.acreage-unit {
-  font-size: 22rpx;
+.metric-value.seed {
+  color: #2563eb;
+}
+
+.metric-unit {
+  font-size: 20rpx;
   color: #6b7280;
+}
+
+.metric-divider {
+  width: 1rpx;
+  height: 28rpx;
+  background-color: #e5e7eb;
 }
 
 /* 次要信息行 */
