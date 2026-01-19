@@ -79,6 +79,112 @@ const TEST_USERS = [
   }
 ];
 
+// 测试农户（用于测试历史收购汇总）
+const TEST_FARMER = {
+  farmerId: 'F20260101_0001',
+  name: '刘大山',
+  phone: '15888888888',
+  idCard: '410123199001011234',
+  address: {
+    county: '虞城县',
+    township: '梁寨镇',
+    village: '刘庄村'
+  },
+  addressText: '虞城县梁寨镇刘庄村',
+  acreage: 50,
+  grade: 'A',
+  deposit: 5000,
+  firstManager: '张助理',
+  seedTotal: 50,
+  seedUnitPrice: 0.15,
+  receivableAmount: 7500,
+  seedDebt: 2500,
+  agriculturalDebt: 1000,
+  advancePayment: 500,
+  status: 'active',
+  isDeleted: false,
+  stats: {
+    totalAcquisitionCount: 3,
+    totalAcquisitionWeight: 4200,
+    totalAcquisitionAmount: 37800,
+    currentDebt: 2500
+  },
+  createBy: 'u001',
+  createByName: '张助理',
+  createTime: new Date('2026-01-10'),
+  updateTime: new Date()
+};
+
+// 测试收购记录（3笔，分布在不同仓库）
+const TEST_ACQUISITIONS = [
+  {
+    acquisitionId: 'ACQ_20260115_0001',
+    farmerId: 'F20260101_0001',
+    farmerName: '刘大山',
+    farmerPhone: '15888888888',
+    farmerAcreage: 50,
+    warehouseId: 'w001',
+    warehouseName: '梁寨',
+    grossWeight: 1600,
+    tareWeight: 100,
+    moistureRate: 3,
+    moistureWeight: 45,
+    netWeight: 1455,
+    unitPrice: 9,
+    totalAmount: 13095,
+    acquisitionDate: '2026-01-15',
+    status: 'confirmed',
+    createBy: '李仓管',
+    createById: 'u002',
+    createTime: new Date('2026-01-15 10:30:00'),
+    updateTime: new Date('2026-01-15 10:30:00')
+  },
+  {
+    acquisitionId: 'ACQ_20260116_0002',
+    farmerId: 'F20260101_0001',
+    farmerName: '刘大山',
+    farmerPhone: '15888888888',
+    farmerAcreage: 50,
+    warehouseId: 'w002',
+    warehouseName: '沙竹王',
+    grossWeight: 1800,
+    tareWeight: 100,
+    moistureRate: 2.5,
+    moistureWeight: 42.5,
+    netWeight: 1657.5,
+    unitPrice: 9,
+    totalAmount: 14917.5,
+    acquisitionDate: '2026-01-16',
+    status: 'confirmed',
+    createBy: '仓管员',
+    createById: 'u002',
+    createTime: new Date('2026-01-16 14:20:00'),
+    updateTime: new Date('2026-01-16 14:20:00')
+  },
+  {
+    acquisitionId: 'ACQ_20260118_0003',
+    farmerId: 'F20260101_0001',
+    farmerName: '刘大山',
+    farmerPhone: '15888888888',
+    farmerAcreage: 50,
+    warehouseId: 'w001',
+    warehouseName: '梁寨',
+    grossWeight: 1200,
+    tareWeight: 80,
+    moistureRate: 2,
+    moistureWeight: 22.4,
+    netWeight: 1097.6,
+    unitPrice: 9,
+    totalAmount: 9878.4,
+    acquisitionDate: '2026-01-18',
+    status: 'confirmed',
+    createBy: '李仓管',
+    createById: 'u002',
+    createTime: new Date('2026-01-18 09:15:00'),
+    updateTime: new Date('2026-01-18 09:15:00')
+  }
+];
+
 /**
  * 云函数入口
  */
@@ -164,6 +270,73 @@ exports.main = async (event, context) => {
   } catch (error) {
     console.error('❌ 测试用户初始化失败:', error);
     results.users = {
+      success: false,
+      error: error
+    };
+  }
+
+  // 3. 初始化测试农户
+  try {
+    console.log('开始初始化测试农户...');
+
+    const existRes = await db.collection('farmers').where({
+      phone: TEST_FARMER.phone
+    }).get();
+
+    if (existRes.data.length > 0) {
+      console.log(`⚠️  测试农户 ${TEST_FARMER.name} (${TEST_FARMER.phone}) 已存在，跳过`);
+    } else {
+      await db.collection('farmers').add({
+        data: TEST_FARMER
+      });
+      console.log(`✅ 测试农户 ${TEST_FARMER.name} (${TEST_FARMER.phone}) 初始化成功`);
+    }
+
+    results.farmer = {
+      success: true,
+      message: '测试农户初始化完成'
+    };
+
+  } catch (error) {
+    console.error('❌ 测试农户初始化失败:', error);
+    results.farmer = {
+      success: false,
+      error: error
+    };
+  }
+
+  // 4. 初始化测试收购记录
+  try {
+    console.log('开始初始化测试收购记录...');
+
+    for (const acq of TEST_ACQUISITIONS) {
+      try {
+        const existRes = await db.collection('acquisitions').where({
+          acquisitionId: acq.acquisitionId
+        }).get();
+
+        if (existRes.data.length > 0) {
+          console.log(`⚠️  收购记录 ${acq.acquisitionId} 已存在，跳过`);
+        } else {
+          await db.collection('acquisitions').add({
+            data: acq
+          });
+          console.log(`✅ 收购记录 ${acq.acquisitionId} 初始化成功`);
+        }
+      } catch (error) {
+        console.error(`❌ 收购记录 ${acq.acquisitionId} 初始化失败:`, error);
+      }
+    }
+
+    results.acquisitions = {
+      success: true,
+      message: '测试收购记录初始化完成'
+    };
+    console.log('测试收购记录初始化完成！');
+
+  } catch (error) {
+    console.error('❌ 测试收购记录初始化失败:', error);
+    results.acquisitions = {
       success: false,
       error: error
     };

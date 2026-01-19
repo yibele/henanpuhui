@@ -55,18 +55,6 @@
           <view class="grade-badge grade-{{selectedFarmer.grade}}">{{selectedFarmer.gradeText}}</view>
         </view>
       </t-cell>
-      
-      <!-- 预估收购重量 -->
-      <t-cell
-        wx:if="{{selectedFarmer.id}}"
-        title="预估收购重量"
-      >
-        <view slot="note" class="estimated-weight-display">
-          <text class="estimated-value">{{estimatedWeight}}</text>
-          <text class="estimated-unit">KG</text>
-        </view>
-        <text slot="description" class="estimated-note">基于种植面积 {{selectedFarmer.acreage || 0}} 亩</text>
-      </t-cell>
     </t-cell-group>
     
     <!-- 历史收购汇总 -->
@@ -79,11 +67,11 @@
       <view class="history-stats">
         <view class="stat-item">
           <text class="stat-value">{{farmerSummary.totalWeight}}</text>
-          <text class="stat-label">累计重量(KG)</text>
+          <text class="stat-label">已收购(KG)</text>
         </view>
         <view class="stat-item">
           <text class="stat-value highlight">{{farmerSummary.totalAmountWan}}</text>
-          <text class="stat-label">累计金额(万元)</text>
+          <text class="stat-label">累计金额(万)</text>
         </view>
       </view>
       
@@ -111,6 +99,15 @@
     </view>
     
     <view class="form-card">
+      <!-- 预估收购重量 -->
+      <view class="form-row" wx:if="{{selectedFarmer.id}}">
+        <text class="form-label">预估收购</text>
+        <view class="form-value-wrap">
+          <text class="form-value {{remainingWeight >= 0 ? 'highlight-purple' : 'warning'}}">{{remainingWeight}}</text>
+          <text class="form-unit">KG</text>
+        </view>
+      </view>
+      
       <!-- 毛重 -->
       <view class="form-row">
         <text class="form-label required">毛重</text>

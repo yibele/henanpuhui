@@ -67,7 +67,10 @@ Page({
       totalAmount: 0,
       totalAmountWan: 0,
       warehouseStats: [] as any[]
-    }
+    },
+
+    // 剩余预估重量
+    remainingWeight: '0.00'
   },
 
   onLoad() {
@@ -169,6 +172,7 @@ Page({
         // 处理农户数据
         const processedFarmer = {
           id: farmer._id,
+          farmerId: farmer.farmerId,  // 农户编号，用于查询收购记录
           name: farmer.name,
           phone: farmer.phone,
           grade: farmer.grade || 'C',
@@ -228,7 +232,7 @@ Page({
     });
 
     // 获取农户历史收购汇总
-    this.loadFarmerSummary(farmer.id);
+    this.loadFarmerSummary(farmer.farmerId);
 
     this.checkCanSubmit();
 
@@ -254,8 +258,14 @@ Page({
       const result = res.result as any;
 
       if (result.success && result.data) {
+        // 计算剩余预估重量 = 预估总重量 - 已收购重量
+        const estimated = parseFloat(this.data.estimatedWeight) || 0;
+        const acquired = result.data.totalWeight || 0;
+        const remaining = estimated - acquired;
+
         this.setData({
-          farmerSummary: result.data
+          farmerSummary: result.data,
+          remainingWeight: remaining.toFixed(2)
         });
       }
     } catch (error) {
