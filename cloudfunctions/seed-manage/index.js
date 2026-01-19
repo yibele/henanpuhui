@@ -314,7 +314,7 @@ async function getRecordDetail(event) {
 }
 
 /**
- * 更新发放记录
+ * 更新发放记录（同步更新农户统计）
  */
 async function updateSeedRecord(event) {
     const { recordId, data } = event;
@@ -327,7 +327,24 @@ async function updateSeedRecord(event) {
     }
 
     try {
-        // 更新记录
+        // 1. 先获取原记录
+        const oldRecord = await db.collection('seed_records').doc(recordId).get();
+        if (!oldRecord.data) {
+            return {
+                success: false,
+                message: '记录不存在'
+            };
+        }
+
+        const old = oldRecord.data;
+        const farmerId = old.farmerId;
+
+        // 2. 计算差值
+        const diffQuantity = (data.quantity || 0) - (old.quantity || 0);
+        const diffAmount = (data.amount || 0) - (old.amount || 0);
+        const diffArea = (data.distributedArea || 0) - (old.distributedArea || 0);
+
+        // 3. 更新记录
         await db.collection('seed_records').doc(recordId).update({
             data: {
                 quantity: data.quantity,
@@ -343,6 +360,18 @@ async function updateSeedRecord(event) {
             }
         });
 
+        // 4. 同步更新农户统计（如果有差值）
+        if (diffQuantity !== 0 || diffAmount !== 0 || diffArea !== 0) {
+            await db.collection('farmers').doc(farmerId).update({
+                data: {
+                    'stats.totalSeedDistributed': _.inc(diffQuantity),
+                    'stats.totalSeedAmount': _.inc(diffAmount),
+                    'stats.totalSeedArea': _.inc(diffArea),
+                    updateTime: db.serverDate()
+                }
+            });
+        }
+
         return {
             success: true,
             message: '更新成功'
@@ -353,6 +382,62 @@ async function updateSeedRecord(event) {
         return {
             success: false,
             message: error.message || '更新发放记录失败'
+        };
+    }
+}
+
+/**
+ * 删除发放记录（同步更新农户统计）
+ */
+async function deleteSeedRecord(event) {
+    const { recordId } = event;
+
+    if (!recordId) {
+        return {
+            success: false,
+            message: '缺少记录ID'
+        };
+    }
+
+    try {
+        // 1. 先获取原记录
+        const oldRecord = await db.collection('seed_records').doc(recordId).get();
+        if (!oldRecord.data) {
+            return {
+                success: false,
+                message: '记录不存在'
+            };
+        }
+
+        const old = oldRecord.data;
+        const farmerId = old.farmerId;
+        const quantity = old.quantity || 0;
+        const amount = old.amount || 0;
+        const area = old.distributedArea || 0;
+
+        // 2. 删除记录
+        await db.collection('seed_records').doc(recordId).remove();
+
+        // 3. 同步减少农户统计
+        await db.collection('farmers').doc(farmerId).update({
+            data: {
+                'stats.totalSeedDistributed': _.inc(-quantity),
+                'stats.totalSeedAmount': _.inc(-amount),
+                'stats.totalSeedArea': _.inc(-area),
+                updateTime: db.serverDate()
+            }
+        });
+
+        return {
+            success: true,
+            message: '删除成功'
+        };
+
+    } catch (error) {
+        console.error('删除发放记录失败:', error);
+        return {
+            success: false,
+            message: error.message || '删除发放记录失败'
         };
     }
 }
@@ -378,6 +463,9 @@ exports.main = async (event, context) => {
 
         case 'update':
             return await updateSeedRecord(event);
+
+        case 'delete':
+            return await deleteSeedRecord(event);
 
         default:
             return {

@@ -200,7 +200,9 @@
 
   <!-- 底部按钮 -->
   <view class="bottom-actions">
-    <button class="btn btn-cancel" bindtap="onCancel">取消</button>
+    <!-- 编辑模式显示删除按钮 -->
+    <button wx:if="{{isEditMode}}" class="btn btn-delete" bindtap="onDelete">删除</button>
+    <button wx:else class="btn btn-cancel" bindtap="onCancel">取消</button>
     <button 
       class="btn btn-submit {{!canSubmit ? 'btn-disabled' : ''}}" 
       bindtap="onSubmit"

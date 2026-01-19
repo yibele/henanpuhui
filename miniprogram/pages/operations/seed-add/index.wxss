@@ -391,6 +391,12 @@
   color: #6b7280;
 }
 
+.btn-delete {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 2rpx solid #fecaca;
+}
+
 .btn-submit {
   background: linear-gradient(135deg, #34d399, #059669);
   color: #ffffff;

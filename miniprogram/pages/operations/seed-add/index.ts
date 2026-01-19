@@ -538,7 +538,27 @@ Page({
   async onSubmit() {
     if (!this.data.canSubmit || this.data.submitting) return;
 
-    const { form, selectedFarmer, calculatedAmount, isEditMode, recordId } = this.data;
+    const { form, selectedFarmer, calculatedAmount, isEditMode, recordId, areaStats } = this.data;
+
+    // 面积超发警告检查
+    const currentArea = parseFloat(form.distributedArea) || 0;
+    const totalAfterSubmit = areaStats.distributedArea + currentArea;
+
+    if (!isEditMode && totalAfterSubmit > areaStats.totalArea) {
+      // 新增模式下检查是否超发
+      const overAmount = (totalAfterSubmit - areaStats.totalArea).toFixed(2);
+      const confirmed = await new Promise<boolean>((resolve) => {
+        wx.showModal({
+          title: '面积超发警告',
+          content: `本次发放后总面积（${totalAfterSubmit.toFixed(2)}亩）将超过签约面积（${areaStats.totalArea}亩）${overAmount}亩，是否继续？`,
+          confirmText: '继续发放',
+          cancelText: '取消',
+          success: (res) => resolve(res.confirm)
+        });
+      });
+
+      if (!confirmed) return;
+    }
 
     this.setData({ submitting: true });
 
@@ -612,9 +632,62 @@ Page({
   },
 
   /**
+   * 删除记录（仅编辑模式可用）
+   */
+  async onDelete() {
+    if (!this.data.isEditMode || !this.data.recordId) return;
+
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '确认删除',
+        content: '删除后无法恢复，确定要删除这条发苗记录吗？',
+        confirmText: '删除',
+        confirmColor: '#e53935',
+        cancelText: '取消',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+
+    if (!confirmed) return;
+
+    wx.showLoading({ title: '删除中...' });
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: {
+          action: 'delete',
+          recordId: this.data.recordId
+        }
+      });
+
+      wx.hideLoading();
+      const result = res.result as any;
+
+      if (result.success) {
+        wx.showToast({
+          title: '删除成功',
+          icon: 'success',
+          duration: 1500
+        });
+        setTimeout(() => {
+          wx.navigateBack();
+        }, 1500);
+      } else {
+        wx.showToast({ title: result.message || '删除失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('删除失败:', error);
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
+  },
+
+  /**
    * 取消
    */
   onCancel() {
     wx.navigateBack();
   }
 });
+
