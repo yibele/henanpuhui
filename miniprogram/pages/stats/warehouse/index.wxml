@@ -12,17 +12,15 @@
   <view class="today-board">
     <view class="board-title">今日数据 · {{todayDisplay}}</view>
     
-    <!-- 今日统计：只显示收购和打包 -->
-    <view class="today-stats">
-      <view class="stat-item">
-        <text class="stat-num">{{todayData.acquisitionWeight}}</text>
-        <text class="stat-label">收购(kg)</text>
+    <!-- 今日统计 -->
+    <view class="today-row">
+      <view class="today-col">
+        <text class="today-num">{{todayData.acquisitionWeight}}</text>
+        <text class="today-label">收购(kg)</text>
       </view>
-      <view class="stat-item">
-        <text class="stat-num {{todayData.packCount > 0 ? '' : 'empty'}}">
-          {{todayData.packCount || 0}}
-        </text>
-        <text class="stat-label">打包(包)</text>
+      <view class="today-col">
+        <text class="today-num">{{todayData.packCount || 0}}</text>
+        <text class="today-label">打包(包)</text>
       </view>
     </view>
 
