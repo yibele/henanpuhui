@@ -11,7 +11,7 @@
     <view class="salesman-header">
       <view class="header-greeting">
         <text class="greeting-text">{{greeting}}，{{userName}}</text>
-        <text class="greeting-sub">今天也要加油哦 💪</text>
+        <text class="greeting-sub">今天也要加油哦</text>
       </view>
       <view class="header-logout" bindtap="onLogout">
         <t-icon name="poweroff" size="40rpx" color="#ffffff" />
@@ -123,7 +123,7 @@
     <view class="today-stats-card">
       <view class="stats-card-header">
         <view class="stats-card-title">
-          <view class="title-icon">📦</view>
+
           <text>今日收苗</text>
         </view>
         <text class="stats-date">{{todayDate}}</text>
@@ -151,7 +151,7 @@
     <view class="total-stats-card">
       <view class="stats-card-header">
         <view class="stats-card-title">
-          <view class="title-icon">📊</view>
+
           <text>累计数据</text>
         </view>
       </view>
@@ -179,7 +179,7 @@
     <view class="stock-stats-card">
       <view class="stats-card-header">
         <view class="stats-card-title">
-          <view class="title-icon">📦</view>
+
           <text>库存情况</text>
         </view>
       </view>
