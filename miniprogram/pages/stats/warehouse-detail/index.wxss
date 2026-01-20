@@ -134,15 +134,16 @@
   margin-bottom: 12rpx;
 }
 
+/* 记录头部：农户名 + 日期 */
 .record-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12rpx;
+  margin-bottom: 16rpx;
 }
 
 .farmer-name {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #111827;
 }
@@ -152,36 +153,52 @@
   color: #9ca3af;
 }
 
+/* 记录主体：固定布局 */
 .record-body {
   display: flex;
-  padding: 12rpx 0;
+  align-items: center;
+  padding: 16rpx 0;
   border-top: 1rpx solid #f3f4f6;
   border-bottom: 1rpx solid #f3f4f6;
 }
 
 .record-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.record-detail.weight {
+  width: 180rpx;
+}
+
+.record-detail.price {
+  width: 150rpx;
+}
+
+.record-detail.amount {
   flex: 1;
-  text-align: center;
+  align-items: flex-end;
 }
 
 .detail-label {
-  display: block;
   font-size: 22rpx;
   color: #9ca3af;
+  margin-bottom: 4rpx;
 }
 
 .detail-value {
-  display: block;
-  font-size: 28rpx;
-  font-weight: 500;
+  font-size: 30rpx;
+  font-weight: 600;
   color: #374151;
-  margin-top: 4rpx;
 }
 
-.detail-value.amount {
+.detail-value.highlight {
   color: #f59e0b;
+  font-size: 32rpx;
 }
 
+/* 记录底部：手机号 + 操作人 */
 .record-footer {
   display: flex;
   justify-content: space-between;

@@ -63,17 +63,17 @@
         <text class="record-date">{{item.acquisitionDate}}</text>
       </view>
       <view class="record-body">
-        <view class="record-detail">
+        <view class="record-detail weight">
           <text class="detail-label">净重</text>
           <text class="detail-value">{{item.netWeight || item.weight}}kg</text>
         </view>
-        <view class="record-detail">
+        <view class="record-detail price">
           <text class="detail-label">单价</text>
-          <text class="detail-value">{{item.unitPrice}}元/kg</text>
+          <text class="detail-value">{{item.unitPrice}}元</text>
         </view>
-        <view class="record-detail">
+        <view class="record-detail amount">
           <text class="detail-label">金额</text>
-          <text class="detail-value amount">¥{{item.totalAmount}}</text>
+          <text class="detail-value highlight">¥{{item.totalAmount}}</text>
         </view>
       </view>
       <view class="record-footer">
