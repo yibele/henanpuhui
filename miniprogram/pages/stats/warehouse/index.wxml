@@ -15,11 +15,11 @@
     <!-- 今日统计 -->
     <view class="today-row">
       <view class="today-col">
-        <text class="today-num">{{todayData.acquisitionWeight}}<text class="unit">kg</text></text>
-        <text class="today-label">今日重量</text>
+        <text class="today-num">{{todayData.inboundWeight || 0}}<text class="unit">kg</text></text>
+        <text class="today-label">今日入库</text>
       </view>
       <view class="today-col">
-        <text class="today-num">{{todayData.packCount || 0}}<text class="unit">包</text></text>
+        <text class="today-num">{{todayData.inboundCount || 0}}<text class="unit">包</text></text>
         <text class="today-label">今日包数</text>
       </view>
     </view>
