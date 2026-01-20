@@ -15,12 +15,12 @@
     <!-- 今日统计 -->
     <view class="today-row">
       <view class="today-col">
-        <text class="today-num">{{todayData.acquisitionWeight}}</text>
-        <text class="today-label">收购(kg)</text>
+        <text class="today-num">{{todayData.acquisitionWeight}}<text class="unit">kg</text></text>
+        <text class="today-label">今日重量</text>
       </view>
       <view class="today-col">
-        <text class="today-num">{{todayData.packCount || 0}}</text>
-        <text class="today-label">打包(包)</text>
+        <text class="today-num">{{todayData.packCount || 0}}<text class="unit">包</text></text>
+        <text class="today-label">今日包数</text>
       </view>
     </view>
 
@@ -40,6 +40,10 @@
       <view class="stock-detail">
         <text>累计收购 {{totalStats.totalAcquisition || 0}}kg</text>
         <text>累计打包 {{totalStats.totalPack || 0}}包</text>
+      </view>
+      <view class="stock-detail">
+        <text>累计出库 {{totalStats.totalOutWeight || 0}}kg</text>
+        <text>累计出库 {{totalStats.totalOutCount || 0}}包</text>
       </view>
     </view>
 
@@ -137,34 +141,17 @@
     </view>
     <view class="popup-date">{{editDate}}</view>
     
-    <!-- 今日收购（只读显示） -->
-    <view class="popup-info-row">
-      <text class="info-label">今日收购</text>
-      <text class="info-value">{{todayData.acquisitionWeight}} kg（自动入库）</text>
-    </view>
-    
-    <!-- 打包包数 -->
     <view class="popup-input-section">
-      <text class="input-label">今日打包</text>
+      <text class="input-label">入库重量</text>
       <view class="input-wrap">
-        <input class="popup-input" type="number" value="{{packCountInput}}" bindinput="onPackInput" placeholder="请输入包数" />
-        <text class="input-unit">包</text>
-      </view>
-    </view>
-    
-    <!-- 出库（正负数） -->
-    <view class="popup-tip">出库时填负数，调入时填正数</view>
-    <view class="popup-input-section">
-      <text class="input-label">调拨重量</text>
-      <view class="input-wrap">
-        <input class="popup-input" type="digit" value="{{inboundWeightInput}}" bindinput="onInboundWeightInput" placeholder="负数=出库" />
+        <input class="popup-input" type="digit" value="{{inboundWeightInput}}" bindinput="onInboundWeightInput" placeholder="请输入" />
         <text class="input-unit">kg</text>
       </view>
     </view>
     <view class="popup-input-section">
-      <text class="input-label">调拨包数</text>
+      <text class="input-label">入库包数</text>
       <view class="input-wrap">
-        <input class="popup-input" type="digit" value="{{inboundCountInput}}" bindinput="onInboundCountInput" placeholder="负数=出库" />
+        <input class="popup-input" type="number" value="{{inboundCountInput}}" bindinput="onInboundCountInput" placeholder="请输入" />
         <text class="input-unit">包</text>
       </view>
     </view>

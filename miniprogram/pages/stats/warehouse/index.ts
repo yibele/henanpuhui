@@ -28,13 +28,14 @@ Page({
             inboundCount: 0
         },
 
-        // 库存汇总（格式化后的字符串）
+        // 库存汇总
         totalStats: {
             stockWeight: 0,
             stockCount: 0,
-            totalAcquisition: '',
-            totalPack: '',
-            totalInbound: ''
+            totalAcquisition: 0,
+            totalPack: 0,
+            totalOutWeight: 0,
+            totalOutCount: 0
         },
 
         // 历史记录（只有数据的日期）
@@ -134,9 +135,10 @@ Page({
                     totalStats: {
                         stockWeight: stats.stockWeight || 0,
                         stockCount: stats.stockCount || 0,
-                        totalAcquisition: formatLargeNumber(stats.totalAcquisition || 0) + 'kg',
-                        totalPack: formatLargeNumber(stats.totalPack || 0) + '包',
-                        totalInbound: formatLargeNumber(stats.totalInbound || 0) + 'kg'
+                        totalAcquisition: stats.totalAcquisition || 0,
+                        totalPack: stats.totalPack || 0,
+                        totalOutWeight: stats.totalOutWeight || 0,
+                        totalOutCount: stats.totalOutCount || 0
                     },
                     historyList: this.data.page === 1
                         ? historyList

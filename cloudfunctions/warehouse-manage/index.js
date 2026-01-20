@@ -415,7 +415,8 @@ async function getDashboard(event) {
                     stockCount: totalPack - totalInboundCount,
                     totalAcquisition: Number(totalAcquisition.toFixed(2)),
                     totalPack,
-                    totalInbound: Number(totalInboundWeight.toFixed(2))
+                    totalOutWeight: Math.abs(Math.min(totalInboundWeight, 0)),
+                    totalOutCount: Math.abs(Math.min(totalInboundCount, 0))
                 },
                 historyList
             }
