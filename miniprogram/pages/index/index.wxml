@@ -203,36 +203,7 @@
       </view>
     </view>
 
-    <!-- 快捷操作 -->
-    <view class="quick-actions">
-      <view class="quick-action-title">快捷操作</view>
-      <view class="quick-action-grid">
-        <view class="quick-action-item" bindtap="goAcquisitionAdd">
-          <view class="quick-action-icon quick-icon-green">
-            <t-icon name="add-circle" size="48rpx" color="#ffffff" />
-          </view>
-          <text class="quick-action-text">收购登记</text>
-        </view>
-        <view class="quick-action-item" bindtap="goStockManage">
-          <view class="quick-action-icon quick-icon-blue">
-            <t-icon name="order-list" size="48rpx" color="#ffffff" />
-          </view>
-          <text class="quick-action-text">库存管理</text>
-        </view>
-        <view class="quick-action-item" bindtap="goAcquisitionList">
-          <view class="quick-action-icon quick-icon-orange">
-            <t-icon name="chart-bubble" size="48rpx" color="#ffffff" />
-          </view>
-          <text class="quick-action-text">收购记录</text>
-        </view>
-        <view class="quick-action-item" bindtap="goWarehouseReport">
-          <view class="quick-action-icon quick-icon-purple">
-            <t-icon name="chart-bar" size="48rpx" color="#ffffff" />
-          </view>
-          <text class="quick-action-text">数据报表</text>
-        </view>
-      </view>
-    </view>
+
   </block>
 
   <!-- ==================== 管理层视图 ==================== -->
