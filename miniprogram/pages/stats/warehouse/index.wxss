@@ -61,6 +61,16 @@
   margin-top: 8rpx;
 }
 
+.today-num .unit {
+  font-size: 28rpx;
+  font-weight: 500;
+  margin-left: 4rpx;
+}
+
+.today-num.highlight {
+  color: #f59e0b;
+}
+
 /* 库存统计 */
 .stock-section {
   padding: 20rpx 0;

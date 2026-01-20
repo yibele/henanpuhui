@@ -27,22 +27,19 @@
     <!-- 库存统计 -->
     <view class="stock-section">
       <view class="stock-title">库存统计</view>
-      <view class="stock-stats">
-        <view class="stock-item">
-          <text class="stock-num highlight">{{totalStats.stockWeight}}</text>
-          <text class="stock-unit">kg</text>
-          <text class="stock-label">库存重量</text>
+      <view class="today-row">
+        <view class="today-col">
+          <text class="today-num highlight">{{totalStats.stockWeight}}<text class="unit">kg</text></text>
+          <text class="today-label">库存重量</text>
         </view>
-        <view class="stock-divider"></view>
-        <view class="stock-item">
-          <text class="stock-num">{{totalStats.stockCount}}</text>
-          <text class="stock-unit">包</text>
-          <text class="stock-label">库存包数</text>
+        <view class="today-col">
+          <text class="today-num">{{totalStats.stockCount}}<text class="unit">包</text></text>
+          <text class="today-label">库存包数</text>
         </view>
       </view>
       <view class="stock-detail">
-        <text>累计收购 {{totalStats.totalAcquisition}}</text>
-        <text>累计打包 {{totalStats.totalPack}}</text>
+        <text>累计收购 {{totalStats.totalAcquisition || 0}}kg</text>
+        <text>累计打包 {{totalStats.totalPack || 0}}包</text>
       </view>
     </view>
 
