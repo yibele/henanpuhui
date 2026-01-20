@@ -433,7 +433,7 @@ Page({
       date: form.date,
       warehouseId: warehouseInfo.id,
       warehouseName: warehouseInfo.name,
-      farmerId: selectedFarmer.id,
+      farmerId: selectedFarmer.farmerId,  // 使用业务编号
       farmerName: selectedFarmer.name,
       farmerPhone: selectedFarmer.phone,
       farmerAcreage: selectedFarmer.acreage,
