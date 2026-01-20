@@ -1,115 +1,173 @@
 <!--
-  仓库日报页面
-  日期列表形式，每天一条记录
+  仓库看板页面
+  今日看板（固定）+ 历史记录（有数据才显示）
 -->
 <view class="page-container">
-  <!-- 仓库标题 -->
+  <!-- 仓库名称 -->
   <view class="page-header">
     <text class="page-title">{{warehouseName}}</text>
-    <view class="header-stats">
+  </view>
+
+  <!-- 今日看板 -->
+  <view class="today-board">
+    <view class="board-title">今日数据 · {{todayDisplay}}</view>
+    
+    <!-- 今日统计 -->
+    <view class="today-stats">
       <view class="stat-item">
-        <text class="stat-num">{{totalStats.stockWeight}}</text>
-        <text class="stat-label">库存(kg)</text>
+        <text class="stat-num">{{todayData.acquisitionWeight}}</text>
+        <text class="stat-label">收购(kg)</text>
       </view>
       <view class="stat-item">
-        <text class="stat-num">{{totalStats.stockCount}}</text>
-        <text class="stat-label">库存(包)</text>
+        <text class="stat-num {{todayData.packCount > 0 ? '' : 'empty'}}">
+          {{todayData.packCount || '-'}}
+        </text>
+        <text class="stat-label">打包(包)</text>
+      </view>
+      <view class="stat-item">
+        <text class="stat-num {{todayData.outboundWeight > 0 ? '' : 'empty'}}">
+          {{todayData.outboundWeight || '-'}}
+        </text>
+        <text class="stat-label">出库(kg)</text>
+      </view>
+    </view>
+
+    <!-- 库存统计 -->
+    <view class="stock-section">
+      <view class="stock-title">库存统计</view>
+      <view class="stock-stats">
+        <view class="stock-item">
+          <text class="stock-num highlight">{{totalStats.stockWeight}}</text>
+          <text class="stock-unit">kg</text>
+          <text class="stock-label">库存重量</text>
+        </view>
+        <view class="stock-divider"></view>
+        <view class="stock-item">
+          <text class="stock-num">{{totalStats.stockCount}}</text>
+          <text class="stock-unit">包</text>
+          <text class="stock-label">库存包数</text>
+        </view>
+      </view>
+      <view class="stock-detail">
+        <text>累计收购 {{totalStats.totalAcquisition}}kg</text>
+        <text>累计打包 {{totalStats.totalPack}}包</text>
+        <text>累计出库 {{totalStats.totalOutbound}}kg</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-buttons">
+      <view class="action-btn" bindtap="showPackPopup">
+        <t-icon name="package" size="36rpx" />
+        <text>填写今日打包</text>
+      </view>
+      <view class="action-btn primary" bindtap="showOutboundPopup">
+        <t-icon name="delivery" size="36rpx" />
+        <text>填写今日出库</text>
       </view>
     </view>
   </view>
 
-  <!-- 日期列表 -->
-  <view class="daily-list">
-    <view class="daily-item" wx:for="{{dailyList}}" wx:key="date">
-      <view class="daily-header">
-        <text class="daily-date">{{item.dateDisplay}}</text>
-        <view class="edit-btn" catchtap="editDaily" data-item="{{item}}">
-          <t-icon name="edit" size="32rpx" />
-          <text>编辑</text>
+  <!-- 历史记录 -->
+  <view class="history-section">
+    <view class="section-header">
+      <text class="section-title">历史记录</text>
+      <text class="record-count">共{{historyList.length}}条</text>
+    </view>
+
+    <view class="history-list" wx:if="{{historyList.length > 0}}">
+      <view class="history-item" wx:for="{{historyList}}" wx:key="date">
+        <view class="history-date">{{item.dateDisplay}}</view>
+        <view class="history-data">
+          <view class="data-cell">
+            <text class="cell-label">收购</text>
+            <text class="cell-value">{{item.acquisitionWeight}}kg</text>
+          </view>
+          <view class="data-cell">
+            <text class="cell-label">打包</text>
+            <text class="cell-value {{item.packCount > 0 ? '' : 'empty'}}">
+              {{item.packCount || '-'}}包
+            </text>
+          </view>
+          <view class="data-cell">
+            <text class="cell-label">出库</text>
+            <text class="cell-value {{item.outboundWeight > 0 ? '' : 'empty'}}">
+              {{item.outboundWeight || '-'}}kg
+            </text>
+          </view>
         </view>
-      </view>
-      
-      <view class="daily-body">
-        <view class="data-col">
-          <text class="data-label">收购</text>
-          <text class="data-value">{{item.acquisitionWeight}}kg</text>
-        </view>
-        <view class="data-col">
-          <text class="data-label">打包</text>
-          <text class="data-value {{item.packCount > 0 ? '' : 'empty'}}">{{item.packCount || '-'}}包</text>
-        </view>
-        <view class="data-col">
-          <text class="data-label">出库</text>
-          <text class="data-value {{item.outboundWeight > 0 ? '' : 'empty'}}">
-            {{item.outboundWeight || '-'}}kg/{{item.outboundCount || '-'}}包
-          </text>
+        <view class="edit-icon" catchtap="editHistory" data-item="{{item}}">
+          <t-icon name="edit" size="32rpx" color="#9ca3af" />
         </view>
       </view>
     </view>
 
-    <!-- 加载更多 -->
+    <view class="empty-state" wx:if="{{historyList.length === 0 && !loading}}">
+      <text class="empty-text">暂无历史记录</text>
+    </view>
+
     <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
       <text>{{loading ? '加载中...' : '加载更多'}}</text>
-    </view>
-
-    <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{dailyList.length === 0 && !loading}}">
-      <text class="empty-text">暂无数据</text>
     </view>
   </view>
 
   <!-- 加载中 -->
-  <view class="loading-wrap" wx:if="{{loading && dailyList.length === 0}}">
+  <view class="loading-wrap" wx:if="{{loading && historyList.length === 0}}">
     <t-loading theme="circular" size="40rpx" text="加载中..." />
   </view>
 </view>
 
-<!-- 编辑弹窗 -->
-<t-popup visible="{{showEdit}}" placement="bottom" bind:visible-change="onEditPopupChange">
+<!-- 打包弹窗 -->
+<t-popup visible="{{showPack}}" placement="bottom" bind:visible-change="onPackPopupChange">
   <view class="edit-popup">
     <view class="popup-header">
-      <text class="popup-title">{{editDate}} 数据填写</text>
-      <view class="popup-close" bindtap="closeEdit">
+      <text class="popup-title">填写打包数量</text>
+      <view class="popup-close" bindtap="closePackPopup">
         <t-icon name="close" size="40rpx" />
       </view>
     </view>
-
-    <!-- 收购（只读） -->
-    <view class="edit-row">
-      <text class="edit-label">当日收购</text>
-      <text class="edit-value readonly">{{editData.acquisitionWeight}} kg（自动统计）</text>
-    </view>
-
-    <!-- 打包 -->
-    <view class="edit-row">
-      <text class="edit-label">当日打包</text>
-      <view class="edit-input-wrap">
-        <input class="edit-input" type="number" value="{{editData.packCount}}" bindinput="onPackInput" placeholder="请输入" />
-        <text class="edit-unit">包</text>
+    <view class="popup-date">{{editDate}}</view>
+    <view class="popup-input-section">
+      <text class="input-label">今日打包</text>
+      <view class="input-wrap">
+        <input class="popup-input" type="number" value="{{packCountInput}}" bindinput="onPackInput" placeholder="请输入包数" />
+        <text class="input-unit">包</text>
       </view>
     </view>
-
-    <!-- 出库重量 -->
-    <view class="edit-row">
-      <text class="edit-label">出库重量</text>
-      <view class="edit-input-wrap">
-        <input class="edit-input" type="digit" value="{{editData.outboundWeight}}" bindinput="onOutboundWeightInput" placeholder="请输入" />
-        <text class="edit-unit">kg</text>
-      </view>
-    </view>
-
-    <!-- 出库包数 -->
-    <view class="edit-row">
-      <text class="edit-label">出库包数</text>
-      <view class="edit-input-wrap">
-        <input class="edit-input" type="number" value="{{editData.outboundCount}}" bindinput="onOutboundCountInput" placeholder="请输入" />
-        <text class="edit-unit">包</text>
-      </view>
-    </view>
-
-    <!-- 提交按钮 -->
     <view class="popup-footer">
-      <t-button theme="primary" size="large" block bindtap="saveDaily" loading="{{saving}}">
+      <t-button theme="primary" size="large" block bindtap="savePack" loading="{{saving}}">
+        保存
+      </t-button>
+    </view>
+  </view>
+</t-popup>
+
+<!-- 出库弹窗 -->
+<t-popup visible="{{showOutbound}}" placement="bottom" bind:visible-change="onOutboundPopupChange">
+  <view class="edit-popup">
+    <view class="popup-header">
+      <text class="popup-title">填写出库</text>
+      <view class="popup-close" bindtap="closeOutboundPopup">
+        <t-icon name="close" size="40rpx" />
+      </view>
+    </view>
+    <view class="popup-date">{{editDate}}</view>
+    <view class="popup-input-section">
+      <text class="input-label">出库重量</text>
+      <view class="input-wrap">
+        <input class="popup-input" type="digit" value="{{outboundWeightInput}}" bindinput="onOutboundWeightInput" placeholder="请输入" />
+        <text class="input-unit">kg</text>
+      </view>
+    </view>
+    <view class="popup-input-section">
+      <text class="input-label">出库包数</text>
+      <view class="input-wrap">
+        <input class="popup-input" type="number" value="{{outboundCountInput}}" bindinput="onOutboundCountInput" placeholder="请输入" />
+        <text class="input-unit">包</text>
+      </view>
+    </view>
+    <view class="popup-footer">
+      <t-button theme="primary" size="large" block bindtap="saveOutbound" loading="{{saving}}">
         保存
       </t-button>
     </view>

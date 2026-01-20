@@ -1,4 +1,4 @@
-/* 仓库日报页面样式 */
+/* 仓库看板页面样式 */
 
 .page-container {
   min-height: 100vh;
@@ -8,7 +8,7 @@
 
 /* 页面标题 */
 .page-header {
-  padding: 32rpx 24rpx;
+  padding: 32rpx 24rpx 16rpx;
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
 }
 
@@ -18,93 +18,217 @@
   color: #ffffff;
 }
 
-.header-stats {
-  display: flex;
-  gap: 48rpx;
-  margin-top: 20rpx;
-}
+/* ==================== 今日看板 ==================== */
 
-.header-stats .stat-item {
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.header-stats .stat-num {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #fcd34d;
-}
-
-.header-stats .stat-label {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-/* 日期列表 */
-.daily-list {
-  padding: 16rpx;
-}
-
-.daily-item {
+.today-board {
+  margin: -20rpx 16rpx 16rpx;
   background: #ffffff;
-  border-radius: 16rpx;
-  padding: 20rpx;
-  margin-bottom: 16rpx;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
 }
 
-/* 日期头部 */
-.daily-header {
+.board-title {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 20rpx;
+}
+
+/* 今日统计 */
+.today-stats {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-  padding-bottom: 12rpx;
+  padding: 16rpx 0;
   border-bottom: 1rpx solid #f3f4f6;
 }
 
-.daily-date {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #111827;
-}
-
-.edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  padding: 8rpx 16rpx;
-  background: #f0fdf4;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  color: #059669;
-}
-
-/* 日期数据 */
-.daily-body {
-  display: flex;
-}
-
-.data-col {
+.stat-item {
   flex: 1;
   text-align: center;
 }
 
-.data-label {
+.stat-num {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-num.empty {
+  color: #d1d5db;
+  font-size: 32rpx;
+}
+
+.stat-label {
   display: block;
   font-size: 22rpx;
   color: #9ca3af;
-  margin-bottom: 8rpx;
+  margin-top: 8rpx;
 }
 
-.data-value {
+/* 库存统计 */
+.stock-section {
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.stock-title {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-bottom: 16rpx;
+}
+
+.stock-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 0;
+}
+
+.stock-item {
+  text-align: center;
+  padding: 0 40rpx;
+}
+
+.stock-num {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #374151;
+}
+
+.stock-num.highlight {
+  color: #f59e0b;
+}
+
+.stock-unit {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-left: 4rpx;
+}
+
+.stock-label {
+  display: block;
+  font-size: 22rpx;
+  color: #9ca3af;
+  margin-top: 8rpx;
+}
+
+.stock-divider {
+  width: 1rpx;
+  height: 60rpx;
+  background: #e5e7eb;
+}
+
+.stock-detail {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 20rpx 0;
+  border-radius: 12rpx;
   font-size: 28rpx;
+  background: #f0fdf4;
+  color: #059669;
+}
+
+.action-btn.primary {
+  background: #059669;
+  color: #ffffff;
+}
+
+/* ==================== 历史记录 ==================== */
+
+.history-section {
+  padding: 0 16rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+}
+
+.section-title {
+  font-size: 30rpx;
   font-weight: 600;
   color: #374151;
 }
 
-.data-value.empty {
+.record-count {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.history-list {
+  background: #ffffff;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  border-bottom: 1rpx solid #f3f4f6;
+}
+
+.history-item:last-child {
+  border-bottom: none;
+}
+
+.history-date {
+  width: 120rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: #374151;
+}
+
+.history-data {
+  flex: 1;
+  display: flex;
+}
+
+.data-cell {
+  flex: 1;
+  text-align: center;
+}
+
+.cell-label {
+  display: block;
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.cell-value {
+  display: block;
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #374151;
+  margin-top: 4rpx;
+}
+
+.cell-value.empty {
   color: #d1d5db;
+}
+
+.edit-icon {
+  padding: 12rpx;
 }
 
 /* 加载更多 */
@@ -118,7 +242,9 @@
 /* 空状态 */
 .empty-state {
   text-align: center;
-  padding: 100rpx 0;
+  padding: 60rpx 0;
+  background: #ffffff;
+  border-radius: 16rpx;
 }
 
 .empty-text {
@@ -133,7 +259,7 @@
   padding: 100rpx 0;
 }
 
-/* ==================== 编辑弹窗 ==================== */
+/* ==================== 弹窗 ==================== */
 
 .edit-popup {
   background: #ffffff;
@@ -146,7 +272,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32rpx;
 }
 
 .popup-title {
@@ -159,58 +284,45 @@
   padding: 8rpx;
 }
 
-/* 编辑行 */
-.edit-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-}
-
-.edit-label {
-  font-size: 28rpx;
-  color: #374151;
-  width: 160rpx;
-}
-
-.edit-value {
-  flex: 1;
-  text-align: right;
-  font-size: 28rpx;
-  color: #111827;
-}
-
-.edit-value.readonly {
-  color: #9ca3af;
-}
-
-.edit-input-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.edit-input {
-  width: 200rpx;
-  text-align: right;
-  font-size: 32rpx;
-  font-weight: 500;
-  color: #111827;
-  padding: 8rpx;
-  background: #f9fafb;
-  border-radius: 8rpx;
-}
-
-.edit-unit {
+.popup-date {
   font-size: 26rpx;
   color: #6b7280;
-  margin-left: 8rpx;
-  width: 50rpx;
+  margin-top: 8rpx;
+  margin-bottom: 24rpx;
 }
 
-/* 提交按钮 */
+.popup-input-section {
+  margin-bottom: 20rpx;
+}
+
+.input-label {
+  display: block;
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 12rpx;
+}
+
+.input-wrap {
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+}
+
+.popup-input {
+  flex: 1;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #111827;
+}
+
+.input-unit {
+  font-size: 28rpx;
+  color: #6b7280;
+  margin-left: 12rpx;
+}
+
 .popup-footer {
   margin-top: 32rpx;
 }

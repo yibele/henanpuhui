@@ -278,6 +278,150 @@ async function saveDaily(event) {
 }
 
 /**
+ * 获取仓库看板数据
+ * 返回今日数据、库存汇总、历史记录
+ */
+async function getDashboard(event) {
+    const { warehouseId, page = 1 } = event;
+
+    if (!warehouseId) {
+        return {
+            success: false,
+            message: '缺少仓库ID'
+        };
+    }
+
+    try {
+        const today = getTodayDate();
+        const pageSize = 20;
+
+        // 1. 获取今日收购数据
+        const todayAcquisitions = await db.collection('acquisitions')
+            .where({
+                warehouseId,
+                acquisitionDate: today,
+                status: _.neq('deleted')
+            })
+            .get();
+
+        let todayAcquisitionWeight = 0;
+        todayAcquisitions.data.forEach(acq => {
+            todayAcquisitionWeight += acq.netWeight || acq.weight || 0;
+        });
+
+        // 2. 获取今日日报数据
+        let todayDaily = null;
+        try {
+            const todayDailyRes = await db.collection('warehouse_daily')
+                .where({ warehouseId, date: today })
+                .get();
+            if (todayDailyRes.data.length > 0) {
+                todayDaily = todayDailyRes.data[0];
+            }
+        } catch (e) {
+            console.log('warehouse_daily集合可能不存在');
+        }
+
+        // 3. 获取所有收购数据计算累计
+        const allAcquisitions = await db.collection('acquisitions')
+            .where({
+                warehouseId,
+                status: _.neq('deleted')
+            })
+            .get();
+
+        let totalAcquisition = 0;
+        const acquisitionByDate = {}; // 按日期汇总
+        allAcquisitions.data.forEach(acq => {
+            const weight = acq.netWeight || acq.weight || 0;
+            totalAcquisition += weight;
+            const date = acq.acquisitionDate;
+            if (date) {
+                if (!acquisitionByDate[date]) {
+                    acquisitionByDate[date] = 0;
+                }
+                acquisitionByDate[date] += weight;
+            }
+        });
+
+        // 4. 获取所有日报数据计算累计
+        let allDaily = { data: [] };
+        try {
+            allDaily = await db.collection('warehouse_daily')
+                .where({ warehouseId })
+                .orderBy('date', 'desc')
+                .get();
+        } catch (e) {
+            console.log('warehouse_daily集合可能不存在');
+        }
+
+        let totalPack = 0;
+        let totalOutboundWeight = 0;
+        let totalOutboundCount = 0;
+        const dailyByDate = {};
+
+        allDaily.data.forEach(d => {
+            totalPack += d.packCount || 0;
+            totalOutboundWeight += d.outboundWeight || 0;
+            totalOutboundCount += d.outboundCount || 0;
+            dailyByDate[d.date] = d;
+        });
+
+        // 5. 组装历史记录（只显示有数据的日期）
+        const allDates = new Set([
+            ...Object.keys(acquisitionByDate),
+            ...Object.keys(dailyByDate)
+        ]);
+
+        // 排序日期（倒序）
+        const sortedDates = Array.from(allDates)
+            .filter(d => d !== today) // 排除今日
+            .sort((a, b) => b.localeCompare(a));
+
+        // 分页
+        const startIdx = (page - 1) * pageSize;
+        const pageDates = sortedDates.slice(startIdx, startIdx + pageSize);
+
+        const historyList = pageDates.map(date => {
+            const daily = dailyByDate[date] || {};
+            return {
+                date,
+                acquisitionWeight: Number((acquisitionByDate[date] || 0).toFixed(2)),
+                packCount: daily.packCount || 0,
+                outboundWeight: daily.outboundWeight || 0,
+                outboundCount: daily.outboundCount || 0
+            };
+        });
+
+        return {
+            success: true,
+            data: {
+                todayData: {
+                    acquisitionWeight: Number(todayAcquisitionWeight.toFixed(2)),
+                    packCount: todayDaily?.packCount || 0,
+                    outboundWeight: todayDaily?.outboundWeight || 0,
+                    outboundCount: todayDaily?.outboundCount || 0
+                },
+                totalStats: {
+                    stockWeight: Number((totalAcquisition - totalOutboundWeight).toFixed(2)),
+                    stockCount: totalPack - totalOutboundCount,
+                    totalAcquisition: Number(totalAcquisition.toFixed(2)),
+                    totalPack,
+                    totalOutbound: Number(totalOutboundWeight.toFixed(2))
+                },
+                historyList
+            }
+        };
+    } catch (error) {
+        console.error('获取看板数据失败:', error);
+        return {
+            success: false,
+            message: error.message || '获取看板数据失败'
+        };
+    }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -288,6 +432,8 @@ exports.main = async (event, context) => {
             return await listWarehouses(event);
         case 'getDailyList':
             return await getDailyList(event);
+        case 'getDashboard':
+            return await getDashboard(event);
         case 'saveDaily':
             return await saveDaily(event);
         default:

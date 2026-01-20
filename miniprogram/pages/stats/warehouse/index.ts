@@ -1,6 +1,6 @@
 /**
- * 仓库日报页面
- * 日期列表形式，每天一条记录
+ * 仓库看板页面
+ * 今日看板（固定）+ 历史记录（有数据才显示）
  */
 
 const app = getApp<IAppOption>();
@@ -9,34 +9,45 @@ Page({
     data: {
         warehouseName: '',
         warehouseId: '',
+        todayDisplay: '',
+        today: '',
+
+        // 今日数据
+        todayData: {
+            acquisitionWeight: 0,
+            packCount: 0,
+            outboundWeight: 0,
+            outboundCount: 0
+        },
 
         // 库存汇总
         totalStats: {
             stockWeight: 0,
-            stockCount: 0
+            stockCount: 0,
+            totalAcquisition: 0,
+            totalPack: 0,
+            totalOutbound: 0
         },
 
-        // 日期列表
-        dailyList: [] as any[],
+        // 历史记录（只有数据的日期）
+        historyList: [] as any[],
         page: 1,
-        pageSize: 30,
         hasMore: false,
         loading: false,
 
-        // 编辑弹窗
-        showEdit: false,
+        // 弹窗
+        showPack: false,
+        showOutbound: false,
         editDate: '',
-        editData: {
-            acquisitionWeight: 0,
-            packCount: '',
-            outboundWeight: '',
-            outboundCount: ''
-        },
+        packCountInput: '',
+        outboundWeightInput: '',
+        outboundCountInput: '',
         saving: false
     },
 
     onLoad() {
         this.initWarehouse();
+        this.setToday();
     },
 
     onShow() {
@@ -44,12 +55,9 @@ Page({
         if (typeof this.getTabBar === 'function' && this.getTabBar()) {
             this.getTabBar().initTabBar();
         }
-        this.loadDailyList();
+        this.loadData();
     },
 
-    /**
-     * 初始化仓库信息
-     */
     initWarehouse() {
         const currentUser = app.globalData.currentUser;
         if (currentUser?.warehouseName) {
@@ -60,23 +68,32 @@ Page({
         }
     },
 
-    /**
-     * 加载日期列表
-     */
-    async loadDailyList() {
-        const { warehouseId, page, pageSize, dailyList } = this.data;
+    setToday() {
+        const now = new Date();
+        const month = now.getMonth() + 1;
+        const day = now.getDate();
+        const today = `${now.getFullYear()}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-        if (!warehouseId) {
-            const currentUser = app.globalData.currentUser;
-            if (currentUser?.warehouseId) {
-                this.setData({
-                    warehouseId: currentUser.warehouseId,
-                    warehouseName: currentUser.warehouseName || '我的仓库'
-                });
-            } else {
-                return;
-            }
+        this.setData({
+            today,
+            todayDisplay: `${month}月${day}日`,
+            editDate: `${month}月${day}日`
+        });
+    },
+
+    async loadData() {
+        const currentUser = app.globalData.currentUser;
+        let warehouseId = this.data.warehouseId;
+
+        if (!warehouseId && currentUser?.warehouseId) {
+            warehouseId = currentUser.warehouseId;
+            this.setData({
+                warehouseId,
+                warehouseName: currentUser.warehouseName || '我的仓库'
+            });
         }
+
+        if (!warehouseId) return;
 
         this.setData({ loading: true });
 
@@ -84,154 +101,188 @@ Page({
             const res = await wx.cloud.callFunction({
                 name: 'warehouse-manage',
                 data: {
-                    action: 'getDailyList',
-                    warehouseId: this.data.warehouseId,
-                    page,
-                    pageSize
+                    action: 'getDashboard',
+                    warehouseId,
+                    page: this.data.page
                 }
             });
 
             const result = res.result as any;
 
             if (result.success) {
-                const newList = result.data?.list || [];
+                const data = result.data;
 
-                // 格式化日期显示
-                const formattedList = newList.map((item: any) => ({
+                // 格式化历史记录日期显示
+                const historyList = (data.historyList || []).map((item: any) => ({
                     ...item,
                     dateDisplay: this.formatDateDisplay(item.date)
                 }));
 
                 this.setData({
-                    dailyList: page === 1 ? formattedList : [...dailyList, ...formattedList],
-                    totalStats: result.data?.totalStats || this.data.totalStats,
-                    hasMore: newList.length === pageSize,
+                    todayData: data.todayData || this.data.todayData,
+                    totalStats: data.totalStats || this.data.totalStats,
+                    historyList: this.data.page === 1
+                        ? historyList
+                        : [...this.data.historyList, ...historyList],
+                    hasMore: historyList.length >= 20,
                     loading: false
                 });
             } else {
                 this.setData({ loading: false });
             }
         } catch (error) {
-            console.error('加载日报列表失败:', error);
+            console.error('加载数据失败:', error);
             this.setData({ loading: false });
         }
     },
 
-    /**
-     * 格式化日期显示
-     */
     formatDateDisplay(dateStr: string): string {
         if (!dateStr) return '';
         const parts = dateStr.split('-');
         if (parts.length === 3) {
-            return `${parts[1]}月${parts[2]}日`;
+            return `${parseInt(parts[1])}/${parseInt(parts[2])}`;
         }
         return dateStr;
     },
 
-    /**
-     * 加载更多
-     */
     loadMore() {
         if (this.data.loading || !this.data.hasMore) return;
         this.setData({ page: this.data.page + 1 });
-        this.loadDailyList();
+        this.loadData();
     },
 
-    /**
-     * 编辑日报
-     */
-    editDaily(e: any) {
-        const item = e.currentTarget.dataset.item;
+    // ========== 打包操作 ==========
+    showPackPopup() {
+        const { todayData, todayDisplay } = this.data;
         this.setData({
-            showEdit: true,
-            editDate: item.date,
-            editData: {
-                acquisitionWeight: item.acquisitionWeight || 0,
-                packCount: item.packCount ? String(item.packCount) : '',
-                outboundWeight: item.outboundWeight ? String(item.outboundWeight) : '',
-                outboundCount: item.outboundCount ? String(item.outboundCount) : ''
-            }
+            showPack: true,
+            editDate: todayDisplay,
+            packCountInput: todayData.packCount ? String(todayData.packCount) : ''
         });
     },
 
-    /**
-     * 关闭编辑弹窗
-     */
-    closeEdit() {
-        this.setData({ showEdit: false });
+    closePackPopup() {
+        this.setData({ showPack: false });
     },
 
-    onEditPopupChange(e: any) {
-        this.setData({ showEdit: e.detail.visible });
+    onPackPopupChange(e: any) {
+        this.setData({ showPack: e.detail.visible });
     },
 
-    /**
-     * 输入处理
-     */
     onPackInput(e: any) {
-        this.setData({ 'editData.packCount': e.detail.value });
+        this.setData({ packCountInput: e.detail.value });
     },
 
-    onOutboundWeightInput(e: any) {
-        this.setData({ 'editData.outboundWeight': e.detail.value });
-    },
-
-    onOutboundCountInput(e: any) {
-        this.setData({ 'editData.outboundCount': e.detail.value });
-    },
-
-    /**
-     * 保存日报
-     */
-    async saveDaily() {
-        const { warehouseId, editDate, editData, saving } = this.data;
-
+    async savePack() {
+        const { warehouseId, today, packCountInput, saving } = this.data;
         if (saving) return;
 
         this.setData({ saving: true });
 
         try {
             const currentUser = app.globalData.currentUser;
-
             const res = await wx.cloud.callFunction({
                 name: 'warehouse-manage',
                 data: {
                     action: 'saveDaily',
                     userId: currentUser?.id || currentUser?._id,
                     warehouseId,
-                    date: editDate,
-                    packCount: parseInt(editData.packCount) || 0,
-                    outboundWeight: parseFloat(editData.outboundWeight) || 0,
-                    outboundCount: parseInt(editData.outboundCount) || 0
+                    date: today,
+                    packCount: parseInt(packCountInput) || 0
                 }
             });
 
             const result = res.result as any;
-
             this.setData({ saving: false });
 
             if (result.success) {
                 wx.showToast({ title: '保存成功', icon: 'success' });
-                this.closeEdit();
+                this.closePackPopup();
                 this.setData({ page: 1 });
-                this.loadDailyList();
+                this.loadData();
             } else {
                 wx.showToast({ title: result.message || '保存失败', icon: 'none' });
             }
         } catch (error) {
-            console.error('保存失败:', error);
             this.setData({ saving: false });
             wx.showToast({ title: '保存失败', icon: 'none' });
         }
     },
 
-    /**
-     * 下拉刷新
-     */
+    // ========== 出库操作 ==========
+    showOutboundPopup() {
+        const { todayData, todayDisplay } = this.data;
+        this.setData({
+            showOutbound: true,
+            editDate: todayDisplay,
+            outboundWeightInput: todayData.outboundWeight ? String(todayData.outboundWeight) : '',
+            outboundCountInput: todayData.outboundCount ? String(todayData.outboundCount) : ''
+        });
+    },
+
+    closeOutboundPopup() {
+        this.setData({ showOutbound: false });
+    },
+
+    onOutboundPopupChange(e: any) {
+        this.setData({ showOutbound: e.detail.visible });
+    },
+
+    onOutboundWeightInput(e: any) {
+        this.setData({ outboundWeightInput: e.detail.value });
+    },
+
+    onOutboundCountInput(e: any) {
+        this.setData({ outboundCountInput: e.detail.value });
+    },
+
+    async saveOutbound() {
+        const { warehouseId, today, outboundWeightInput, outboundCountInput, saving } = this.data;
+        if (saving) return;
+
+        this.setData({ saving: true });
+
+        try {
+            const currentUser = app.globalData.currentUser;
+            const res = await wx.cloud.callFunction({
+                name: 'warehouse-manage',
+                data: {
+                    action: 'saveDaily',
+                    userId: currentUser?.id || currentUser?._id,
+                    warehouseId,
+                    date: today,
+                    outboundWeight: parseFloat(outboundWeightInput) || 0,
+                    outboundCount: parseInt(outboundCountInput) || 0
+                }
+            });
+
+            const result = res.result as any;
+            this.setData({ saving: false });
+
+            if (result.success) {
+                wx.showToast({ title: '保存成功', icon: 'success' });
+                this.closeOutboundPopup();
+                this.setData({ page: 1 });
+                this.loadData();
+            } else {
+                wx.showToast({ title: result.message || '保存失败', icon: 'none' });
+            }
+        } catch (error) {
+            this.setData({ saving: false });
+            wx.showToast({ title: '保存失败', icon: 'none' });
+        }
+    },
+
+    // ========== 编辑历史记录 ==========
+    editHistory(e: any) {
+        const item = e.currentTarget.dataset.item;
+        // 暂时只允许编辑今日数据
+        wx.showToast({ title: '只能编辑今日数据', icon: 'none' });
+    },
+
     onPullDownRefresh() {
         this.setData({ page: 1 });
-        this.loadDailyList().then(() => {
+        this.loadData().then(() => {
             wx.stopPullDownRefresh();
         });
     }
