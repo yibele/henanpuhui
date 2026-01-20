@@ -1,17 +1,9 @@
 /**
  * 仓库看板页面
- * 今日看板（固定）+ 历史记录（有数据才显示）
+ * 今日收购(自动) + 打包/出库(手动)
  */
 
 const app = getApp<IAppOption>();
-
-// 格式化大数字（6位数以上显示为万）
-function formatLargeNumber(num: number): string {
-    if (Math.abs(num) >= 10000) {
-        return (num / 10000).toFixed(1) + '万';
-    }
-    return num.toFixed(0);
-}
 
 Page({
     data: {
@@ -22,35 +14,34 @@ Page({
 
         // 今日数据
         todayData: {
-            acquisitionWeight: 0,
-            packCount: 0,
-            inboundWeight: 0,  // 正数入库，负数出库
-            inboundCount: 0
+            acquisitionWeight: 0,  // 自动
+            packCount: 0,          // 手动
+            outWeight: 0,          // 手动
+            outCount: 0            // 手动
         },
 
         // 库存汇总
         totalStats: {
-            stockWeight: 0,
-            stockCount: 0,
+            stockWeight: 0,        // 累计收购 - 累计出库
+            stockCount: 0,         // 累计打包 - 累计出库包数
             totalAcquisition: 0,
             totalPack: 0,
             totalOutWeight: 0,
             totalOutCount: 0
         },
 
-        // 历史记录（只有数据的日期）
+        // 历史记录
         historyList: [] as any[],
         page: 1,
         hasMore: false,
         loading: false,
 
         // 弹窗
-        showPack: false,
-        showInbound: false,
+        showEdit: false,
         editDate: '',
         packCountInput: '',
-        inboundWeightInput: '',
-        inboundCountInput: '',
+        outWeightInput: '',
+        outCountInput: '',
         saving: false
     },
 
@@ -60,7 +51,6 @@ Page({
     },
 
     onShow() {
-        // 更新TabBar选中状态
         if (typeof this.getTabBar === 'function' && this.getTabBar()) {
             this.getTabBar().initTabBar();
         }
@@ -121,13 +111,11 @@ Page({
             if (result.success) {
                 const data = result.data;
 
-                // 格式化历史记录
                 const historyList = (data.historyList || []).map((item: any) => ({
                     ...item,
                     dateDisplay: this.formatDateDisplay(item.date)
                 }));
 
-                // 格式化累计数据
                 const stats = data.totalStats || {};
 
                 this.setData({
@@ -170,40 +158,40 @@ Page({
         this.loadData();
     },
 
-
-    showInboundPopup() {
+    // ========== 编辑弹窗 ==========
+    showEditPopup() {
         const { todayData, todayDisplay } = this.data;
         this.setData({
-            showInbound: true,
+            showEdit: true,
             editDate: todayDisplay,
             packCountInput: todayData.packCount ? String(todayData.packCount) : '',
-            inboundWeightInput: todayData.inboundWeight ? String(todayData.inboundWeight) : '',
-            inboundCountInput: todayData.inboundCount ? String(todayData.inboundCount) : ''
+            outWeightInput: todayData.outWeight ? String(todayData.outWeight) : '',
+            outCountInput: todayData.outCount ? String(todayData.outCount) : ''
         });
     },
 
-    closeInboundPopup() {
-        this.setData({ showInbound: false });
+    closeEditPopup() {
+        this.setData({ showEdit: false });
     },
 
-    onInboundPopupChange(e: any) {
-        this.setData({ showInbound: e.detail.visible });
+    onEditPopupChange(e: any) {
+        this.setData({ showEdit: e.detail.visible });
     },
 
     onPackInput(e: any) {
         this.setData({ packCountInput: e.detail.value });
     },
 
-    onInboundWeightInput(e: any) {
-        this.setData({ inboundWeightInput: e.detail.value });
+    onOutWeightInput(e: any) {
+        this.setData({ outWeightInput: e.detail.value });
     },
 
-    onInboundCountInput(e: any) {
-        this.setData({ inboundCountInput: e.detail.value });
+    onOutCountInput(e: any) {
+        this.setData({ outCountInput: e.detail.value });
     },
 
-    async saveInbound() {
-        const { warehouseId, today, packCountInput, inboundWeightInput, inboundCountInput, saving } = this.data;
+    async saveDaily() {
+        const { warehouseId, today, packCountInput, outWeightInput, outCountInput, saving } = this.data;
         if (saving) return;
 
         this.setData({ saving: true });
@@ -218,8 +206,8 @@ Page({
                     warehouseId,
                     date: today,
                     packCount: parseInt(packCountInput) || 0,
-                    inboundWeight: parseFloat(inboundWeightInput) || 0,
-                    inboundCount: parseInt(inboundCountInput) || 0
+                    outWeight: parseFloat(outWeightInput) || 0,
+                    outCount: parseInt(outCountInput) || 0
                 }
             });
 
@@ -228,7 +216,7 @@ Page({
 
             if (result.success) {
                 wx.showToast({ title: '保存成功', icon: 'success' });
-                this.closeInboundPopup();
+                this.closeEditPopup();
                 this.setData({ page: 1 });
                 this.loadData();
             } else {
@@ -238,11 +226,6 @@ Page({
             this.setData({ saving: false });
             wx.showToast({ title: '保存失败', icon: 'none' });
         }
-    },
-
-    // ========== 编辑历史记录 ==========
-    editHistory() {
-        wx.showToast({ title: '只能编辑今日数据', icon: 'none' });
     },
 
     onPullDownRefresh() {

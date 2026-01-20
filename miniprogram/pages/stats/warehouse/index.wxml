@@ -1,6 +1,5 @@
 <!--
   仓库看板页面
-  今日看板（固定）+ 历史记录（有数据才显示）
 -->
 <view class="page-container">
   <!-- 仓库名称 -->
@@ -12,15 +11,15 @@
   <view class="today-board">
     <view class="board-title">今日数据 · {{todayDisplay}}</view>
     
-    <!-- 今日统计 -->
+    <!-- 今日统计：收购(自动) + 打包(手动) -->
     <view class="today-row">
       <view class="today-col">
-        <text class="today-num">{{todayData.inboundWeight || 0}}<text class="unit">kg</text></text>
-        <text class="today-label">今日入库</text>
+        <text class="today-num">{{todayData.acquisitionWeight}}<text class="unit">kg</text></text>
+        <text class="today-label">今日收购</text>
       </view>
       <view class="today-col">
-        <text class="today-num">{{todayData.inboundCount || 0}}<text class="unit">包</text></text>
-        <text class="today-label">今日包数</text>
+        <text class="today-num">{{todayData.packCount || 0}}<text class="unit">包</text></text>
+        <text class="today-label">今日打包</text>
       </view>
     </view>
 
@@ -47,11 +46,11 @@
       </view>
     </view>
 
-    <!-- 操作按钮：只保留入库 -->
+    <!-- 操作按钮 -->
     <view class="action-buttons single">
-      <view class="action-btn primary" bindtap="showInboundPopup">
+      <view class="action-btn primary" bindtap="showEditPopup">
         <t-icon name="edit" size="36rpx" />
-        <text>填写今日入库</text>
+        <text>填写今日数据</text>
       </view>
     </view>
   </view>
@@ -73,19 +72,12 @@
           </view>
           <view class="data-cell">
             <text class="cell-label">打包</text>
-            <text class="cell-value {{item.packCount > 0 ? '' : 'empty'}}">
-              {{item.packCount || '-'}}包
-            </text>
+            <text class="cell-value">{{item.packCount || 0}}包</text>
           </view>
           <view class="data-cell">
-            <text class="cell-label">入库</text>
-          <text class="cell-value {{item.inboundWeight != 0 ? '' : 'empty'}}">
-            {{item.inboundWeight || '-'}}kg
-          </text>
+            <text class="cell-label">出库</text>
+            <text class="cell-value">{{item.outWeight || 0}}kg</text>
           </view>
-        </view>
-        <view class="edit-icon" catchtap="editHistory" data-item="{{item}}">
-          <t-icon name="edit" size="32rpx" color="#9ca3af" />
         </view>
       </view>
     </view>
@@ -105,16 +97,24 @@
   </view>
 </view>
 
-<!-- 打包弹窗 -->
-<t-popup visible="{{showPack}}" placement="bottom" bind:visible-change="onPackPopupChange">
+<!-- 编辑弹窗：打包 + 出库 -->
+<t-popup visible="{{showEdit}}" placement="bottom" bind:visible-change="onEditPopupChange">
   <view class="edit-popup">
     <view class="popup-header">
-      <text class="popup-title">填写打包数量</text>
-      <view class="popup-close" bindtap="closePackPopup">
+      <text class="popup-title">填写今日数据</text>
+      <view class="popup-close" bindtap="closeEditPopup">
         <t-icon name="close" size="40rpx" />
       </view>
     </view>
     <view class="popup-date">{{editDate}}</view>
+    
+    <!-- 今日收购（只读） -->
+    <view class="popup-info-row">
+      <text class="info-label">今日收购（自动）</text>
+      <text class="info-value">{{todayData.acquisitionWeight}} kg</text>
+    </view>
+    
+    <!-- 今日打包 -->
     <view class="popup-input-section">
       <text class="input-label">今日打包</text>
       <view class="input-wrap">
@@ -122,42 +122,25 @@
         <text class="input-unit">包</text>
       </view>
     </view>
-    <view class="popup-footer">
-      <t-button theme="primary" size="large" block bindtap="savePack" loading="{{saving}}">
-        保存
-      </t-button>
-    </view>
-  </view>
-</t-popup>
-
-<!-- 入库弹窗 -->
-<t-popup visible="{{showInbound}}" placement="bottom" bind:visible-change="onInboundPopupChange">
-  <view class="edit-popup">
-    <view class="popup-header">
-      <text class="popup-title">填写今日入库</text>
-      <view class="popup-close" bindtap="closeInboundPopup">
-        <t-icon name="close" size="40rpx" />
-      </view>
-    </view>
-    <view class="popup-date">{{editDate}}</view>
     
+    <!-- 今日出库 -->
     <view class="popup-input-section">
-      <text class="input-label">入库重量</text>
+      <text class="input-label">今日出库重量</text>
       <view class="input-wrap">
-        <input class="popup-input" type="digit" value="{{inboundWeightInput}}" bindinput="onInboundWeightInput" placeholder="请输入" />
+        <input class="popup-input" type="digit" value="{{outWeightInput}}" bindinput="onOutWeightInput" placeholder="请输入" />
         <text class="input-unit">kg</text>
       </view>
     </view>
     <view class="popup-input-section">
-      <text class="input-label">入库包数</text>
+      <text class="input-label">今日出库包数</text>
       <view class="input-wrap">
-        <input class="popup-input" type="number" value="{{inboundCountInput}}" bindinput="onInboundCountInput" placeholder="请输入" />
+        <input class="popup-input" type="number" value="{{outCountInput}}" bindinput="onOutCountInput" placeholder="请输入" />
         <text class="input-unit">包</text>
       </view>
     </view>
     
     <view class="popup-footer">
-      <t-button theme="primary" size="large" block bindtap="saveInbound" loading="{{saving}}">
+      <t-button theme="primary" size="large" block bindtap="saveDaily" loading="{{saving}}">
         保存
       </t-button>
     </view>
