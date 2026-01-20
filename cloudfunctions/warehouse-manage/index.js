@@ -204,7 +204,7 @@ async function getDailyList(event) {
  * 保存仓库日报
  */
 async function saveDaily(event) {
-    const { userId, warehouseId, date, packCount, outboundWeight, outboundCount } = event;
+    const { userId, warehouseId, date, packCount, inboundWeight, inboundCount } = event;
 
     if (!warehouseId || !date) {
         return {
@@ -237,18 +237,26 @@ async function saveDaily(event) {
             console.log('warehouse_daily集合可能不存在');
         }
 
+        // 构建更新数据（只更新传入的字段）
+        const updateData = {
+            updateTime: db.serverDate()
+        };
+
+        if (packCount !== undefined) {
+            updateData.packCount = packCount || 0;
+        }
+        if (inboundWeight !== undefined) {
+            updateData.inboundWeight = inboundWeight || 0;
+        }
+        if (inboundCount !== undefined) {
+            updateData.inboundCount = inboundCount || 0;
+        }
+
         if (existRes.data.length > 0) {
             // 更新
             await db.collection('warehouse_daily')
                 .doc(existRes.data[0]._id)
-                .update({
-                    data: {
-                        packCount: packCount || 0,
-                        outboundWeight: outboundWeight || 0,
-                        outboundCount: outboundCount || 0,
-                        updateTime: db.serverDate()
-                    }
-                });
+                .update({ data: updateData });
         } else {
             // 新增
             await db.collection('warehouse_daily').add({
@@ -256,8 +264,8 @@ async function saveDaily(event) {
                     warehouseId,
                     date,
                     packCount: packCount || 0,
-                    outboundWeight: outboundWeight || 0,
-                    outboundCount: outboundCount || 0,
+                    inboundWeight: inboundWeight || 0,
+                    inboundCount: inboundCount || 0,
                     createTime: db.serverDate(),
                     updateTime: db.serverDate()
                 }
@@ -356,14 +364,14 @@ async function getDashboard(event) {
         }
 
         let totalPack = 0;
-        let totalOutboundWeight = 0;
-        let totalOutboundCount = 0;
+        let totalInboundWeight = 0;
+        let totalInboundCount = 0;
         const dailyByDate = {};
 
         allDaily.data.forEach(d => {
             totalPack += d.packCount || 0;
-            totalOutboundWeight += d.outboundWeight || 0;
-            totalOutboundCount += d.outboundCount || 0;
+            totalInboundWeight += d.inboundWeight || 0;
+            totalInboundCount += d.inboundCount || 0;
             dailyByDate[d.date] = d;
         });
 
@@ -388,8 +396,8 @@ async function getDashboard(event) {
                 date,
                 acquisitionWeight: Number((acquisitionByDate[date] || 0).toFixed(2)),
                 packCount: daily.packCount || 0,
-                outboundWeight: daily.outboundWeight || 0,
-                outboundCount: daily.outboundCount || 0
+                inboundWeight: daily.inboundWeight || 0,
+                inboundCount: daily.inboundCount || 0
             };
         });
 
@@ -399,15 +407,15 @@ async function getDashboard(event) {
                 todayData: {
                     acquisitionWeight: Number(todayAcquisitionWeight.toFixed(2)),
                     packCount: todayDaily?.packCount || 0,
-                    outboundWeight: todayDaily?.outboundWeight || 0,
-                    outboundCount: todayDaily?.outboundCount || 0
+                    inboundWeight: todayDaily?.inboundWeight || 0,
+                    inboundCount: todayDaily?.inboundCount || 0
                 },
                 totalStats: {
-                    stockWeight: Number((totalAcquisition - totalOutboundWeight).toFixed(2)),
-                    stockCount: totalPack - totalOutboundCount,
+                    stockWeight: Number((totalAcquisition - totalInboundWeight).toFixed(2)),
+                    stockCount: totalPack - totalInboundCount,
                     totalAcquisition: Number(totalAcquisition.toFixed(2)),
                     totalPack,
-                    totalOutbound: Number(totalOutboundWeight.toFixed(2))
+                    totalInbound: Number(totalInboundWeight.toFixed(2))
                 },
                 historyList
             }

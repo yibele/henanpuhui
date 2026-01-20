@@ -5,6 +5,14 @@
 
 const app = getApp<IAppOption>();
 
+// 格式化大数字（6位数以上显示为万）
+function formatLargeNumber(num: number): string {
+    if (Math.abs(num) >= 10000) {
+        return (num / 10000).toFixed(1) + '万';
+    }
+    return num.toFixed(0);
+}
+
 Page({
     data: {
         warehouseName: '',
@@ -16,17 +24,17 @@ Page({
         todayData: {
             acquisitionWeight: 0,
             packCount: 0,
-            outboundWeight: 0,
-            outboundCount: 0
+            inboundWeight: 0,  // 正数入库，负数出库
+            inboundCount: 0
         },
 
-        // 库存汇总
+        // 库存汇总（格式化后的字符串）
         totalStats: {
             stockWeight: 0,
             stockCount: 0,
-            totalAcquisition: 0,
-            totalPack: 0,
-            totalOutbound: 0
+            totalAcquisition: '',
+            totalPack: '',
+            totalInbound: ''
         },
 
         // 历史记录（只有数据的日期）
@@ -37,11 +45,11 @@ Page({
 
         // 弹窗
         showPack: false,
-        showOutbound: false,
+        showInbound: false,
         editDate: '',
         packCountInput: '',
-        outboundWeightInput: '',
-        outboundCountInput: '',
+        inboundWeightInput: '',
+        inboundCountInput: '',
         saving: false
     },
 
@@ -112,15 +120,24 @@ Page({
             if (result.success) {
                 const data = result.data;
 
-                // 格式化历史记录日期显示
+                // 格式化历史记录
                 const historyList = (data.historyList || []).map((item: any) => ({
                     ...item,
                     dateDisplay: this.formatDateDisplay(item.date)
                 }));
 
+                // 格式化累计数据
+                const stats = data.totalStats || {};
+
                 this.setData({
                     todayData: data.todayData || this.data.todayData,
-                    totalStats: data.totalStats || this.data.totalStats,
+                    totalStats: {
+                        stockWeight: stats.stockWeight || 0,
+                        stockCount: stats.stockCount || 0,
+                        totalAcquisition: formatLargeNumber(stats.totalAcquisition || 0) + 'kg',
+                        totalPack: formatLargeNumber(stats.totalPack || 0) + '包',
+                        totalInbound: formatLargeNumber(stats.totalInbound || 0) + 'kg'
+                    },
                     historyList: this.data.page === 1
                         ? historyList
                         : [...this.data.historyList, ...historyList],
@@ -209,35 +226,35 @@ Page({
         }
     },
 
-    // ========== 出库操作 ==========
-    showOutboundPopup() {
+    // ========== 入库操作 ==========
+    showInboundPopup() {
         const { todayData, todayDisplay } = this.data;
         this.setData({
-            showOutbound: true,
+            showInbound: true,
             editDate: todayDisplay,
-            outboundWeightInput: todayData.outboundWeight ? String(todayData.outboundWeight) : '',
-            outboundCountInput: todayData.outboundCount ? String(todayData.outboundCount) : ''
+            inboundWeightInput: todayData.inboundWeight ? String(todayData.inboundWeight) : '',
+            inboundCountInput: todayData.inboundCount ? String(todayData.inboundCount) : ''
         });
     },
 
-    closeOutboundPopup() {
-        this.setData({ showOutbound: false });
+    closeInboundPopup() {
+        this.setData({ showInbound: false });
     },
 
-    onOutboundPopupChange(e: any) {
-        this.setData({ showOutbound: e.detail.visible });
+    onInboundPopupChange(e: any) {
+        this.setData({ showInbound: e.detail.visible });
     },
 
-    onOutboundWeightInput(e: any) {
-        this.setData({ outboundWeightInput: e.detail.value });
+    onInboundWeightInput(e: any) {
+        this.setData({ inboundWeightInput: e.detail.value });
     },
 
-    onOutboundCountInput(e: any) {
-        this.setData({ outboundCountInput: e.detail.value });
+    onInboundCountInput(e: any) {
+        this.setData({ inboundCountInput: e.detail.value });
     },
 
-    async saveOutbound() {
-        const { warehouseId, today, outboundWeightInput, outboundCountInput, saving } = this.data;
+    async saveInbound() {
+        const { warehouseId, today, inboundWeightInput, inboundCountInput, saving } = this.data;
         if (saving) return;
 
         this.setData({ saving: true });
@@ -251,8 +268,8 @@ Page({
                     userId: currentUser?.id || currentUser?._id,
                     warehouseId,
                     date: today,
-                    outboundWeight: parseFloat(outboundWeightInput) || 0,
-                    outboundCount: parseInt(outboundCountInput) || 0
+                    inboundWeight: parseFloat(inboundWeightInput) || 0,
+                    inboundCount: parseInt(inboundCountInput) || 0
                 }
             });
 
@@ -261,7 +278,7 @@ Page({
 
             if (result.success) {
                 wx.showToast({ title: '保存成功', icon: 'success' });
-                this.closeOutboundPopup();
+                this.closeInboundPopup();
                 this.setData({ page: 1 });
                 this.loadData();
             } else {
@@ -274,9 +291,7 @@ Page({
     },
 
     // ========== 编辑历史记录 ==========
-    editHistory(e: any) {
-        const item = e.currentTarget.dataset.item;
-        // 暂时只允许编辑今日数据
+    editHistory() {
         wx.showToast({ title: '只能编辑今日数据', icon: 'none' });
     },
 
