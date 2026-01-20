@@ -168,70 +168,13 @@ Page({
         this.loadData();
     },
 
-    // ========== 打包操作 ==========
-    showPackPopup() {
-        const { todayData, todayDisplay } = this.data;
-        this.setData({
-            showPack: true,
-            editDate: todayDisplay,
-            packCountInput: todayData.packCount ? String(todayData.packCount) : ''
-        });
-    },
 
-    closePackPopup() {
-        this.setData({ showPack: false });
-    },
-
-    onPackPopupChange(e: any) {
-        this.setData({ showPack: e.detail.visible });
-    },
-
-    onPackInput(e: any) {
-        this.setData({ packCountInput: e.detail.value });
-    },
-
-    async savePack() {
-        const { warehouseId, today, packCountInput, saving } = this.data;
-        if (saving) return;
-
-        this.setData({ saving: true });
-
-        try {
-            const currentUser = app.globalData.currentUser;
-            const res = await wx.cloud.callFunction({
-                name: 'warehouse-manage',
-                data: {
-                    action: 'saveDaily',
-                    userId: currentUser?.id || currentUser?._id,
-                    warehouseId,
-                    date: today,
-                    packCount: parseInt(packCountInput) || 0
-                }
-            });
-
-            const result = res.result as any;
-            this.setData({ saving: false });
-
-            if (result.success) {
-                wx.showToast({ title: '保存成功', icon: 'success' });
-                this.closePackPopup();
-                this.setData({ page: 1 });
-                this.loadData();
-            } else {
-                wx.showToast({ title: result.message || '保存失败', icon: 'none' });
-            }
-        } catch (error) {
-            this.setData({ saving: false });
-            wx.showToast({ title: '保存失败', icon: 'none' });
-        }
-    },
-
-    // ========== 入库操作 ==========
     showInboundPopup() {
         const { todayData, todayDisplay } = this.data;
         this.setData({
             showInbound: true,
             editDate: todayDisplay,
+            packCountInput: todayData.packCount ? String(todayData.packCount) : '',
             inboundWeightInput: todayData.inboundWeight ? String(todayData.inboundWeight) : '',
             inboundCountInput: todayData.inboundCount ? String(todayData.inboundCount) : ''
         });
@@ -245,6 +188,10 @@ Page({
         this.setData({ showInbound: e.detail.visible });
     },
 
+    onPackInput(e: any) {
+        this.setData({ packCountInput: e.detail.value });
+    },
+
     onInboundWeightInput(e: any) {
         this.setData({ inboundWeightInput: e.detail.value });
     },
@@ -254,7 +201,7 @@ Page({
     },
 
     async saveInbound() {
-        const { warehouseId, today, inboundWeightInput, inboundCountInput, saving } = this.data;
+        const { warehouseId, today, packCountInput, inboundWeightInput, inboundCountInput, saving } = this.data;
         if (saving) return;
 
         this.setData({ saving: true });
@@ -268,6 +215,7 @@ Page({
                     userId: currentUser?.id || currentUser?._id,
                     warehouseId,
                     date: today,
+                    packCount: parseInt(packCountInput) || 0,
                     inboundWeight: parseFloat(inboundWeightInput) || 0,
                     inboundCount: parseInt(inboundCountInput) || 0
                 }
