@@ -497,6 +497,9 @@ Page({
   },
 
   onCancel() {
-    wx.navigateBack();
+    // 由于页面通过reLaunch进入，没有历史可返回，使用switchTab返回首页
+    wx.switchTab({
+      url: '/pages/index/index'
+    });
   }
 });
