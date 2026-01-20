@@ -37,15 +37,14 @@
 /* 今日统计 */
 .today-stats {
   display: flex;
-  justify-content: center;
-  gap: 80rpx;
+  justify-content: space-around;
   padding: 16rpx 0;
   border-bottom: 1rpx solid #f3f4f6;
 }
 
 .stat-item {
-  flex: 1;
   text-align: center;
+  min-width: 200rpx;
 }
 
 .stat-num {
@@ -53,6 +52,7 @@
   font-size: 40rpx;
   font-weight: 700;
   color: #111827;
+  line-height: 1.2;
 }
 
 .stat-num.empty {
