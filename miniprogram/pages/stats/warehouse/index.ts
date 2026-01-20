@@ -177,6 +177,18 @@ Page({
         }
     },
 
+    /**
+   * 跳转到收购记录详情页
+   */
+    goToDetail() {
+        const { myWarehouse } = this.data;
+        if (myWarehouse) {
+            wx.navigateTo({
+                url: `/pages/stats/warehouse-detail/index?id=${myWarehouse._id}&name=${myWarehouse.name}`
+            });
+        }
+    },
+
     onPullDownRefresh() {
         this.loadWarehouses().then(() => {
             wx.stopPullDownRefresh();

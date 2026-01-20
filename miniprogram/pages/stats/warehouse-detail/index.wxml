@@ -1,87 +1,37 @@
 <!--
-  仓库详情页面
-  显示单个仓库的收苗明细记录
+  仓库收购明细页面
+  显示单个仓库的收购记录（只读）
 -->
 <view class="page-container">
-  <!-- 仓库概览卡片 -->
-  <view class="warehouse-overview">
-    <view class="overview-header">
-      <view class="warehouse-icon">
-        <t-icon name="location" size="48rpx" color="#ffffff" />
-      </view>
-      <view class="warehouse-info">
-        <view class="warehouse-title-row">
-          <text class="warehouse-name">{{warehouseName}}</text>
-          <text class="warehouse-type-tag">{{warehouseType}}</text>
-        </view>
-        <text class="warehouse-desc">数据更新至 {{updateTime}}</text>
-      </view>
+  <!-- 仓库标题 -->
+  <view class="page-header">
+    <text class="page-title">{{warehouseName}}</text>
+    <text class="page-subtitle">更新于 {{updateTime}}</text>
+  </view>
+
+  <!-- Tab切换 -->
+  <view class="tab-bar">
+    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
+      <text>今日记录</text>
     </view>
-    
-    <!-- 容量使用情况 -->
-    <view class="capacity-section">
-      <view class="capacity-header">
-        <text class="capacity-title">仓库容量</text>
-        <view class="capacity-status status-{{capacityInfo.status}}">
-          <text wx:if="{{capacityInfo.status === 'full'}}">即将满仓</text>
-          <text wx:elif="{{capacityInfo.status === 'warning'}}">库存较高</text>
-          <text wx:else>正常</text>
-        </view>
-      </view>
-      <view class="capacity-progress-wrap">
-        <view class="capacity-progress-bar" style="width: {{capacityInfo.usagePercent}}%;"></view>
-      </view>
-      <view class="capacity-detail">
-        <view class="capacity-item">
-          <text class="capacity-label">当前库存</text>
-          <text class="capacity-value">{{capacityInfo.currentStock}}</text>
-        </view>
-        <view class="capacity-item">
-          <text class="capacity-label">总容量</text>
-          <text class="capacity-value">{{capacityInfo.capacity}}</text>
-        </view>
-        <view class="capacity-item">
-          <text class="capacity-label">剩余容量</text>
-          <text class="capacity-value available">{{capacityInfo.available}}</text>
-        </view>
-        <view class="capacity-item">
-          <text class="capacity-label">使用率</text>
-          <text class="capacity-value {{capacityInfo.status === 'full' ? 'danger' : capacityInfo.status === 'warning' ? 'warning' : ''}}">{{capacityInfo.usagePercent}}%</text>
-        </view>
-      </view>
-    </view>
-    
-    <!-- 核心统计：收购总重量、总金额、单价、交苗农户 -->
-    <view class="overview-stats">
-      <view class="stat-item">
-        <text class="stat-value">{{summary.totalWeight}}</text>
-        <text class="stat-label">收购总重量</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value highlight">{{summary.totalAmount}}</text>
-        <text class="stat-label">总金额</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value">{{summary.avgPrice}}</text>
-        <text class="stat-label">单价</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value">{{summary.farmerCount}}</text>
-        <text class="stat-label">交苗农户</text>
-      </view>
+    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-tab="1">
+      <text>全部记录</text>
     </view>
   </view>
 
-  <!-- Tab 切换：今日/全部 -->
-  <view class="tab-bar">
-    <view class="tab-item {{currentTab === 0 ? 'active' : ''}}" bindtap="switchTab" data-tab="0">
-      <text>今日收苗</text>
+  <!-- 汇总信息 -->
+  <view class="summary-bar">
+    <view class="summary-item">
+      <text class="summary-num">{{summary.count}}</text>
+      <text class="summary-label">笔</text>
     </view>
-    <view class="tab-item {{currentTab === 1 ? 'active' : ''}}" bindtap="switchTab" data-tab="1">
-      <text>累计明细</text>
+    <view class="summary-item">
+      <text class="summary-num highlight">{{summary.totalWeight}}</text>
+      <text class="summary-label">kg</text>
+    </view>
+    <view class="summary-item">
+      <text class="summary-num">¥{{summary.totalAmount}}</text>
+      <text class="summary-label">元</text>
     </view>
   </view>
 
@@ -105,44 +55,30 @@
     </view>
   </view>
 
-  <!-- 收苗记录列表 -->
-  <view class="section-title">
-    <text>收苗记录</text>
-    <text class="record-count">共 {{filteredList.length}} 条</text>
-  </view>
-
+  <!-- 记录列表 -->
   <view class="record-list">
-    <view class="record-item" wx:for="{{displayList}}" wx:key="id">
+    <view class="record-item" wx:for="{{list}}" wx:key="acquisitionId">
       <view class="record-header">
-        <view class="farmer-info">
-          <text class="farmer-name">{{item.farmerName}}</text>
-          <text class="farmer-phone">{{item.phone}}</text>
-        </view>
-        <view class="record-status status-{{item.paymentStatus}}">
-          <text>{{item.paymentStatusText}}</text>
-        </view>
+        <text class="farmer-name">{{item.farmerName}}</text>
+        <text class="record-date">{{item.acquisitionDate}}</text>
       </view>
-      
       <view class="record-body">
         <view class="record-detail">
-          <view class="detail-row">
-            <text class="detail-label">重量</text>
-            <text class="detail-value">{{item.weight}}kg</text>
-          </view>
-          <view class="detail-row">
-            <text class="detail-label">单价</text>
-            <text class="detail-value">{{item.price}}元/kg</text>
-          </view>
-          <view class="detail-row">
-            <text class="detail-label">金额</text>
-            <text class="detail-value amount">¥{{item.amount}}</text>
-          </view>
+          <text class="detail-label">净重</text>
+          <text class="detail-value">{{item.netWeight || item.weight}}kg</text>
+        </view>
+        <view class="record-detail">
+          <text class="detail-label">单价</text>
+          <text class="detail-value">{{item.unitPrice}}元/kg</text>
+        </view>
+        <view class="record-detail">
+          <text class="detail-label">金额</text>
+          <text class="detail-value amount">¥{{item.totalAmount}}</text>
         </view>
       </view>
-      
       <view class="record-footer">
-        <text class="record-date">{{item.date}} {{item.time}}</text>
-        <text class="record-operator">录入人：{{item.operator}}</text>
+        <text class="farmer-phone">{{item.farmerPhone}}</text>
+        <text class="record-operator">{{item.createBy}}</text>
       </view>
     </view>
 
@@ -152,13 +88,9 @@
     </view>
 
     <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{filteredList.length === 0 && !loading}}">
+    <view class="empty-state" wx:if="{{list.length === 0 && !loading}}">
       <t-icon name="info-circle" size="80rpx" color="#d1d5db" />
-      <text class="empty-text">{{searchKeyword ? '未找到匹配的记录' : '暂无收苗记录'}}</text>
+      <text class="empty-text">暂无收购记录</text>
     </view>
   </view>
-
-  <!-- 底部安全区 -->
-  <view class="safe-bottom"></view>
 </view>
-
