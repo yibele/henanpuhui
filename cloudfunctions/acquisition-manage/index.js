@@ -576,16 +576,94 @@ async function updateAcquisition(event, context) {
         data: updates
       });
 
-    // 更新结算单状态为待审核
-    await db.collection('settlements')
-      .where({ acquisitionId })
-      .update({
-        data: {
+    // ==========================================
+    // 修复逻辑：同步更新结算单和统计数据
+    // ==========================================
+
+    // 1. 计算差额
+    const oldNetWeight = acquisition.netWeight || 0;
+    const oldTotalAmount = acquisition.totalAmount || 0;
+    const newNetWeight = updateData.netWeight !== undefined ? updateData.netWeight : oldNetWeight;
+    const newTotalAmount = updateData.totalAmount !== undefined ? updateData.totalAmount : oldTotalAmount;
+
+    const diffWeight = Number((newNetWeight - oldNetWeight).toFixed(2));
+    const diffAmount = Number((newTotalAmount - oldTotalAmount).toFixed(2));
+
+    if (diffWeight !== 0 || diffAmount !== 0) {
+      // 2. 同步更新结算单
+      const settlementRes = await db.collection('settlements')
+        .where({ acquisitionId })
+        .get();
+
+      if (settlementRes.data.length > 0) {
+        const settlement = settlementRes.data[0];
+        // 重新计算应付金额（保持原有的扣款项）
+        const newActualPayment = Number((newTotalAmount - (settlement.seedDebt || 0) - (settlement.otherDeductions || 0)).toFixed(2));
+
+        const settlementUpdates = {
+          netWeight: newNetWeight,
+          grossAmount: newTotalAmount,
+          unitPrice: updateData.unitPrice !== undefined ? updateData.unitPrice : settlement.unitPrice,
+          actualPayment: newActualPayment,
           status: 'pending_audit',
           auditStatus: 'pending',
           updateTime: db.serverDate()
+        };
+
+        await db.collection('settlements')
+          .doc(settlement._id)
+          .update({
+            data: settlementUpdates
+          });
+      }
+
+      // 3. 更新农户统计
+      if (acquisition.farmerId) {
+        await db.collection('farmers')
+          .where({ farmerId: acquisition.farmerId })
+          .update({
+            data: {
+              'stats.totalAcquisitionWeight': _.inc(diffWeight),
+              'stats.totalAcquisitionAmount': _.inc(diffAmount),
+              updateTime: db.serverDate()
+            }
+          });
+      }
+
+      // 4. 更新仓库统计
+      if (acquisition.warehouseId) {
+        const warehouseUpdates = {
+          'stats.totalAcquisitionWeight': _.inc(diffWeight),
+          'stats.totalAcquisitionAmount': _.inc(diffAmount),
+          'stats.currentStock': _.inc(diffWeight),
+          updateTime: db.serverDate()
+        };
+
+        // 如果是今天的记录，同时更新今日统计
+        const todayStr = formatDate(new Date());
+        if (acquisition.acquisitionDate === todayStr) {
+          warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(diffWeight);
+          warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(diffAmount);
         }
-      });
+
+        await db.collection('warehouses')
+          .where({ _id: acquisition.warehouseId })
+          .update({
+            data: warehouseUpdates
+          });
+      }
+    } else {
+      // 如果金额没变，只更新结算单状态
+      await db.collection('settlements')
+        .where({ acquisitionId })
+        .update({
+          data: {
+            status: 'pending_audit',
+            auditStatus: 'pending',
+            updateTime: db.serverDate()
+          }
+        });
+    }
 
     // 记录操作日志
     await db.collection('operation_logs').add({
@@ -822,6 +900,51 @@ async function deleteAcquisition(event) {
           updateTime: db.serverDate()
         }
       });
+
+    // ==========================================
+    // 修复逻辑：回滚农户和仓库的统计数据
+    // ==========================================
+    const netWeight = acquisition.netWeight || 0;
+    const totalAmount = acquisition.totalAmount || 0;
+
+    // 1. 回滚农户统计
+    if (acquisition.farmerId && netWeight > 0) {
+      await db.collection('farmers')
+        .where({ farmerId: acquisition.farmerId })
+        .update({
+          data: {
+            'stats.totalAcquisitionCount': _.inc(-1),
+            'stats.totalAcquisitionWeight': _.inc(-netWeight),
+            'stats.totalAcquisitionAmount': _.inc(-totalAmount),
+            updateTime: db.serverDate()
+          }
+        });
+    }
+
+    // 2. 回滚仓库统计
+    if (acquisition.warehouseId && netWeight > 0) {
+      const warehouseUpdates = {
+        'stats.totalAcquisitionCount': _.inc(-1),
+        'stats.totalAcquisitionWeight': _.inc(-netWeight),
+        'stats.totalAcquisitionAmount': _.inc(-totalAmount),
+        'stats.currentStock': _.inc(-netWeight),
+        updateTime: db.serverDate()
+      };
+
+      // 如果是今天的记录，同时回滚今日统计
+      const todayStr = formatDate(new Date());
+      if (acquisition.acquisitionDate === todayStr) {
+        warehouseUpdates['stats.todayAcquisitionCount'] = _.inc(-1);
+        warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(-netWeight);
+        warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(-totalAmount);
+      }
+
+      await db.collection('warehouses')
+        .where({ _id: acquisition.warehouseId })
+        .update({
+          data: warehouseUpdates
+        });
+    }
 
     return {
       success: true,
