@@ -400,6 +400,7 @@ async function getAcquisition(event) {
 async function listAcquisitions(event, context) {
   const { OPENID } = cloud.getWXContext();
   const {
+    userId,
     page = 1,
     pageSize = 20,
     warehouseId = '',
@@ -410,10 +411,20 @@ async function listAcquisitions(event, context) {
   } = event;
 
   try {
-    // 获取当前用户信息
-    const userRes = await db.collection('users')
-      .where({ _openid: OPENID })
-      .get();
+    // 获取当前用户信息（优先使用userId，否则用_openid）
+    let userRes;
+    if (userId) {
+      userRes = await db.collection('users').doc(userId).get();
+      if (!userRes.data) {
+        userRes = { data: [] };
+      } else {
+        userRes = { data: [userRes.data] };
+      }
+    } else {
+      userRes = await db.collection('users')
+        .where({ _openid: OPENID })
+        .get();
+    }
 
     if (userRes.data.length === 0) {
       return {
