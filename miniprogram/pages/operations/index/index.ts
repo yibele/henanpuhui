@@ -51,6 +51,9 @@ Page({
     },
     // 种苗发放记录
     seedRecords: [] as any[],
+    // 分页状态
+    currentPage: 1,
+    hasMore: true,
     // 加载状态
     loading: true
   },
@@ -195,73 +198,24 @@ Page({
       const userInfo = globalData.currentUser || {};
       const userId = userInfo.id || userInfo._id || '';
 
-      // 1. 获取农户列表
-      const farmerRes = await wx.cloud.callFunction({
+      // 1. 获取农户状态统计（服务端计算）
+      const statsRes = await wx.cloud.callFunction({
         name: 'farmer-manage',
         data: {
-          action: 'list',
-          userId,
-          page: 1,
-          pageSize: 1000
-        }
-      });
-
-      const farmerResult = farmerRes.result as any;
-      if (!farmerResult.success || !farmerResult.data) {
-        this.setData({ loading: false });
-        return;
-      }
-
-      // 2. 获取发苗统计
-      const statsRes = await wx.cloud.callFunction({
-        name: 'seed-manage',
-        data: {
-          action: 'getDistributionStats'
+          action: 'getStatusStats',
+          userId
         }
       });
 
       const statsResult = statsRes.result as any;
-      const seedStatsMap = statsResult.success ? statsResult.data : {};
+      if (statsResult.success && statsResult.data) {
+        this.setData({
+          farmerStatusStats: statsResult.data
+        });
+      }
 
-      // 3. 格式化农户数据
-      const rawFarmers = farmerResult.data.list || [];
-      const farmers = rawFarmers.map((f: any) => {
-        const farmerSeedStats = seedStatsMap[f._id];
-        const seedDistributionComplete = f.seedDistributionComplete || false;
-
-        let seedStatus = 'pending';
-        let distributedQuantity = 0;
-
-        if (seedDistributionComplete) {
-          seedStatus = 'completed';
-        } else if (farmerSeedStats && farmerSeedStats.recordCount > 0) {
-          seedStatus = 'inProgress';
-          distributedQuantity = farmerSeedStats.totalQuantity / 10000;  // 转万株
-        }
-
-        return {
-          id: f._id,
-          name: f.name,
-          phone: f.phone,
-          acreage: f.acreage || 0,
-          seedTotal: f.seedTotal || 0,
-          seedStatus,
-          seedDistributionComplete,
-          distributedQuantity,
-          recordCount: farmerSeedStats?.recordCount || 0
-        };
-      });
-
-      // 4. 计算状态统计
-      const farmerStatusStats = {
-        all: farmers.length,
-        pending: farmers.filter((f: any) => f.seedStatus === 'pending').length,
-        inProgress: farmers.filter((f: any) => f.seedStatus === 'inProgress').length,
-        completed: farmers.filter((f: any) => f.seedStatus === 'completed').length
-      };
-
-      this.setData({ farmers, farmerStatusStats, loading: false });
-      this.filterFarmers();
+      // 2. 加载当前筛选的农户列表（分页）
+      await this.loadFarmerList(1, false);
 
       if (forceRefresh) {
         wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
@@ -273,17 +227,80 @@ Page({
   },
 
   /**
-   * 筛选农户
+   * 加载农户列表（分页，服务端筛选）
    */
-  filterFarmers() {
-    const { farmers, farmerStatusFilter } = this.data;
-    let filtered = [...farmers];
+  async loadFarmerList(page: number = 1, append: boolean = false) {
+    const globalData = (app.globalData as any) || {};
+    const userInfo = globalData.currentUser || {};
+    const userId = userInfo.id || userInfo._id || '';
+    const { farmerStatusFilter } = this.data;
 
-    if (farmerStatusFilter !== 'all') {
-      filtered = filtered.filter(f => f.seedStatus === farmerStatusFilter);
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'list',
+          userId,
+          page,
+          pageSize: 20,
+          seedStatus: farmerStatusFilter === 'all' ? '' : farmerStatusFilter
+        }
+      });
+
+      const result = res.result as any;
+      if (result.success && result.data) {
+        const rawFarmers = result.data.list || [];
+
+        // 格式化农户数据
+        const newFarmers = rawFarmers.map((f: any) => ({
+          id: f._id,
+          name: f.name,
+          phone: f.phone,
+          acreage: f.acreage || 0,
+          seedTotal: f.seedTotal || 0,
+          seedStatus: f.seedDistributionComplete
+            ? 'completed'
+            : (f.stats?.seedDistributionCount > 0 ? 'inProgress' : 'pending'),
+          seedDistributionComplete: f.seedDistributionComplete || false,
+          distributedQuantity: f.stats?.totalSeedDistributed || 0,
+          recordCount: f.stats?.seedDistributionCount || 0
+        }));
+
+        if (append) {
+          // 追加模式（下拉加载更多）
+          const currentFarmers = this.data.filteredFarmers;
+          this.setData({
+            filteredFarmers: [...currentFarmers, ...newFarmers],
+            currentPage: page,
+            hasMore: newFarmers.length >= 20,
+            loading: false
+          });
+        } else {
+          // 替换模式（首次加载或切换筛选）
+          this.setData({
+            filteredFarmers: newFarmers,
+            currentPage: page,
+            hasMore: newFarmers.length >= 20,
+            loading: false
+          });
+        }
+      } else {
+        this.setData({ loading: false });
+      }
+    } catch (error) {
+      console.error('加载农户列表失败:', error);
+      this.setData({ loading: false });
     }
+  },
 
-    this.setData({ filteredFarmers: filtered });
+  /**
+   * 下拉到底加载更多
+   */
+  onReachBottom() {
+    const { hasMore, loading, currentPage, viewMode } = this.data;
+    if (viewMode === 'farmers' && hasMore && !loading) {
+      this.loadFarmerList((currentPage || 1) + 1, true);
+    }
   },
 
   /**
@@ -292,7 +309,21 @@ Page({
   onStatusFilterChange(e: WechatMiniprogram.TouchEvent) {
     const status = e.currentTarget.dataset.status;
     this.setData({ farmerStatusFilter: status });
-    this.filterFarmers();
+    // 重新从服务端加载
+    this.loadFarmerList(1, false);
+  },
+
+  /**
+   * 切换视图模式
+   */
+  onViewModeChange(e: WechatMiniprogram.TouchEvent) {
+    const mode = e.currentTarget.dataset.mode;
+    this.setData({ viewMode: mode });
+
+    // 切换到记录视图时加载记录数据
+    if (mode === 'records' && this.data.seedRecords.length === 0) {
+      this.loadData(false);
+    }
   },
 
   /**
@@ -303,6 +334,63 @@ Page({
     wx.navigateTo({
       url: `/pages/operations/seed-add/index?farmerId=${farmer.id}`
     });
+  },
+
+  /**
+   * 标记农户发苗完成
+   */
+  async onMarkComplete(e: WechatMiniprogram.TouchEvent) {
+    const farmer = e.currentTarget.dataset.farmer;
+
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '标记发苗完成',
+        content: `确认将"${farmer.name}"的发苗工作标记为已完成？\n\n标记后将不再向该农户发放种苗。`,
+        confirmText: '确认完成',
+        cancelText: '取消',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+
+    if (!confirmed) return;
+
+    wx.showLoading({ title: '处理中...' });
+
+    try {
+      const userInfo = (app.globalData as any)?.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+      const userName = userInfo.name || '系统';
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'update',
+          userId,
+          farmerId: farmer.id,
+          data: {
+            seedDistributionComplete: true,
+            seedDistributionCompleteTime: new Date(),
+            seedDistributionCompleteBy: userId,
+            seedDistributionCompleteByName: userName
+          }
+        }
+      });
+
+      wx.hideLoading();
+      const result = res.result as any;
+
+      if (result.success) {
+        wx.showToast({ title: '已标记完成', icon: 'success' });
+        // 刷新列表
+        this.loadFarmerStatus(true);
+      } else {
+        wx.showToast({ title: result.message || '操作失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('标记完成失败:', error);
+      wx.showToast({ title: '网络错误', icon: 'none' });
+    }
   },
 
   /**

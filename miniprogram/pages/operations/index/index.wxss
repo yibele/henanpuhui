@@ -32,6 +32,31 @@
   display: block;
 }
 
+/* 视图切换 */
+.view-toggle {
+  display: flex;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 12rpx;
+  padding: 6rpx;
+  margin-top: 20rpx;
+}
+
+.toggle-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.toggle-item.active {
+  background-color: #ffffff;
+  color: #059669;
+  font-weight: 600;
+}
+
 .header-stats {
   display: flex;
   background-color: rgba(255, 255, 255, 0.15);
@@ -167,6 +192,8 @@
 .farmer-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .farmer-name-row {
@@ -188,8 +215,9 @@
 }
 
 .status-pending {
-  background-color: #f3f4f6;
+  background-color: #ffffff;
   color: #9ca3af;
+  border: 1rpx solid #e5e7eb;
 }
 
 .status-inProgress {
@@ -217,6 +245,22 @@
 .farmer-right {
   display: flex;
   align-items: center;
+}
+
+.mark-complete-btn {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 12rpx 20rpx;
+  background-color: #dcfce7;
+  color: #059669;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.mark-complete-btn:active {
+  background-color: #bbf7d0;
 }
 
 /* 加载状态 */

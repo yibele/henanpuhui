@@ -7,93 +7,186 @@
   <view class="page-header">
     <view class="header-content">
       <text class="header-title">发苗管理</text>
-      <text class="header-subtitle">查看农户发苗进度</text>
     </view>
-  </view>
-
-  <!-- 状态筛选标签 -->
-  <view class="status-tabs">
-    <view 
-      class="status-tab {{farmerStatusFilter === 'all' ? 'active' : ''}}"
-      data-status="all"
-      bindtap="onStatusFilterChange"
-    >
-      <text>全部</text>
-      <text class="tab-count">{{farmerStatusStats.all}}</text>
-    </view>
-    <view 
-      class="status-tab {{farmerStatusFilter === 'pending' ? 'active' : ''}}"
-      data-status="pending"
-      bindtap="onStatusFilterChange"
-    >
-      <text>未发苗</text>
-      <text class="tab-count">{{farmerStatusStats.pending}}</text>
-    </view>
-    <view 
-      class="status-tab {{farmerStatusFilter === 'inProgress' ? 'active' : ''}}"
-      data-status="inProgress"
-      bindtap="onStatusFilterChange"
-    >
-      <text>发苗中</text>
-      <text class="tab-count">{{farmerStatusStats.inProgress}}</text>
-    </view>
-    <view 
-      class="status-tab {{farmerStatusFilter === 'completed' ? 'active' : ''}}"
-      data-status="completed"
-      bindtap="onStatusFilterChange"
-    >
-      <text>已完成</text>
-      <text class="tab-count">{{farmerStatusStats.completed}}</text>
-    </view>
-  </view>
-
-  <!-- 加载状态 -->
-  <view wx:if="{{loading}}" class="loading-state">
-    <t-loading theme="circular" size="40rpx" />
-    <text>加载中...</text>
-  </view>
-
-  <!-- 农户列表 -->
-  <view wx:else class="farmer-section">
-    <view wx:if="{{filteredFarmers.length > 0}}" class="farmer-list">
+    <!-- 视图切换 -->
+    <view class="view-toggle">
       <view 
-        wx:for="{{filteredFarmers}}" 
-        wx:key="id" 
-        class="farmer-card {{item.seedStatus}}"
-        data-farmer="{{item}}"
-        bindtap="onFarmerTap"
+        class="toggle-item {{viewMode === 'farmers' ? 'active' : ''}}"
+        data-mode="farmers"
+        bindtap="onViewModeChange"
+      >农户进度</view>
+      <view 
+        class="toggle-item {{viewMode === 'records' ? 'active' : ''}}"
+        data-mode="records"
+        bindtap="onViewModeChange"
+      >发苗记录</view>
+    </view>
+  </view>
+
+  <!-- 农户进度视图 -->
+  <block wx:if="{{viewMode === 'farmers'}}">
+    <!-- 状态筛选标签 -->
+    <view class="status-tabs">
+      <view 
+        class="status-tab {{farmerStatusFilter === 'all' ? 'active' : ''}}"
+        data-status="all"
+        bindtap="onStatusFilterChange"
       >
-        <view class="farmer-left">
-          <view class="farmer-avatar">
-            <text>{{item.name[0]}}</text>
-          </view>
-          <view class="farmer-info">
-            <view class="farmer-name-row">
-              <text class="farmer-name">{{item.name}}</text>
-              <text class="status-tag status-{{item.seedStatus}}">
-                {{item.seedStatus === 'completed' ? '已完成' : item.seedStatus === 'inProgress' ? '发苗中' : '未发苗'}}
+        <text>全部</text>
+        <text class="tab-count">{{farmerStatusStats.all}}</text>
+      </view>
+      <view 
+        class="status-tab {{farmerStatusFilter === 'pending' ? 'active' : ''}}"
+        data-status="pending"
+        bindtap="onStatusFilterChange"
+      >
+        <text>未发苗</text>
+        <text class="tab-count">{{farmerStatusStats.pending}}</text>
+      </view>
+      <view 
+        class="status-tab {{farmerStatusFilter === 'inProgress' ? 'active' : ''}}"
+        data-status="inProgress"
+        bindtap="onStatusFilterChange"
+      >
+        <text>发苗中</text>
+        <text class="tab-count">{{farmerStatusStats.inProgress}}</text>
+      </view>
+      <view 
+        class="status-tab {{farmerStatusFilter === 'completed' ? 'active' : ''}}"
+        data-status="completed"
+        bindtap="onStatusFilterChange"
+      >
+        <text>已完成</text>
+        <text class="tab-count">{{farmerStatusStats.completed}}</text>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-state">
+      <t-loading theme="circular" size="40rpx" />
+      <text>加载中...</text>
+    </view>
+
+    <!-- 农户列表 -->
+    <view wx:else class="farmer-section">
+      <view wx:if="{{filteredFarmers.length > 0}}" class="farmer-list">
+        <view 
+          wx:for="{{filteredFarmers}}" 
+          wx:key="id" 
+          class="farmer-card {{item.seedStatus}}"
+          data-farmer="{{item}}"
+          bindtap="onFarmerTap"
+        >
+          <view class="farmer-left">
+            <view class="farmer-avatar">
+              <text>{{item.name[0]}}</text>
+            </view>
+            <view class="farmer-info">
+              <view class="farmer-name-row">
+                <text class="farmer-name">{{item.name}}</text>
+                <t-tag 
+                  wx:if="{{item.seedStatus === 'completed'}}" 
+                  theme="success" 
+                  variant="light" 
+                  size="small"
+                >已完成</t-tag>
+                <t-tag 
+                  wx:elif="{{item.seedStatus === 'inProgress'}}" 
+                  theme="primary" 
+                  variant="light" 
+                  size="small"
+                >发苗中</t-tag>
+                <t-tag 
+                  wx:else 
+                  theme="default" 
+                  variant="outline" 
+                  size="small"
+                >未发苗</t-tag>
+              </view>
+              <text class="farmer-detail">{{item.acreage}}亩 · 签约{{item.seedTotal}}万株</text>
+              <text wx:if="{{item.recordCount > 0}}" class="farmer-progress">
+                已发{{item.recordCount}}次 · {{item.distributedQuantity}}万株
               </text>
             </view>
-            <text class="farmer-detail">{{item.acreage}}亩 · 签约{{item.seedTotal}}万株</text>
-            <text wx:if="{{item.recordCount > 0}}" class="farmer-progress">
-              已发{{item.recordCount}}次 · {{item.distributedQuantity}}万株
-            </text>
+          </view>
+          <view class="farmer-right">
+            <!-- 发苗中的农户显示标记完成按钮 -->
+            <view 
+              wx:if="{{item.seedStatus === 'inProgress'}}" 
+              class="mark-complete-btn"
+              catchtap="onMarkComplete"
+              data-farmer="{{item}}"
+            >
+              <t-icon name="check" size="32rpx" />
+              <text>完成</text>
+            </view>
+            <!-- 其他状态显示箭头 -->
+            <t-icon wx:else name="chevron-right" size="40rpx" color="#d1d5db" />
           </view>
         </view>
-        <view class="farmer-right">
-          <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
-        </view>
       </view>
+
+      <!-- 空状态 -->
+      <view wx:else class="empty-state">
+        <view class="empty-icon">
+          <t-icon name="folder-open" size="80rpx" color="#d1d5db" />
+        </view>
+        <text class="empty-text">暂无农户</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 发苗记录视图 -->
+  <block wx:if="{{viewMode === 'records'}}">
+    <!-- 加载状态 -->
+    <view wx:if="{{loading}}" class="loading-state">
+      <t-loading theme="circular" size="40rpx" />
+      <text>加载中...</text>
     </view>
 
-    <!-- 空状态 -->
-    <view wx:else class="empty-state">
-      <view class="empty-icon">
-        <t-icon name="folder-open" size="80rpx" color="#d1d5db" />
+    <!-- 记录列表 -->
+    <view wx:else class="record-section">
+      <view class="section-header">
+        <text class="section-title">发放记录</text>
+        <text class="section-count">共 {{seedRecords.length}} 条</text>
       </view>
-      <text class="empty-text">暂无农户</text>
+
+      <view wx:if="{{seedRecords.length > 0}}" class="record-list">
+        <view 
+          wx:for="{{seedRecords}}" 
+          wx:key="id" 
+          class="record-card" 
+          bindtap="onRecordTap" 
+          data-record="{{item}}"
+        >
+          <view class="record-left">
+            <view class="record-avatar">
+              <text>{{item.farmerName[0]}}</text>
+            </view>
+            <view class="record-info">
+              <text class="record-name">{{item.farmerName}}</text>
+              <text class="record-detail">{{item.quantity}}株 · {{item.distributedArea}}亩</text>
+              <text class="record-date">{{item.date}} · {{item.receiverName || '—'}}</text>
+            </view>
+          </view>
+          <view class="record-right">
+            <text class="record-amount">¥{{item.amount}}</text>
+            <text class="record-manager">{{item.managerName}}</text>
+            <t-icon name="edit" size="32rpx" color="#9ca3af" />
+          </view>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view wx:else class="empty-state">
+        <view class="empty-icon">
+          <t-icon name="folder-open" size="80rpx" color="#d1d5db" />
+        </view>
+        <text class="empty-text">暂无发放记录</text>
+        <text class="empty-hint">点击下方按钮添加发苗记录</text>
+      </view>
     </view>
-  </view>
+  </block>
 
   <!-- 底部添加按钮 -->
   <view class="add-btn-fixed" bindtap="onAddSeed">

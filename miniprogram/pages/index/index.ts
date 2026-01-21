@@ -46,7 +46,8 @@ Page({
       deposit: 0,           // 定金总额
       depositFormat: '0',   // 定金格式化
       seedCount: 0,         // 我的发苗次数
-      seedQuantity: 0,      // 发苗总数量(kg)
+      seedQuantity: 0,      // 发苗总数量(万株)
+      seedQuantityFormat: '0',  // 发苗数量格式化
       seedAmount: 0,        // 苗款总金额
       seedAmountFormat: '0' // 苗款格式化
     },
@@ -319,7 +320,8 @@ Page({
         deposit: data.totalDeposit || 0,
         depositFormat: this.formatMoney(data.totalDeposit || 0),
         seedCount: data.seedRecordCount || 0,  // 发苗次数
-        seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（株）
+        seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（万株）
+        seedQuantityFormat: (data.seedTotalQuantity || 0).toFixed(1),  // 发苗数量（万株）格式化
         seedAmount: data.totalDistributedAmount || 0,
         seedAmountFormat: this.formatMoney(data.totalDistributedAmount || 0)
       };
@@ -374,6 +376,7 @@ Page({
           depositFormat: '0',
           seedCount: 0,
           seedQuantity: 0,
+          seedQuantityFormat: '0',
           seedAmount: 0,
           seedAmountFormat: '0'
         },

@@ -219,7 +219,7 @@ async function getFarmer(event) {
  * 获取农户列表
  */
 async function listFarmers(event) {
-  const { userId, page = 1, pageSize = 20, keyword = '', status = '' } = event;
+  const { userId, page = 1, pageSize = 20, keyword = '', status = '', seedStatus = '' } = event;
 
   // userId 必填（助理只能看自己的农户）
   if (!userId) {
@@ -230,10 +230,8 @@ async function listFarmers(event) {
   }
 
   try {
-    // 构建查询条件
-    let queryCondition = {
-      isDeleted: false
-    };
+    // 构建基础查询条件
+    let baseConditions = [{ isDeleted: false }];
 
     // 获取用户信息，判断权限
     try {
@@ -244,24 +242,54 @@ async function listFarmers(event) {
 
         // 如果是助理，只能看自己创建的农户
         if (currentUser.role === 'assistant') {
-          queryCondition.createBy = userId;
+          baseConditions.push({ createBy: userId });
         }
         // 管理员、财务可以看所有农户
       }
     } catch (userErr) {
       // 用户不存在，按助理处理（只看自己创建的）
-      queryCondition.createBy = userId;
+      baseConditions.push({ createBy: userId });
     }
 
-    // 如果有关键词搜索
-    if (keyword) {
-      // TODO: 使用正则表达式搜索姓名或手机号
+    // 关键词搜索（姓名或手机号）
+    if (keyword && keyword.trim()) {
+      const searchRegex = db.RegExp({
+        regexp: keyword.trim(),
+        options: 'i'
+      });
+      baseConditions.push(_.or([
+        { name: searchRegex },
+        { phone: searchRegex }
+      ]));
     }
 
-    // 如果有状态筛选
+    // 普通状态筛选
     if (status) {
-      queryCondition.status = status;
+      baseConditions.push({ status: status });
     }
+
+    // 发苗状态筛选
+    if (seedStatus) {
+      if (seedStatus === 'completed') {
+        // 已完成：seedDistributionComplete = true
+        baseConditions.push({ seedDistributionComplete: true });
+      } else if (seedStatus === 'inProgress') {
+        // 发苗中：未完成 且 有发苗记录
+        baseConditions.push({ seedDistributionComplete: _.neq(true) });
+        baseConditions.push({ 'stats.seedDistributionCount': _.gt(0) });
+      } else if (seedStatus === 'pending') {
+        // 未发苗：未完成 且 无发苗记录
+        baseConditions.push({ seedDistributionComplete: _.neq(true) });
+        baseConditions.push(_.or([
+          { 'stats.seedDistributionCount': _.exists(false) },
+          { 'stats.seedDistributionCount': 0 },
+          { 'stats.seedDistributionCount': _.lte(0) }
+        ]));
+      }
+    }
+
+    // 组合查询条件
+    const queryCondition = _.and(baseConditions);
 
     // 查询总数
     const countResult = await db.collection('farmers')
@@ -568,6 +596,78 @@ async function addFarmerAddendum(event) {
 }
 
 /**
+ * 获取农户发苗状态统计
+ * 返回各状态的农户数量：all, pending, inProgress, completed
+ */
+async function getFarmerStatusStats(event) {
+  const { userId } = event;
+
+  if (!userId) {
+    return {
+      success: false,
+      message: '请先登录'
+    };
+  }
+
+  try {
+    // 构建基础查询条件
+    let baseCondition = { isDeleted: false };
+
+    // 获取用户信息，判断权限
+    try {
+      const userRes = await db.collection('users').doc(userId).get();
+      if (userRes.data && userRes.data.role === 'assistant') {
+        baseCondition.createBy = userId;
+      }
+    } catch (userErr) {
+      baseCondition.createBy = userId;
+    }
+
+    // 统计总数
+    const allCount = await db.collection('farmers')
+      .where(baseCondition)
+      .count();
+
+    // 统计已完成
+    const completedCount = await db.collection('farmers')
+      .where(_.and([
+        baseCondition,
+        { seedDistributionComplete: true }
+      ]))
+      .count();
+
+    // 统计发苗中（未完成 且 有发苗记录）
+    const inProgressCount = await db.collection('farmers')
+      .where(_.and([
+        baseCondition,
+        { seedDistributionComplete: _.neq(true) },
+        { 'stats.seedDistributionCount': _.gt(0) }
+      ]))
+      .count();
+
+    // 统计未发苗（未完成 且 无发苗记录）
+    const pendingCount = allCount.total - completedCount.total - inProgressCount.total;
+
+    return {
+      success: true,
+      data: {
+        all: allCount.total,
+        pending: Math.max(0, pendingCount),
+        inProgress: inProgressCount.total,
+        completed: completedCount.total
+      }
+    };
+
+  } catch (error) {
+    console.error('获取农户状态统计失败:', error);
+    return {
+      success: false,
+      message: error.message || '获取农户状态统计失败'
+    };
+  }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -597,6 +697,9 @@ exports.main = async (event, context) => {
 
     case 'searchByPhone':
       return await searchFarmerByPhone(event);
+
+    case 'getStatusStats':
+      return await getFarmerStatusStats(event);
 
     default:
       return {

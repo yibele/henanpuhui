@@ -13,6 +13,9 @@ const GRADE_TEXT: Record<string, string> = {
   bronze: '铜牌'
 };
 
+// 搜索防抖定时器
+let searchTimer: ReturnType<typeof setTimeout> | null = null;
+
 Page({
   data: {
     // 编辑模式相关
@@ -260,7 +263,9 @@ Page({
           seedTotal: f.seedTotal || 0,
           stats: f.stats || {},
           // 已发放次数
-          seedRecordCount: f.stats?.seedDistributionCount || 0
+          seedRecordCount: f.stats?.seedDistributionCount || 0,
+          // 发苗完成状态
+          seedDistributionComplete: f.seedDistributionComplete || false
         }));
 
         this.setData({
@@ -341,21 +346,81 @@ Page({
   },
 
   /**
-   * 搜索农户
+   * 搜索农户（服务端搜索，带防抖）
    */
   onSearchFarmer(e: WechatMiniprogram.CustomEvent) {
     const value = e.detail.value;
     this.setData({ searchValue: value });
 
-    if (value) {
-      const keyword = value.toLowerCase();
-      const filtered = this.data.farmers.filter((f: any) =>
-        f.name.toLowerCase().includes(keyword) ||
-        f.phone.includes(value)
-      );
-      this.setData({ filteredFarmers: filtered });
-    } else {
-      this.setData({ filteredFarmers: this.data.farmers });
+    // 清除之前的定时器
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+    }
+
+    // 如果输入为空，清空列表
+    if (!value || !value.trim()) {
+      this.setData({ filteredFarmers: [] });
+      return;
+    }
+
+    // 防抖 300ms 后执行搜索
+    searchTimer = setTimeout(() => {
+      this.searchFarmersFromServer(value.trim());
+    }, 300);
+  },
+
+  /**
+   * 从服务端搜索农户
+   */
+  async searchFarmersFromServer(keyword: string) {
+    if (!keyword) {
+      this.setData({ filteredFarmers: [] });
+      return;
+    }
+
+    try {
+      const globalData = (app.globalData as any) || {};
+      const userInfo = globalData.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'list',
+          userId,
+          keyword,  // 服务端搜索
+          page: 1,
+          pageSize: 20  // 搜索结果最多显示20条
+        }
+      });
+
+      const result = res.result as any;
+      if (result.success && result.data) {
+        const rawFarmers = result.data.list || [];
+        const farmers = rawFarmers.map((f: any) => ({
+          id: f._id,
+          farmerId: f.farmerId,
+          name: f.name,
+          phone: f.phone,
+          grade: f.grade || 'bronze',
+          gradeText: GRADE_TEXT[f.grade] || '铜牌',
+          acreage: f.acreage || 0,
+          address: f.address || {},
+          addressText: f.addressText || [
+            f.address?.county,
+            f.address?.township,
+            f.address?.village
+          ].filter(Boolean).join('') || '',
+          deposit: f.deposit || 0,
+          seedTotal: f.seedTotal || 0,
+          stats: f.stats || {},
+          seedRecordCount: f.stats?.seedDistributionCount || 0,
+          seedDistributionComplete: f.seedDistributionComplete || false
+        }));
+        this.setData({ filteredFarmers: farmers });
+      }
+    } catch (error) {
+      console.error('搜索农户失败:', error);
     }
   },
 
@@ -363,9 +428,12 @@ Page({
    * 清除搜索
    */
   clearSearch() {
+    if (searchTimer) {
+      clearTimeout(searchTimer);
+    }
     this.setData({
       searchValue: '',
-      filteredFarmers: this.data.farmers
+      filteredFarmers: []
     });
   },
 
@@ -393,11 +461,9 @@ Page({
       const result = res.result as any;
       if (result.success && result.data) {
         const records = result.data.list || [];
-        // 计算已发放面积和数量总和
+        // 计算已发放面积和数量总和 - 数据库存储的已经是万株
         const distributedArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
-        const distributedQuantityRaw = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
-        // 转换为万株，保留两位小数
-        const distributedQuantity = Math.round((distributedQuantityRaw / 10000) * 100) / 100;
+        const distributedQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
 
         const totalArea = this.data.areaStats.totalArea;
         const remainingArea = Math.max(0, totalArea - distributedArea);
@@ -775,6 +841,52 @@ Page({
       }
     } catch (error) {
       console.error('标记发苗完成失败:', error);
+    }
+  },
+
+  /**
+   * 直接标记农户发苗完成（不需要发苗，直接标记）
+   */
+  async onMarkSeedComplete() {
+    const { selectedFarmer } = this.data;
+    if (!selectedFarmer) {
+      wx.showToast({ title: '请先选择农户', icon: 'none' });
+      return;
+    }
+
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '标记发苗完成',
+        content: `确认将"${selectedFarmer.name}"的发苗工作标记为已完成？\n\n标记后将不再向该农户发放种苗。`,
+        confirmText: '确认完成',
+        cancelText: '取消',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+
+    if (!confirmed) return;
+
+    wx.showLoading({ title: '处理中...' });
+
+    try {
+      await this.markFarmerSeedComplete(selectedFarmer.id);
+      wx.hideLoading();
+
+      // 更新农户完成状态
+      this.setData({
+        'selectedFarmer.seedDistributionComplete': true
+      });
+
+      wx.showToast({ title: '已标记完成', icon: 'success' });
+
+      // 延迟返回
+      setTimeout(() => {
+        wx.navigateBack();
+      }, 1500);
+    } catch (error) {
+      wx.hideLoading();
+      console.error('标记完成失败:', error);
+      wx.showToast({ title: '操作失败', icon: 'none' });
     }
   },
 

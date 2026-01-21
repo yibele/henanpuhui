@@ -1,0 +1,9 @@
+{
+    "name": "test-data-init",
+    "version": "1.0.0",
+    "description": "创建测试农户数据",
+    "main": "index.js",
+    "dependencies": {
+        "wx-server-sdk": "~2.6.3"
+    }
+}

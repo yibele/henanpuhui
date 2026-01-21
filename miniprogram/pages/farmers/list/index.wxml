@@ -49,9 +49,9 @@
 
   <!-- 农户列表 -->
   <view class="farmer-list">
-    <block wx:if="{{filteredFarmers.length > 0}}">
+    <block wx:if="{{farmers.length > 0}}">
       <view 
-        wx:for="{{filteredFarmers}}" 
+        wx:for="{{farmers}}" 
         wx:key="id"
         class="farmer-card"
         data-id="{{item.id}}"
@@ -90,8 +90,19 @@
       <text>加载中...</text>
     </view>
 
+    <!-- 加载更多 -->
+    <view wx:elif="{{loadingMore}}" class="loading-more">
+      <t-loading theme="circular" size="32rpx" />
+      <text>加载更多...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view wx:elif="{{!hasMore && farmers.length > 0}}" class="no-more">
+      <text>- 已加载全部 -</text>
+    </view>
+
     <!-- 空状态 -->
-    <view wx:elif="{{filteredFarmers.length === 0}}" class="empty-state">
+    <view wx:elif="{{farmers.length === 0 && !loading}}" class="empty-state">
       <t-empty 
         icon="folder-open" 
         description="暂无农户数据"

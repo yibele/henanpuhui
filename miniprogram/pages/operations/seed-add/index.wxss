@@ -276,6 +276,29 @@
   color: #9ca3af;
 }
 
+/* 标记发苗完成操作按钮 */
+.mark-complete-action {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-top: 16rpx;
+  color: #059669;
+  font-size: 28rpx;
+  font-weight: 500;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+}
+
+.mark-complete-action text {
+  flex: 1;
+}
+
+.mark-complete-action:active {
+  background-color: #f0fdf4;
+}
+
 .form-label-row {
   display: flex;
   align-items: baseline;
@@ -500,6 +523,11 @@
 
 .farmer-item.selected {
   background-color: #f0fdf4;
+}
+
+.farmer-item.disabled {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .farmer-item-left {

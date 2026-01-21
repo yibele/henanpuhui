@@ -43,8 +43,8 @@
           <text class="my-stat-label">发苗次数</text>
         </view>
         <view class="my-stat-box">
-          <text class="my-stat-value">{{myStats.seedQuantity}}</text>
-          <text class="my-stat-label">发苗数量(株)</text>
+          <text class="my-stat-value">{{myStats.seedQuantityFormat}}</text>
+          <text class="my-stat-label">发苗数量(万株)</text>
         </view>
         <view class="my-stat-box">
           <text class="my-stat-value my-stat-blue">{{myStats.seedAmountFormat}}</text>
