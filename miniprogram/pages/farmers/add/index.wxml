@@ -308,13 +308,6 @@
           bindinput="onSecondManagerInput"
         />
       </view>
-      
-      <!-- 客户编码预览 -->
-      <view class="form-divider" wx:if="{{customerCodePreview}}"></view>
-      <view class="code-preview" wx:if="{{customerCodePreview}}">
-        <text class="code-label">客户编码（自动生成）</text>
-        <text class="code-value">{{customerCodePreview}}</text>
-      </view>
     </view>
   </view>
 

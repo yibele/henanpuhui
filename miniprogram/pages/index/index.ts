@@ -318,8 +318,8 @@ Page({
         acreage: data.totalAcreage || 0,
         deposit: data.totalDeposit || 0,
         depositFormat: this.formatMoney(data.totalDeposit || 0),
-        seedCount: 0, // TODO: 从发苗记录获取
-        seedQuantity: 0,
+        seedCount: data.seedRecordCount || 0,  // 发苗次数
+        seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（株）
         seedAmount: data.totalDistributedAmount || 0,
         seedAmountFormat: this.formatMoney(data.totalDistributedAmount || 0)
       };

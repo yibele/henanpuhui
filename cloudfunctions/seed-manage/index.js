@@ -119,12 +119,14 @@ async function distributeSeed(event) {
         const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
         const currentArea = farmer.stats?.totalSeedArea || 0;
+        const currentCount = farmer.stats?.seedDistributionCount || 0;
 
         await db.collection('farmers').doc(farmerId).update({
             data: {
                 'stats.totalSeedDistributed': currentDistributed + qty,
                 'stats.totalSeedAmount': currentAmount + seedAmount,
                 'stats.totalSeedArea': currentArea + area,  // 累加已发面积
+                'stats.seedDistributionCount': currentCount + 1, // 累计发苗次数
                 'stats.lastSeedDistributionDate': db.serverDate(),
                 updateTime: db.serverDate()
             }
@@ -424,6 +426,7 @@ async function deleteSeedRecord(event) {
                 'stats.totalSeedDistributed': _.inc(-quantity),
                 'stats.totalSeedAmount': _.inc(-amount),
                 'stats.totalSeedArea': _.inc(-area),
+                'stats.seedDistributionCount': _.inc(-1),
                 updateTime: db.serverDate()
             }
         });
@@ -438,6 +441,46 @@ async function deleteSeedRecord(event) {
         return {
             success: false,
             message: error.message || '删除发放记录失败'
+        };
+    }
+}
+
+/**
+ * 获取所有农户的发苗统计
+ * 返回 farmerId -> { recordCount, totalQuantity } 的映射
+ */
+async function getDistributionStats(event) {
+    try {
+        // 获取所有发苗记录
+        const records = await db.collection('seed_records')
+            .field({ farmerId: true, quantity: true })
+            .limit(1000)  // 最多返回1000条
+            .get();
+
+        // 按农户分组统计
+        const statsMap = {};
+        records.data.forEach(record => {
+            const farmerId = record.farmerId;
+            if (!statsMap[farmerId]) {
+                statsMap[farmerId] = {
+                    recordCount: 0,
+                    totalQuantity: 0
+                };
+            }
+            statsMap[farmerId].recordCount += 1;
+            statsMap[farmerId].totalQuantity += (record.quantity || 0);
+        });
+
+        return {
+            success: true,
+            data: statsMap
+        };
+
+    } catch (error) {
+        console.error('获取发苗统计失败:', error);
+        return {
+            success: false,
+            message: error.message || '获取发苗统计失败'
         };
     }
 }
@@ -466,6 +509,9 @@ exports.main = async (event, context) => {
 
         case 'delete':
             return await deleteSeedRecord(event);
+
+        case 'getDistributionStats':
+            return await getDistributionStats(event);
 
         default:
             return {

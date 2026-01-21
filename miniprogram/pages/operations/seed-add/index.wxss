@@ -261,6 +261,21 @@
   background-color: #bbf7d0;
 }
 
+/* 种苗数量统计卡片 */
+.seed-stats-card {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: #93c5fd;
+  margin-top: 12rpx;
+}
+
+.seed-stats-card .area-stat-divider {
+  background-color: #93c5fd;
+}
+
+.area-stat-value.empty {
+  color: #9ca3af;
+}
+
 .form-label-row {
   display: flex;
   align-items: baseline;

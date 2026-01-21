@@ -105,8 +105,10 @@ async function getAssistantStats(user) {
     }).get();
 
     let totalDistributedAmount = 0;
+    let totalDistributedQuantity = 0;
     seedRecordsRes.data.forEach(record => {
       totalDistributedAmount += record.amount || 0;
+      totalDistributedQuantity += record.quantity || 0;
     });
 
     return {
@@ -118,6 +120,8 @@ async function getAssistantStats(user) {
         totalDebt: totalDebt,
         totalDeposit: totalDeposit,
         totalDistributedAmount: totalDistributedAmount,
+        seedRecordCount: seedRecordsRes.data.length,  // 发苗次数
+        seedTotalQuantity: totalDistributedQuantity,   // 发苗总数量（株）
         farmers: farmers.slice(0, 10) // 返回最近10个农户
       }
     };

@@ -67,6 +67,158 @@
   margin: 0 8rpx;
 }
 
+/* 状态筛选标签 */
+.status-tabs {
+  display: flex;
+  gap: 12rpx;
+  padding: 20rpx 24rpx;
+  background-color: #ffffff;
+}
+
+.status-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 0;
+  background-color: #f3f4f6;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.status-tab.active {
+  background-color: #059669;
+  color: #ffffff;
+}
+
+.status-tab .tab-count {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin-top: 4rpx;
+}
+
+.status-tab.active .tab-count {
+  color: #ffffff;
+}
+
+/* 农户列表区块 */
+.farmer-section {
+  padding: 24rpx;
+}
+
+.farmer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.farmer-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  border-left: 6rpx solid #d1d5db;
+}
+
+.farmer-card.pending {
+  border-left-color: #9ca3af;
+}
+
+.farmer-card.inProgress {
+  border-left-color: #2563eb;
+}
+
+.farmer-card.completed {
+  border-left-color: #059669;
+}
+
+.farmer-card:active {
+  background-color: #fafafa;
+}
+
+.farmer-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.farmer-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+}
+
+.farmer-avatar text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.farmer-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.farmer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.farmer-name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.status-tag {
+  font-size: 20rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
+}
+
+.status-pending {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+}
+
+.status-inProgress {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
+.status-completed {
+  background-color: #dcfce7;
+  color: #059669;
+}
+
+.farmer-detail {
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-top: 4rpx;
+}
+
+.farmer-progress {
+  font-size: 24rpx;
+  color: #2563eb;
+  margin-top: 4rpx;
+}
+
+.farmer-right {
+  display: flex;
+  align-items: center;
+}
+
 /* 加载状态 */
 .loading-state {
   display: flex;

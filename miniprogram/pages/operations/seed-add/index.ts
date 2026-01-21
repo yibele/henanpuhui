@@ -48,6 +48,12 @@ Page({
       remainingArea: 0,       // 剩余可发放面积
       currentArea: 0          // 本次发放面积
     },
+    // 种苗数量统计（万株）
+    seedStats: {
+      contractedQuantity: 0,   // 签约种苗数（万株）
+      distributedQuantity: 0,  // 已发放数量（万株）
+      remainingQuantity: 0     // 剩余数量（万株）
+    },
     // 选择农户弹窗
     showFarmerPopup: false,
     // 日期选择器
@@ -60,7 +66,7 @@ Page({
   },
 
   onLoad(options: any) {
-    const { recordId, mode } = options || {};
+    const { recordId, mode, farmerId } = options || {};
 
     if (mode === 'edit' && recordId) {
       // 编辑模式
@@ -76,9 +82,53 @@ Page({
       this.loadRecordDetail(recordId);
     } else {
       // 新增模式
-      this.loadFarmers();
       this.setDefaultTime();
+      this.loadFarmers().then(() => {
+        if (farmerId) {
+          this.preselectFarmer(String(farmerId));
+        }
+      });
     }
+  },
+
+  /**
+   * 预选农户（从农户详情页跳转过来）
+   */
+  async preselectFarmer(farmerId: string) {
+    const farmer = this.data.farmers.find((f: any) => f.id === farmerId);
+    if (!farmer) return;
+    await this.applySelectedFarmer(farmer);
+  },
+
+  /**
+   * 统一的“选中农户”逻辑（供点击选择/预选复用）
+   */
+  async applySelectedFarmer(farmer: any) {
+    this.setData({
+      selectedFarmer: farmer,
+      showFarmerPopup: false,
+      searchValue: '',
+      // 自动填充领取人为农户姓名
+      'form.receiverName': farmer.name,
+      // 初始化面积统计
+      'areaStats.totalArea': farmer.acreage || 0,
+      'areaStats.distributedArea': 0,
+      'areaStats.remainingArea': farmer.acreage || 0,
+      'areaStats.currentArea': 0,
+      // 初始化种苗统计（万株）
+      'seedStats.contractedQuantity': farmer.seedTotal || 0,
+      'seedStats.distributedQuantity': 0,
+      'seedStats.remainingQuantity': farmer.seedTotal || 0
+    });
+
+    // 重置筛选列表
+    this.setData({ filteredFarmers: this.data.farmers });
+
+    // 加载该农户的已发放面积
+    await this.loadFarmerDistributedArea(farmer.id);
+
+    // 检查是否可提交
+    this.checkCanSubmit();
   },
 
   /**
@@ -324,32 +374,11 @@ Page({
    */
   async onSelectFarmer(e: WechatMiniprogram.TouchEvent) {
     const farmer = e.currentTarget.dataset.farmer;
-
-    this.setData({
-      selectedFarmer: farmer,
-      showFarmerPopup: false,
-      searchValue: '',
-      // 自动填充领取人为农户姓名
-      'form.receiverName': farmer.name,
-      // 初始化面积统计
-      'areaStats.totalArea': farmer.acreage || 0,
-      'areaStats.distributedArea': 0,
-      'areaStats.remainingArea': farmer.acreage || 0,
-      'areaStats.currentArea': 0
-    });
-
-    // 重置筛选列表
-    this.setData({ filteredFarmers: this.data.farmers });
-
-    // 加载该农户的已发放面积
-    await this.loadFarmerDistributedArea(farmer.id);
-
-    // 检查是否可提交
-    this.checkCanSubmit();
+    await this.applySelectedFarmer(farmer);
   },
 
   /**
-   * 加载农户已发放面积
+   * 加载农户已发放面积和数量
    */
   async loadFarmerDistributedArea(farmerId: string) {
     try {
@@ -364,20 +393,32 @@ Page({
       const result = res.result as any;
       if (result.success && result.data) {
         const records = result.data.list || [];
-        // 计算已发放面积总和
+        // 计算已发放面积和数量总和
         const distributedArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
+        const distributedQuantityRaw = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+        // 转换为万株，保留两位小数
+        const distributedQuantity = Math.round((distributedQuantityRaw / 10000) * 100) / 100;
+
         const totalArea = this.data.areaStats.totalArea;
         const remainingArea = Math.max(0, totalArea - distributedArea);
 
+        const contractedQuantity = this.data.seedStats.contractedQuantity;
+        const remainingQuantity = Math.max(0, Math.round((contractedQuantity - distributedQuantity) * 100) / 100);
+
         this.setData({
           'areaStats.distributedArea': distributedArea,
-          'areaStats.remainingArea': remainingArea
+          'areaStats.remainingArea': remainingArea,
+          'seedStats.distributedQuantity': distributedQuantity,
+          'seedStats.remainingQuantity': remainingQuantity
         });
 
-        console.log('[seed-add] 面积统计:', { totalArea, distributedArea, remainingArea });
+        console.log('[seed-add] 统计:', {
+          totalArea, distributedArea, remainingArea,
+          contractedQuantity, distributedQuantity, remainingQuantity
+        });
       }
     } catch (error) {
-      console.error('加载已发放面积失败:', error);
+      console.error('加载已发放数据失败:', error);
     }
   },
 
@@ -617,10 +658,31 @@ Page({
           duration: 1500
         });
 
-        // 延迟返回上一页
-        setTimeout(() => {
-          wx.navigateBack();
-        }, 1500);
+        // 新增模式下询问是否标记发苗完成
+        if (!isEditMode) {
+          setTimeout(async () => {
+            const markComplete = await new Promise<boolean>((resolve) => {
+              wx.showModal({
+                title: '标记发苗完成',
+                content: `是否标记"${selectedFarmer.name}"的发苗工作已完成？\n\n标记后将不再向该农户发放种苗。`,
+                confirmText: '标记完成',
+                cancelText: '继续发苗',
+                success: (res) => resolve(res.confirm)
+              });
+            });
+
+            if (markComplete) {
+              await this.markFarmerSeedComplete(selectedFarmer.id);
+            }
+
+            wx.navigateBack();
+          }, 1600);
+        } else {
+          // 编辑模式直接返回
+          setTimeout(() => {
+            wx.navigateBack();
+          }, 1500);
+        }
       } else {
         wx.showToast({ title: result.message || '操作失败', icon: 'none' });
       }
@@ -684,10 +746,42 @@ Page({
   },
 
   /**
+   * 标记农户发苗完成
+   */
+  async markFarmerSeedComplete(farmerId: string) {
+    try {
+      const userInfo = (app.globalData as any)?.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+      const userName = userInfo.name || '系统';
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'update',
+          userId,
+          farmerId,
+          data: {
+            seedDistributionComplete: true,
+            seedDistributionCompleteTime: new Date(),
+            seedDistributionCompleteBy: userId,
+            seedDistributionCompleteByName: userName
+          }
+        }
+      });
+
+      const result = res.result as any;
+      if (result.success) {
+        wx.showToast({ title: '已标记完成', icon: 'success' });
+      }
+    } catch (error) {
+      console.error('标记发苗完成失败:', error);
+    }
+  },
+
+  /**
    * 取消
    */
   onCancel() {
     wx.navigateBack();
   }
 });
-

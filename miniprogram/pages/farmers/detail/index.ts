@@ -37,17 +37,6 @@ Page({
       recordCount: 0         // 发放次数
     },
 
-    // ========== 发放种苗 ==========
-    seedPopupVisible: false,
-    seedForm: {
-      date: getTodayDate(),
-      quantity: '',
-      price: '',
-      amount: 0,
-      receiver: '',
-      location: ''
-    },
-
     // ========== 发放化肥 ==========
     fertilizerPopupVisible: false,
     fertilizerForm: {
@@ -168,7 +157,16 @@ Page({
           status: farmerData.status || 'active',
           contractImages: farmerData.contractImages || [],
           salesmanId: farmerData.createBy || '',
-          salesmanName: farmerData.createByName || ''
+          salesmanName: farmerData.createByName || '',
+          // 种苗签约信息
+          seedTotal: farmerData.seedTotal || 0,           // 种苗合计（万株）
+          receivableAmount: farmerData.receivableAmount || 0,  // 应收款（元）
+          seedDebt: farmerData.seedDebt || 0,              // 种苗欠款（元）
+          seedDistributionComplete: farmerData.seedDistributionComplete || false,  // 发苗完成状态
+          // 农资信息
+          fertilizerAmount: farmerData.fertilizerAmount || 0,   // 化肥金额
+          pesticideAmount: farmerData.pesticideAmount || 0,     // 农药金额
+          agriculturalDebt: farmerData.agriculturalDebt || 0    // 农资欠款
         };
 
         this.setData({ farmer });
@@ -357,129 +355,19 @@ Page({
     }
   },
 
-  // ==================== 发放种苗 ====================
-
-  onOpenSeedPopup() {
-    this.setData({
-      seedPopupVisible: true,
-      seedForm: {
-        date: getTodayDate(),
-        quantity: '',
-        price: '',
-        amount: 0,
-        receiver: this.data.farmer?.name || '',
-        location: ''
-      }
-    });
-  },
-
-  onCloseSeedPopup() {
-    this.setData({ seedPopupVisible: false });
-  },
-
-  onSeedDateChange(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'seedForm.date': e.detail.value });
-  },
-
-  onSeedQuantityInput(e: WechatMiniprogram.CustomEvent) {
-    const quantity = e.detail.value.replace(/[^\d.]/g, '');
-    const price = parseFloat(this.data.seedForm.price) || 0;
-    const amount = (parseFloat(quantity) || 0) * price;
-    this.setData({
-      'seedForm.quantity': quantity,
-      'seedForm.amount': Math.round(amount * 100) / 100
-    });
-  },
-
-  onSeedPriceInput(e: WechatMiniprogram.CustomEvent) {
-    const price = e.detail.value.replace(/[^\d.]/g, '');
-    const quantity = parseFloat(this.data.seedForm.quantity) || 0;
-    const amount = quantity * (parseFloat(price) || 0);
-    this.setData({
-      'seedForm.price': price,
-      'seedForm.amount': Math.round(amount * 100) / 100
-    });
-  },
-
-  onSeedReceiverInput(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'seedForm.receiver': e.detail.value });
-  },
-
-  onSeedLocationInput(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ 'seedForm.location': e.detail.value });
-  },
-
-  async onSubmitSeed() {
-    const { seedForm, farmer, farmerId, currentUser, businessRecords } = this.data;
-    if (!farmer) return;
-
-    if (!seedForm.quantity || !seedForm.price) {
-      wx.showToast({ title: '请填写数量和单价', icon: 'none' });
+  /**
+   * 发放种苗入口收敛：统一跳转到发苗登记页（支持完整字段与校验）
+   */
+  onGoSeedAdd() {
+    const farmerId = this.data.farmer?.id || this.data.farmerId;
+    if (!farmerId) {
+      wx.showToast({ title: '农户信息缺失', icon: 'none' });
       return;
     }
 
-    const quantity = parseFloat(seedForm.quantity) || 0;
-    const unitPrice = parseFloat(seedForm.price) || 0;
-    const amount = seedForm.amount || (quantity * unitPrice);
-
-    wx.showLoading({ title: '保存中...' });
-
-    try {
-      // 获取当前用户信息
-      const userInfo = app.globalData.currentUser as any;
-      const userId = userInfo?.id || userInfo?._id || '';
-      const userName = userInfo?.name || currentUser;
-
-      // 调用云函数
-      const res = await wx.cloud.callFunction({
-        name: 'seed-manage',
-        data: {
-          action: 'distribute',
-          userId,
-          userName,
-          farmerId: farmer.id || farmerId,
-          data: {
-            quantity,
-            unitPrice,
-            amount,
-            distributionDate: seedForm.date,
-            remark: `领取人：${seedForm.receiver || farmer.name}，地点：${seedForm.location || ''}`
-          }
-        }
-      });
-
-      const result = res.result as any;
-      wx.hideLoading();
-
-      if (result.success) {
-        // 更新本地记录
-        const newRecord = {
-          id: `seed_${Date.now()}`,
-          type: 'seed',
-          date: seedForm.date,
-          name: '种苗发放',
-          desc: `发放 ${quantity} 株，单价 ¥${unitPrice}`,
-          quantity: quantity,
-          unit: '株',
-          price: unitPrice,
-          amount: amount,
-          operator: currentUser
-        };
-
-        this.setData({
-          businessRecords: [newRecord, ...businessRecords],
-          seedPopupVisible: false
-        });
-
-        wx.showToast({ title: '发放成功', icon: 'success' });
-      } else {
-        wx.showToast({ title: result.message || '发放失败', icon: 'none' });
-      }
-    } catch (error: any) {
-      wx.hideLoading();
-      console.error('发放种苗失败:', error);
-      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
-    }
+    wx.navigateTo({
+      url: `/pages/operations/seed-add/index?farmerId=${encodeURIComponent(farmerId)}`
+    });
   },
 
   // ==================== 发放化肥 ====================

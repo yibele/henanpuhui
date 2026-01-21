@@ -44,7 +44,7 @@
         </view>
         <view class="my-stat-box">
           <text class="my-stat-value">{{myStats.seedQuantity}}</text>
-          <text class="my-stat-label">发苗数量(kg)</text>
+          <text class="my-stat-label">发苗数量(株)</text>
         </view>
         <view class="my-stat-box">
           <text class="my-stat-value my-stat-blue">{{myStats.seedAmountFormat}}</text>

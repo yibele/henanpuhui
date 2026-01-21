@@ -40,6 +40,10 @@
 
     <!-- 2. 核心数据指标 -->
     <view class="stats-card">
+      <!-- 签约信息 -->
+      <view class="section-title-row">
+        <text class="section-title-text">签约信息</text>
+      </view>
       <view class="stats-row">
         <view class="stat-item">
           <text class="stat-value">{{farmer.acreage}}</text>
@@ -56,22 +60,67 @@
           <text class="stat-label">签约日期</text>
         </view>
       </view>
+      <!-- 种苗签约信息（第二行） -->
+      <view class="stats-row stats-row-tertiary">
+        <view class="stat-item">
+          <text class="stat-value stat-purple">{{farmer.seedTotal || 0}}</text>
+          <text class="stat-label">种苗合计(万株)</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-orange">¥{{farmer.receivableAmount || 0}}</text>
+          <text class="stat-label">应收款</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-red">¥{{farmer.seedDebt || 0}}</text>
+          <text class="stat-label">种苗欠款</text>
+        </view>
+      </view>
       
-      <!-- 发苗统计 -->
-      <view class="stats-row stats-row-secondary" wx:if="{{seedStats.totalQuantity > 0 || seedStats.totalAmount > 0}}">
+      <!-- 种苗发放 -->
+      <view class="section-title-row section-title-row-mt">
+        <text class="section-title-text">种苗发放</text>
+        <view wx:if="{{farmer.seedDistributionComplete}}" class="seed-complete-tag">
+          <t-icon name="check-circle" size="28rpx" color="#059669" />
+          <text>已完成</text>
+        </view>
+      </view>
+      <view class="stats-row">
         <view class="stat-item">
-          <text class="stat-value stat-purple">{{seedStats.totalQuantityText}}</text>
-          <text class="stat-label">已发放种苗</text>
+          <text class="stat-value stat-blue">{{seedStats.recordCount || 0}}</text>
+          <text class="stat-label">发苗次数</text>
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
-          <text class="stat-value stat-orange">¥{{seedStats.totalAmount}}</text>
-          <text class="stat-label">发苗金额</text>
+          <text class="stat-value stat-blue">{{seedStats.totalQuantity || 0}}</text>
+          <text class="stat-label">发苗数量(株)</text>
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
-          <text class="stat-value">{{seedStats.totalArea}}</text>
-          <text class="stat-label">已发面积(亩)</text>
+          <text class="stat-value stat-orange">{{seedStats.totalAmount || 0}}</text>
+          <text class="stat-label">苗款金额(元)</text>
+        </view>
+      </view>
+      
+      <!-- 农资 -->
+      <view class="section-title-row section-title-row-mt">
+        <text class="section-title-text">农资</text>
+      </view>
+      <view class="stats-row">
+        <view class="stat-item">
+          <text class="stat-value stat-cyan">¥{{farmer.fertilizerAmount || 0}}</text>
+          <text class="stat-label">化肥金额</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-pink">¥{{farmer.pesticideAmount || 0}}</text>
+          <text class="stat-label">农药金额</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-red">¥{{farmer.agriculturalDebt || 0}}</text>
+          <text class="stat-label">农资欠款</text>
         </view>
       </view>
     </view>
@@ -82,6 +131,12 @@
         <text class="section-title">业务操作</text>
       </view>
       <view class="action-grid">
+        <view class="action-item {{farmer.seedDistributionComplete ? 'action-item-disabled' : ''}}" bindtap="{{farmer.seedDistributionComplete ? '' : 'onGoSeedAdd'}}">
+          <view class="action-icon-bg {{farmer.seedDistributionComplete ? 'bg-gray' : 'bg-green'}}">
+            <t-icon name="corn" size="44rpx" color="{{farmer.seedDistributionComplete ? '#9ca3af' : '#059669'}}" />
+          </view>
+          <text class="action-name">{{farmer.seedDistributionComplete ? '发苗完成' : '发放种苗'}}</text>
+        </view>
         <view class="action-item" bindtap="onOpenAcreagePopup">
           <view class="action-icon-bg bg-blue">
             <t-icon name="measurement" size="44rpx" color="#3b82f6" />
@@ -295,32 +350,4 @@
   </t-popup>
 
   <!-- 4. 发放种苗/化肥/农药 (复用之前的逻辑，简化弹窗样式) -->
-  <!-- (这里为了简洁，省略了生产发放的弹窗代码，假设复用相同的样式类 popup-container) -->
-  <t-popup visible="{{seedPopupVisible}}" placement="bottom" bind:visible-change="onCloseSeedPopup">
-    <view class="popup-container">
-      <view class="popup-header-bar">
-        <text class="popup-title">发放种苗</text>
-        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseSeedPopup" />
-      </view>
-      <view class="popup-body">
-        <view class="form-field">
-          <text class="field-label">发放数量 (株)</text>
-          <input class="field-input" type="digit" value="{{seedForm.quantity}}" bindinput="onSeedQuantityInput" placeholder="0" />
-        </view>
-        <view class="form-field">
-          <text class="field-label">单价 (元)</text>
-          <input class="field-input" type="digit" value="{{seedForm.price}}" bindinput="onSeedPriceInput" placeholder="0.00" />
-        </view>
-        <view class="popup-info-row">
-          <text>总金额</text>
-          <text class="popup-highlight">¥{{seedForm.amount}}</text>
-        </view>
-      </view>
-      <view class="popup-footer-bar">
-        <button class="btn-cancel" bindtap="onCloseSeedPopup">取消</button>
-        <button class="btn-confirm" bindtap="onSubmitSeed">确认发放</button>
-      </view>
-    </view>
-  </t-popup>
-
 </view>

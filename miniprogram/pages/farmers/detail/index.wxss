@@ -119,6 +119,26 @@
   box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.02);
 }
 
+/* 板块标题 */
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.section-title-row-mt {
+  margin-top: 24rpx;
+  padding-top: 24rpx;
+  border-top: 1rpx solid #f3f4f6;
+}
+
+.section-title-text {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
 .stats-row {
   display: flex;
   align-items: center;
@@ -128,6 +148,56 @@
   margin-top: 20rpx;
   padding-top: 20rpx;
   border-top: 1rpx solid #f3f4f6;
+}
+
+.stats-row-tertiary {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed #e5e7eb;
+}
+
+.stats-row-secondary-no-border {
+  margin-top: 16rpx;
+}
+
+/* 种苗信息标题行 */
+.seed-info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f3f4f6;
+}
+
+.seed-info-title {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.seed-complete-tag {
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 16rpx;
+  background-color: #f0fdf4;
+  border-radius: 20rpx;
+}
+
+.seed-complete-tag text {
+  font-size: 22rpx;
+  color: #059669;
+  font-weight: 500;
+}
+
+/* 禁用状态 */
+.action-item-disabled {
+  opacity: 0.6;
+}
+
+.bg-gray {
+  background-color: #f3f4f6;
 }
 
 .stat-item {
@@ -148,6 +218,9 @@
 .stat-blue { color: #3b82f6; font-size: 30rpx; } /* 日期字体稍小 */
 .stat-purple { color: #8b5cf6; }
 .stat-orange { color: #f59e0b; }
+.stat-red { color: #ef4444; }
+.stat-cyan { color: #0891b2; }
+.stat-pink { color: #db2777; }
 
 .stat-label {
   font-size: 22rpx;

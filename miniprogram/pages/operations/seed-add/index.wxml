@@ -49,6 +49,26 @@
         </view>
       </view>
     </view>
+    
+    <!-- 种苗数量统计 -->
+    <view class="area-stats-card seed-stats-card" wx:if="{{selectedFarmer && seedStats.contractedQuantity > 0}}">
+      <view class="area-stats-row">
+        <view class="area-stat-item">
+          <text class="area-stat-label">签约种苗</text>
+          <text class="area-stat-value total">{{seedStats.contractedQuantity}} 万株</text>
+        </view>
+        <view class="area-stat-divider"></view>
+        <view class="area-stat-item">
+          <text class="area-stat-label">已发放</text>
+          <text class="area-stat-value used">{{seedStats.distributedQuantity}} 万株</text>
+        </view>
+        <view class="area-stat-divider"></view>
+        <view class="area-stat-item">
+          <text class="area-stat-label">剩余</text>
+          <text class="area-stat-value {{seedStats.remainingQuantity > 0 ? 'remaining' : 'empty'}}">{{seedStats.remainingQuantity}} 万株</text>
+        </view>
+      </view>
+    </view>
   </view>
 
   <!-- 发放信息 -->

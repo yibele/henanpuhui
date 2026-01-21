@@ -30,57 +30,10 @@ Page({
     secondManager: '',  // 第二负责人
     // 提交中
     submitting: false,
-    // 生成的客户编码预览
-    customerCodePreview: '',
-    // 助理信息（用于生成客户编码）
-    managerId: '',
-    managerName: ''
   },
 
   onLoad() {
-    // 获取当前登录用户作为默认负责人ID
-    this.loadManagerInfo();
-  },
-
-  /**
-   * 获取负责人信息（用于生成客户编码）
-   */
-  loadManagerInfo() {
-    // 从全局数据获取当前登录用户信息
-    const userInfo = app.globalData.userInfo as any;
-    
-    if (userInfo) {
-      // 有登录用户，使用登录用户信息
-      this.setData({
-        managerId: userInfo.salesmanId || 'S001',
-        managerName: userInfo.nickName || '当前用户'
-      });
-    } else {
-      // 没有登录用户信息，使用默认值（演示用）
-      this.setData({
-        managerId: 'S001',
-        managerName: '助理'
-      });
-    }
-  },
-
-  /**
-   * 生成客户编码
-   * 规则：负责人编号 + 农户手机号
-   */
-  generateCustomerCode(phone: string): string {
-    const { managerId } = this.data;
-    if (!phone || phone.length !== 11) return '';
-    return `${managerId}-${phone}`;
-  },
-
-  /**
-   * 更新客户编码预览
-   */
-  updateCustomerCodePreview() {
-    const { phone } = this.data.form;
-    const code = this.generateCustomerCode(phone);
-    this.setData({ customerCodePreview: code });
+    // no-op
   },
 
   // ==================== 基本信息输入 ====================
@@ -97,8 +50,6 @@ Page({
    */
   onPhoneInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'form.phone': e.detail.value });
-    // 更新客户编码预览
-    this.updateCustomerCodePreview();
   },
 
   /**
