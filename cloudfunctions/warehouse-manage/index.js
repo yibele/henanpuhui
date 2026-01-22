@@ -17,6 +17,27 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
+ * 分批拉取全部数据（避免 get() 默认/上限返回导致统计不准）
+ */
+async function queryAll(collectionName, whereCondition, { orderByField, orderByDirection = 'desc', fields } = {}) {
+    const MAX_LIMIT = 100;
+    let all = [];
+    let skip = 0;
+
+    while (true) {
+        let query = db.collection(collectionName).where(whereCondition);
+        if (orderByField) query = query.orderBy(orderByField, orderByDirection);
+        if (fields) query = query.field(fields);
+        const res = await query.skip(skip).limit(MAX_LIMIT).get();
+        all = all.concat(res.data || []);
+        if (!res.data || res.data.length < MAX_LIMIT) break;
+        skip += MAX_LIMIT;
+    }
+
+    return all;
+}
+
+/**
  * 获取今日日期字符串
  */
 function getTodayDate() {
@@ -94,17 +115,19 @@ async function getDailyList(event) {
         }
 
         // 获取这些日期的收购数据
-        const acquisitions = await db.collection('acquisitions')
-            .where({
+        const acquisitions = await queryAll(
+            'acquisitions',
+            {
                 warehouseId,
                 acquisitionDate: _.in(dateList),
                 status: _.neq('deleted')
-            })
-            .get();
+            },
+            { fields: { acquisitionDate: true, netWeight: true, weight: true } }
+        );
 
         // 按日期汇总收购量
         const acquisitionByDate = {};
-        acquisitions.data.forEach(acq => {
+        acquisitions.forEach(acq => {
             const date = acq.acquisitionDate;
             if (!acquisitionByDate[date]) {
                 acquisitionByDate[date] = 0;
@@ -113,21 +136,20 @@ async function getDailyList(event) {
         });
 
         // 获取日报记录
-        let dailyRecords = { data: [] };
+        let dailyRecords = [];
         try {
-            dailyRecords = await db.collection('warehouse_daily')
-                .where({
-                    warehouseId,
-                    date: _.in(dateList)
-                })
-                .get();
+            dailyRecords = await queryAll(
+                'warehouse_daily',
+                { warehouseId, date: _.in(dateList) },
+                { fields: { date: true, packCount: true, outWeight: true, outCount: true } }
+            );
         } catch (e) {
             console.log('warehouse_daily集合可能不存在');
         }
 
         // 按日期索引日报
         const dailyByDate = {};
-        dailyRecords.data.forEach(record => {
+        dailyRecords.forEach(record => {
             dailyByDate[record.date] = record;
         });
 
@@ -136,16 +158,16 @@ async function getDailyList(event) {
         const endIdx = page * pageSize;
         const pageDates = dateList.slice(startIdx, endIdx);
 
-        const list = pageDates.map(date => {
-            const daily = dailyByDate[date] || {};
-            return {
-                date,
-                acquisitionWeight: Number((acquisitionByDate[date] || 0).toFixed(2)),
-                packCount: daily.packCount || 0,
-                outboundWeight: daily.outboundWeight || 0,
-                outboundCount: daily.outboundCount || 0
-            };
-        });
+	        const list = pageDates.map(date => {
+	            const daily = dailyByDate[date] || {};
+	            return {
+	                date,
+	                acquisitionWeight: Number((acquisitionByDate[date] || 0).toFixed(2)),
+	                packCount: daily.packCount || 0,
+	                outWeight: daily.outWeight || 0,
+	                outCount: daily.outCount || 0
+	            };
+	        });
 
         // 计算库存汇总
         let totalAcquisition = 0;
@@ -153,33 +175,34 @@ async function getDailyList(event) {
         let totalOutboundWeight = 0;
         let totalOutboundCount = 0;
 
-        // 获取所有收购数据
-        const allAcquisitions = await db.collection('acquisitions')
-            .where({
-                warehouseId,
-                status: _.neq('deleted')
-            })
-            .get();
-
-        allAcquisitions.data.forEach(acq => {
-            totalAcquisition += acq.netWeight || acq.weight || 0;
-        });
-
-        // 获取所有日报数据
-        let allDaily = { data: [] };
-        try {
-            allDaily = await db.collection('warehouse_daily')
-                .where({ warehouseId })
-                .get();
-        } catch (e) {
-            console.log('warehouse_daily集合可能不存在');
-        }
-
-        allDaily.data.forEach(d => {
-            totalPack += d.packCount || 0;
-            totalOutboundWeight += d.outboundWeight || 0;
-            totalOutboundCount += d.outboundCount || 0;
-        });
+	        // 获取所有收购数据
+	        const allAcquisitions = await queryAll(
+	            'acquisitions',
+	            { warehouseId, status: _.neq('deleted') },
+	            { fields: { netWeight: true, weight: true } }
+	        );
+	
+	        allAcquisitions.forEach(acq => {
+	            totalAcquisition += acq.netWeight || acq.weight || 0;
+	        });
+	
+	        // 获取所有日报数据
+	        let allDaily = [];
+	        try {
+	            allDaily = await queryAll(
+	                'warehouse_daily',
+	                { warehouseId },
+	                { fields: { packCount: true, outWeight: true, outCount: true } }
+	            );
+	        } catch (e) {
+	            console.log('warehouse_daily集合可能不存在');
+	        }
+	
+	        allDaily.forEach(d => {
+	            totalPack += d.packCount || 0;
+	            totalOutboundWeight += d.outWeight || 0;
+	            totalOutboundCount += d.outCount || 0;
+	        });
 
         return {
             success: true,
@@ -305,16 +328,18 @@ async function getDashboard(event) {
         const pageSize = 20;
 
         // 1. 获取今日收购数据
-        const todayAcquisitions = await db.collection('acquisitions')
-            .where({
+        const todayAcquisitions = await queryAll(
+            'acquisitions',
+            {
                 warehouseId,
                 acquisitionDate: today,
                 status: _.neq('deleted')
-            })
-            .get();
+            },
+            { fields: { netWeight: true, weight: true } }
+        );
 
         let todayAcquisitionWeight = 0;
-        todayAcquisitions.data.forEach(acq => {
+        todayAcquisitions.forEach(acq => {
             todayAcquisitionWeight += acq.netWeight || acq.weight || 0;
         });
 
@@ -332,16 +357,18 @@ async function getDashboard(event) {
         }
 
         // 3. 获取所有收购数据计算累计
-        const allAcquisitions = await db.collection('acquisitions')
-            .where({
+        const allAcquisitions = await queryAll(
+            'acquisitions',
+            {
                 warehouseId,
                 status: _.neq('deleted')
-            })
-            .get();
+            },
+            { fields: { acquisitionDate: true, netWeight: true, weight: true } }
+        );
 
         let totalAcquisition = 0;
         const acquisitionByDate = {}; // 按日期汇总
-        allAcquisitions.data.forEach(acq => {
+        allAcquisitions.forEach(acq => {
             const weight = acq.netWeight || acq.weight || 0;
             totalAcquisition += weight;
             const date = acq.acquisitionDate;
@@ -354,12 +381,13 @@ async function getDashboard(event) {
         });
 
         // 4. 获取所有日报数据计算累计
-        let allDaily = { data: [] };
+        let allDaily = [];
         try {
-            allDaily = await db.collection('warehouse_daily')
-                .where({ warehouseId })
-                .orderBy('date', 'desc')
-                .get();
+            allDaily = await queryAll(
+                'warehouse_daily',
+                { warehouseId },
+                { orderByField: 'date', orderByDirection: 'desc', fields: { date: true, packCount: true, outWeight: true, outCount: true } }
+            );
         } catch (e) {
             console.log('warehouse_daily集合可能不存在');
         }
@@ -369,7 +397,7 @@ async function getDashboard(event) {
         let totalOutCount = 0;
         const dailyByDate = {};
 
-        allDaily.data.forEach(d => {
+        allDaily.forEach(d => {
             totalPack += d.packCount || 0;
             totalOutWeight += d.outWeight || 0;
             totalOutCount += d.outCount || 0;

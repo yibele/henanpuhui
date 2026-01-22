@@ -64,12 +64,11 @@ Page({
   },
 
   onShow() {
-    // 更新 TabBar 选中状态
+    // 只更新 TabBar 选中状态，不刷新数据
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().initTabBar();
     }
-    // 页面显示时刷新数据
-    this.loadFarmerStatus(false);
+    // 用户需要刷新时下拉刷新即可
   },
 
   /**
@@ -417,7 +416,7 @@ Page({
    * 下拉刷新 - 强制从服务器获取
    */
   onPullDownRefresh() {
-    this.loadData(true);  // 强制刷新
+    this.loadFarmerStatus(true);  // 强制刷新
     wx.stopPullDownRefresh();
   }
 });

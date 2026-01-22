@@ -1251,6 +1251,10 @@
   overflow: hidden;
 }
 
+.warehouse-actions {
+  margin-bottom: 24rpx;
+}
+
 .warehouse-header-bg {
   position: absolute;
   top: 0;

@@ -531,6 +531,8 @@ async function addFarmerAddendum(event) {
     const newSeedTotal = (farmer.seedTotal || 0) + seedTotal;
     const newReceivable = (farmer.receivableAmount || 0) + receivable;
     const newDeposit = (farmer.deposit || 0) + deposit;
+    // 计算新的种苗欠款
+    const newSeedDebt = newReceivable - newDeposit;
 
     // 3. 更新农户主表
     await db.collection('farmers').doc(farmerId).update({
@@ -539,6 +541,7 @@ async function addFarmerAddendum(event) {
         seedTotal: newSeedTotal,
         receivableAmount: newReceivable,
         deposit: newDeposit,
+        seedDebt: newSeedDebt,  // 同步更新种苗欠款
         updateTime: db.serverDate()
       }
     });

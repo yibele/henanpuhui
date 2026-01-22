@@ -119,6 +119,10 @@
       </view>
     </view>
 
+    <view class="warehouse-actions">
+      <t-button theme="primary" size="large" block bindtap="goAcquisitionCreate">收购登记</t-button>
+    </view>
+
     <!-- 今日收苗数据卡片 -->
     <view class="today-stats-card">
       <view class="stats-card-header">

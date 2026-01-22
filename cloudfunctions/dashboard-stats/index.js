@@ -9,6 +9,35 @@ const db = cloud.database();
 const _ = db.command;
 
 /**
+ * 分批拉取全部数据（避免 get() 默认/上限返回导致统计不准）
+ */
+async function queryAll(collectionName, whereCondition, { orderByField, orderByDirection = 'desc', fields } = {}) {
+  const MAX_LIMIT = 100;
+  let all = [];
+  let skip = 0;
+
+  while (true) {
+    let query = db.collection(collectionName).where(whereCondition);
+    if (orderByField) query = query.orderBy(orderByField, orderByDirection);
+    if (fields) query = query.field(fields);
+    const res = await query.skip(skip).limit(MAX_LIMIT).get();
+    all = all.concat(res.data || []);
+    if (!res.data || res.data.length < MAX_LIMIT) break;
+    skip += MAX_LIMIT;
+  }
+
+  return all;
+}
+
+function getTodayYmd() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -159,45 +188,57 @@ async function getWarehouseStats(user) {
 
     const warehouse = warehouseRes.data;
 
-    // 获取今天的日期范围
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todayYmd = getTodayYmd();
 
-    // 获取今日收购记录
-    const todayAcquisitions = await db.collection('acquisitions').where({
-      warehouseId: warehouseId,
-      createTime: _.gte(today).and(_.lt(tomorrow))
-    }).get();
+    // 统一口径：收购入库以 acquisitions(acquisitionDate+netWeight) 为准，默认排除 deleted
+    const todayAcquisitions = await queryAll(
+      'acquisitions',
+      { warehouseId, acquisitionDate: todayYmd, status: _.neq('deleted') },
+      { orderByField: 'createTime', orderByDirection: 'desc', fields: { netWeight: true, weight: true, totalAmount: true, farmerId: true } }
+    );
 
-    // 计算今日统计
-    let todayCount = todayAcquisitions.data.length;
+    const allAcquisitions = await queryAll(
+      'acquisitions',
+      { warehouseId, status: _.neq('deleted') },
+      { orderByField: 'createTime', orderByDirection: 'desc', fields: { netWeight: true, weight: true, totalAmount: true, farmerId: true } }
+    );
+
     let todayWeight = 0;
     let todayAmount = 0;
-
-    todayAcquisitions.data.forEach(acq => {
-      todayWeight += acq.weight || 0;
+    const todayFarmerIds = new Set();
+    todayAcquisitions.forEach(acq => {
+      todayWeight += acq.netWeight || acq.weight || 0;
       todayAmount += acq.totalAmount || 0;
+      if (acq.farmerId) todayFarmerIds.add(acq.farmerId);
     });
 
-    // 获取累计收购记录
-    const allAcquisitions = await db.collection('acquisitions').where({
-      warehouseId: warehouseId
-    }).get();
-
-    let totalCount = allAcquisitions.data.length;
     let totalWeight = 0;
     let totalAmount = 0;
-
-    allAcquisitions.data.forEach(acq => {
-      totalWeight += acq.weight || 0;
+    const totalFarmerIds = new Set();
+    allAcquisitions.forEach(acq => {
+      totalWeight += acq.netWeight || acq.weight || 0;
       totalAmount += acq.totalAmount || 0;
+      if (acq.farmerId) totalFarmerIds.add(acq.farmerId);
     });
 
-    // 获取库存统计（这里简化处理，实际应该从 inventory 表获取）
-    const inventoryCount = warehouse.inventoryCount || 0;
-    const inventoryWeight = warehouse.inventoryWeight || 0;
+    // 统一口径：出库/打包以 warehouse_daily 为准
+    const allDaily = await queryAll(
+      'warehouse_daily',
+      { warehouseId },
+      { orderByField: 'date', orderByDirection: 'desc', fields: { packCount: true, outWeight: true, outCount: true } }
+    );
+
+    let totalPack = 0;
+    let totalOutWeight = 0;
+    let totalOutCount = 0;
+    allDaily.forEach(d => {
+      totalPack += d.packCount || 0;
+      totalOutWeight += d.outWeight || 0;
+      totalOutCount += d.outCount || 0;
+    });
+
+    const stockWeight = Number((totalWeight - totalOutWeight).toFixed(2));
+    const stockCount = totalPack - totalOutCount;
 
     return {
       success: true,
@@ -211,18 +252,29 @@ async function getWarehouseStats(user) {
           phone: warehouse.phone
         },
         today: {
-          count: todayCount,
-          weight: todayWeight,
-          amount: todayAmount
+          // 保持兼容：count=记录数，同时提供更明确字段
+          count: todayAcquisitions.length,
+          recordCount: todayAcquisitions.length,
+          farmerCount: todayFarmerIds.size,
+          weight: Number(todayWeight.toFixed(2)),
+          amount: Number(todayAmount.toFixed(2))
         },
         total: {
-          count: totalCount,
-          weight: totalWeight,
-          amount: totalAmount
+          count: allAcquisitions.length,
+          recordCount: allAcquisitions.length,
+          farmerCount: totalFarmerIds.size,
+          weight: Number(totalWeight.toFixed(2)),
+          amount: Number(totalAmount.toFixed(2))
         },
         inventory: {
-          count: inventoryCount,
-          weight: inventoryWeight
+          // 兼容旧字段：count/weight 仍保留，但语义调整为“当前库存kg”
+          count: stockWeight,
+          weight: stockWeight,
+          stockWeight,
+          stockCount,
+          totalPack,
+          totalOutWeight: Number(totalOutWeight.toFixed(2)),
+          totalOutCount
         }
       }
     };

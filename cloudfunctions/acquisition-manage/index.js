@@ -38,7 +38,7 @@ function generateSettlementId() {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  const random = String(Math.floor(Math.random() + 10000)).padStart(4, '0');
+  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
   return `STL_${year}${month}${day}_${random}`;
 }
 
@@ -51,6 +51,40 @@ function formatDate(date) {
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * 解析并规范化 YYYY-MM-DD（避免时区导致的日期偏移）
+ */
+function normalizeYmd(input) {
+  if (!input || typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+  const [y, m, d] = trimmed.split('-').map(n => parseInt(n, 10));
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+/**
+ * 分批拉取全部数据（避免 get() 默认/上限返回导致统计不准）
+ */
+async function queryAll(collectionName, whereCondition, { orderByField, orderByDirection = 'desc', fields } = {}) {
+  const MAX_LIMIT = 100;
+  let all = [];
+  let skip = 0;
+
+  while (true) {
+    let query = db.collection(collectionName).where(whereCondition);
+    if (orderByField) query = query.orderBy(orderByField, orderByDirection);
+    if (fields) query = query.field(fields);
+    const res = await query.skip(skip).limit(MAX_LIMIT).get();
+    all = all.concat(res.data || []);
+    if (!res.data || res.data.length < MAX_LIMIT) break;
+    skip += MAX_LIMIT;
+  }
+
+  return all;
 }
 
 /**
@@ -74,23 +108,18 @@ async function createAcquisition(event, context) {
   }
 
   const {
+    date: clientDate,
     farmerId,
-    warehouseId,
-    farmerAcreage,
-    estimatedWeight,
+    warehouseId: clientWarehouseId,
     grossWeight,
     tareWeight,
     moistureRate,
-    moistureWeight,
-    weight,
     unitPrice,
-    totalAmount,
-    productType,
     remark
-  } = data;
+  } = data || {};
 
   // 数据验证
-  if (!farmerId || !warehouseId || !grossWeight || !tareWeight || moistureRate === undefined || !unitPrice) {
+  if (!farmerId || !clientWarehouseId || !grossWeight || !tareWeight || moistureRate === undefined || !unitPrice) {
     return {
       success: false,
       message: '缺少必填字段'
@@ -122,6 +151,14 @@ async function createAcquisition(event, context) {
       return {
         success: false,
         errMsg: '仓库管理员未绑定仓库'
+      };
+    }
+
+    // 防呆：前端传的仓库与用户绑定仓库不一致时拒绝
+    if (clientWarehouseId && currentUser.warehouseId && clientWarehouseId !== currentUser.warehouseId) {
+      return {
+        success: false,
+        errMsg: '仓库信息不匹配'
       };
     }
 
@@ -159,19 +196,44 @@ async function createAcquisition(event, context) {
     const moistureRateNum = Number(moistureRate);
     const unitPriceNum = Number(unitPrice);
 
-    const moistureWeight = (grossWeightNum - tareWeightNum) * (moistureRateNum / 100);
-    const netWeight = grossWeightNum - tareWeightNum - moistureWeight;
-    const totalAmount = netWeight * unitPriceNum;
+    if (!Number.isFinite(grossWeightNum) || grossWeightNum <= 0) {
+      return { success: false, errMsg: '毛重不合法' };
+    }
+    if (!Number.isFinite(tareWeightNum) || tareWeightNum < 0) {
+      return { success: false, errMsg: '皮重不合法' };
+    }
+    if (grossWeightNum < tareWeightNum) {
+      return { success: false, errMsg: '毛重不能小于皮重' };
+    }
+    if (!Number.isFinite(moistureRateNum) || moistureRateNum < 0 || moistureRateNum > 100) {
+      return { success: false, errMsg: '水杂率不合法' };
+    }
+    if (!Number.isFinite(unitPriceNum) || unitPriceNum <= 0) {
+      return { success: false, errMsg: '单价不合法' };
+    }
+
+    const computedMoistureWeight = (grossWeightNum - tareWeightNum) * (moistureRateNum / 100);
+    const computedNetWeight = grossWeightNum - tareWeightNum - computedMoistureWeight;
+    const computedTotalAmount = computedNetWeight * unitPriceNum;
+
+    if (!Number.isFinite(computedNetWeight) || computedNetWeight <= 0) {
+      return { success: false, errMsg: '净重不合法' };
+    }
 
     // 计算预估重量和差异
-    const estimatedWeight = farmer.acreage * 300; // 每亩 300kg
-    const weightDifference = netWeight - estimatedWeight;
-    const weightDifferenceRate = (weightDifference / estimatedWeight) * 100;
-    const isAbnormal = Math.abs(weightDifferenceRate) > 50; // 差异率超过50%为异常
+    const estimatedWeightKg = (farmer.acreage || 0) * 300; // 每亩 300kg
+    const weightDifference = computedNetWeight - estimatedWeightKg;
+    const weightDifferenceRate = estimatedWeightKg > 0 ? (weightDifference / estimatedWeightKg) * 100 : 0;
+    const isAbnormal = estimatedWeightKg > 0 ? Math.abs(weightDifferenceRate) > 50 : false; // 差异率超过50%为异常
 
     // 生成收购单号
     const acquisitionId = generateAcquisitionId();
-    const acquisitionDate = formatDate(new Date());
+    const normalizedClientDate = normalizeYmd(clientDate);
+    if (clientDate && !normalizedClientDate) {
+      return { success: false, errMsg: '收购日期不合法' };
+    }
+    const acquisitionDate = normalizedClientDate || formatDate(new Date());
+    const todayStr = formatDate(new Date());
 
     // 构造收购记录数据
     const acquisitionData = {
@@ -182,14 +244,14 @@ async function createAcquisition(event, context) {
       farmerAcreage: farmer.acreage,
       warehouseId: currentUser.warehouseId,
       warehouseName: warehouse.name,
-      estimatedWeight,
+      estimatedWeight: estimatedWeightKg,
       grossWeight: grossWeightNum,
       tareWeight: tareWeightNum,
       moistureRate: moistureRateNum,
-      moistureWeight: Number(moistureWeight.toFixed(2)),
-      netWeight: Number(netWeight.toFixed(2)),
+      moistureWeight: Number(computedMoistureWeight.toFixed(2)),
+      netWeight: Number(computedNetWeight.toFixed(2)),
       unitPrice: unitPriceNum,
-      totalAmount: Number(totalAmount.toFixed(2)),
+      totalAmount: Number(computedTotalAmount.toFixed(2)),
       weightDifference: Number(weightDifference.toFixed(2)),
       weightDifferenceRate: Number(weightDifferenceRate.toFixed(2)),
       isAbnormal,
@@ -225,12 +287,12 @@ async function createAcquisition(event, context) {
       warehouseId: currentUser.warehouseId,
       warehouseName: warehouse.name,
       acquisitionDate,
-      netWeight: Number(netWeight.toFixed(2)),
+      netWeight: Number(computedNetWeight.toFixed(2)),
       unitPrice: unitPriceNum,
-      grossAmount: Number(totalAmount.toFixed(2)),
+      grossAmount: Number(computedTotalAmount.toFixed(2)),
       seedDebt: farmer.stats.currentDebt || 0,
       otherDeductions: 0,
-      actualPayment: Number((totalAmount - (farmer.stats.currentDebt || 0)).toFixed(2)),
+      actualPayment: Number((computedTotalAmount - (farmer.stats.currentDebt || 0)).toFixed(2)),
       auditStatus: 'pending',
       auditBy: '',
       auditById: '',
@@ -261,8 +323,8 @@ async function createAcquisition(event, context) {
       .update({
         data: {
           'stats.totalAcquisitionCount': _.inc(1),
-          'stats.totalAcquisitionWeight': _.inc(Number(netWeight.toFixed(2))),
-          'stats.totalAcquisitionAmount': _.inc(Number(totalAmount.toFixed(2))),
+          'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
+          'stats.totalAcquisitionAmount': _.inc(Number(computedTotalAmount.toFixed(2))),
           lastAcquisitionTime: db.serverDate(),
           firstAcquisitionTime: isFirstAcquisition ? db.serverDate() : farmer.firstAcquisitionTime,
           updateTime: db.serverDate()
@@ -270,21 +332,23 @@ async function createAcquisition(event, context) {
       });
 
     // 4. 更新仓库统计数据
+    const warehouseUpdates = {
+      'stats.totalAcquisitionCount': _.inc(1),
+      'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
+      'stats.totalAcquisitionAmount': _.inc(Number(computedTotalAmount.toFixed(2))),
+      'stats.currentStock': _.inc(Number(computedNetWeight.toFixed(2))),
+      statsUpdateTime: db.serverDate(),
+      updateTime: db.serverDate()
+    };
+    // 只有业务日期=今天时，才更新“今日”统计
+    if (acquisitionDate === todayStr) {
+      warehouseUpdates['stats.todayAcquisitionCount'] = _.inc(1);
+      warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(Number(computedNetWeight.toFixed(2)));
+      warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(Number(computedTotalAmount.toFixed(2)));
+    }
     await db.collection('warehouses')
       .where({ _id: currentUser.warehouseId })
-      .update({
-        data: {
-          'stats.todayAcquisitionCount': _.inc(1),
-          'stats.todayAcquisitionWeight': _.inc(Number(netWeight.toFixed(2))),
-          'stats.todayAcquisitionAmount': _.inc(Number(totalAmount.toFixed(2))),
-          'stats.totalAcquisitionCount': _.inc(1),
-          'stats.totalAcquisitionWeight': _.inc(Number(netWeight.toFixed(2))),
-          'stats.totalAcquisitionAmount': _.inc(Number(totalAmount.toFixed(2))),
-          'stats.currentStock': _.inc(Number(netWeight.toFixed(2))),
-          statsUpdateTime: db.serverDate(),
-          updateTime: db.serverDate()
-        }
-      });
+      .update({ data: warehouseUpdates });
 
     // 5. 发送通知给财务（查询所有财务角色用户）
     const financeUsers = await db.collection('users')
@@ -298,14 +362,14 @@ async function createAcquisition(event, context) {
           userRole: 'finance',
           type: 'settlement_created',
           title: '新收购待结算',
-          content: `${warehouse.name}仓库收购农户${farmer.name}的甜叶菊，净重${netWeight.toFixed(2)}kg，应付金额${(totalAmount / 10000).toFixed(4)}万元，请审核。`,
+          content: `${warehouse.name}仓库收购农户${farmer.name}的甜叶菊，净重${computedNetWeight.toFixed(2)}kg，应付金额${(computedTotalAmount / 10000).toFixed(4)}万元，请审核。`,
           data: {
             settlementId,
             acquisitionId,
             farmerName: farmer.name,
             warehouseName: warehouse.name,
-            netWeight: Number(netWeight.toFixed(2)),
-            totalAmount: Number(totalAmount.toFixed(2)),
+            netWeight: Number(computedNetWeight.toFixed(2)),
+            totalAmount: Number(computedTotalAmount.toFixed(2)),
             actualPayment: settlementData.actualPayment
           },
           page: '/pages/finance/settlement-detail/index',
@@ -326,17 +390,17 @@ async function createAcquisition(event, context) {
         userId: currentUser._id,
         userName: currentUser.name,
         userRole: currentUser.role,
-        action: 'create_acquisition',
-        module: 'acquisition',
-        targetId: acquisitionId,
-        targetName: `${farmer.name} - ${netWeight.toFixed(2)}kg`,
-        description: `创建收购记录：${farmer.name}，净重${netWeight.toFixed(2)}kg`,
-        before: {},
-        after: acquisitionData,
-        changes: [],
-        createTime: db.serverDate()
-      }
-    });
+          action: 'create_acquisition',
+          module: 'acquisition',
+          targetId: acquisitionId,
+          targetName: `${farmer.name} - ${computedNetWeight.toFixed(2)}kg`,
+          description: `创建收购记录：${farmer.name}，净重${computedNetWeight.toFixed(2)}kg`,
+          before: {},
+          after: acquisitionData,
+          changes: [],
+          createTime: db.serverDate()
+        }
+      });
 
     return {
       success: true,
@@ -405,6 +469,8 @@ async function listAcquisitions(event, context) {
     pageSize = 20,
     warehouseId = '',
     farmerId = '',
+    keyword = '',
+    dateRange = '',
     startDate = '',
     endDate = '',
     status = ''
@@ -435,11 +501,14 @@ async function listAcquisitions(event, context) {
 
     const currentUser = userRes.data[0];
 
-    // 构建查询条件
-    let whereCondition = {};
+    // 构建查询条件（统一口径：默认排除 deleted）
+    const whereCondition = {};
 
     // 如果是仓库管理员，只能查看自己仓库的收购记录
     if (currentUser.role === 'warehouse_manager') {
+      if (!currentUser.warehouseId) {
+        return { success: false, errMsg: '仓库管理员未绑定仓库' };
+      }
       whereCondition.warehouseId = currentUser.warehouseId;
     }
 
@@ -453,28 +522,54 @@ async function listAcquisitions(event, context) {
       whereCondition.farmerId = farmerId;
     }
 
-    // 如果指定了日期范围
-    if (startDate && endDate) {
-      whereCondition.acquisitionDate = _.gte(startDate).and(_.lte(endDate));
-    } else if (startDate) {
-      whereCondition.acquisitionDate = _.gte(startDate);
-    } else if (endDate) {
-      whereCondition.acquisitionDate = _.lte(endDate);
-    }
-
-    // 如果指定了状态
+    // 统一过滤：默认排除 deleted，除非显式传入 status
     if (status) {
       whereCondition.status = status;
+    } else {
+      whereCondition.status = _.neq('deleted');
+    }
+
+    // 日期范围（优先使用明确 start/end；否则支持 dateRange=today/all）
+    let effectiveStartDate = startDate;
+    let effectiveEndDate = endDate;
+    if (!effectiveStartDate && !effectiveEndDate && dateRange === 'today') {
+      const todayStr = formatDate(new Date());
+      effectiveStartDate = todayStr;
+      effectiveEndDate = todayStr;
+    }
+    if (effectiveStartDate && effectiveEndDate) {
+      whereCondition.acquisitionDate = _.gte(effectiveStartDate).and(_.lte(effectiveEndDate));
+    } else if (effectiveStartDate) {
+      whereCondition.acquisitionDate = _.gte(effectiveStartDate);
+    } else if (effectiveEndDate) {
+      whereCondition.acquisitionDate = _.lte(effectiveEndDate);
+    }
+
+    // 关键词搜索（农户姓名/手机号/农户ID/收购单号）
+    const trimmedKeyword = String(keyword || '').trim();
+    let finalWhere = whereCondition;
+    if (trimmedKeyword) {
+      const safe = trimmedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const reg = db.RegExp({ regexp: safe, options: 'i' });
+      finalWhere = _.and([
+        whereCondition,
+        _.or([
+          { farmerName: reg },
+          { farmerPhone: reg },
+          { farmerId: reg },
+          { acquisitionId: reg }
+        ])
+      ]);
     }
 
     // 查询总数
     const countResult = await db.collection('acquisitions')
-      .where(whereCondition)
+      .where(finalWhere)
       .count();
 
     // 查询数据
     const result = await db.collection('acquisitions')
-      .where(whereCondition)
+      .where(finalWhere)
       .orderBy('createTime', 'desc')
       .skip((page - 1) * pageSize)
       .limit(pageSize)
@@ -715,15 +810,11 @@ async function getFarmerAcquisitionSummary(event) {
 
   try {
     // 获取该农户的所有收购记录
-    const acquisitionsRes = await db.collection('acquisitions')
-      .where({
-        farmerId: farmerId,
-        status: _.neq('deleted')
-      })
-      .orderBy('createTime', 'desc')
-      .get();
-
-    const acquisitions = acquisitionsRes.data;
+    const acquisitions = await queryAll(
+      'acquisitions',
+      { farmerId: farmerId, status: _.neq('deleted') },
+      { orderByField: 'createTime', orderByDirection: 'desc' }
+    );
 
     if (acquisitions.length === 0) {
       return {

@@ -1,0 +1,122 @@
+<!--
+  收购记录页面
+  仓库管理员查看和管理收购记录
+-->
+<view class="page-container">
+  <!-- 顶部搜索区 -->
+  <view class="search-wrap">
+    <t-search
+      placeholder="搜索农户姓名/手机号"
+      value="{{keyword}}"
+      bindchange="onKeywordChange"
+      bindsearch="onSearch"
+      bindclear="onClear"
+    />
+  </view>
+
+  <!-- Tab 切换 -->
+  <view class="tab-wrap">
+    <view 
+      class="tab-item {{currentTab === 'today' ? 'active' : ''}}"
+      data-tab="today"
+      bindtap="onTabChange"
+    >
+      <text>今日</text>
+    </view>
+    <view 
+      class="tab-item {{currentTab === 'all' ? 'active' : ''}}"
+      data-tab="all"
+      bindtap="onTabChange"
+    >
+      <text>累计</text>
+    </view>
+  </view>
+
+  <!-- 汇总统计卡片 -->
+  <view class="stats-card">
+    <view class="stats-row">
+      <view class="stats-item main">
+        <text class="stats-value">{{summary.totalWeight}}</text>
+        <text class="stats-unit">kg</text>
+        <text class="stats-label">收购重量</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-value">{{summary.totalAmountWan}}</text>
+        <text class="stats-unit">万元</text>
+        <text class="stats-label">收购金额</text>
+      </view>
+      <view class="stats-divider"></view>
+      <view class="stats-item">
+        <text class="stats-value">{{summary.count}}</text>
+        <text class="stats-unit">笔</text>
+        <text class="stats-label">收购笔数</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 收购记录列表 -->
+  <view class="list-section">
+    <view class="section-header">
+      <text class="section-title">{{currentTab === 'today' ? '今日记录' : '全部记录'}}</text>
+      <text class="section-count">共 {{summary.count}} 条</text>
+    </view>
+
+    <!-- 加载中 -->
+    <view wx:if="{{loading}}" class="loading-wrap">
+      <t-loading theme="circular" size="40rpx" text="加载中..." />
+    </view>
+
+    <!-- 空状态 -->
+    <view wx:elif="{{list.length === 0}}" class="empty-wrap">
+      <t-empty description="暂无收购记录" />
+    </view>
+
+    <!-- 记录列表 -->
+    <view wx:else class="record-list">
+      <view 
+        wx:for="{{list}}" 
+        wx:key="acquisitionId" 
+        class="record-card"
+        bindtap="onRecordTap"
+        data-item="{{item}}"
+      >
+        <view class="record-left">
+          <view class="record-avatar">
+            <text>{{item.farmerName[0] || '?'}}</text>
+          </view>
+          <view class="record-info">
+            <text class="record-name">{{item.farmerName}}</text>
+            <text class="record-meta">{{item.subTitle}}</text>
+          </view>
+        </view>
+        <view class="record-right">
+          <view class="record-weight">
+            <text class="weight-value">{{item.netWeight}}</text>
+            <text class="weight-unit">kg</text>
+          </view>
+          <view class="record-amount">
+            <text class="amount-value">¥{{item.amountDisplay}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 加载更多 -->
+      <view wx:if="{{hasMore}}" class="load-more" bindtap="loadMore">
+        <text wx:if="{{!loadingMore}}">加载更多</text>
+        <t-loading wx:else theme="circular" size="32rpx" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>
+
+<!-- 底部新增按钮 -->
+<view class="fab-wrap">
+  <view class="fab-btn" bindtap="goCreate">
+    <t-icon name="add" size="40rpx" color="#ffffff" />
+    <text>新增收购</text>
+  </view>
+</view>

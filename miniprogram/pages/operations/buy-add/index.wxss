@@ -1,593 +1,581 @@
-/* 收购登记页面样式 - TDesign 版本 */
+/**
+ * 收购登记页面样式
+ * 大师级 UI 设计 - Glassmorphism + Modern Cards
+ */
 
-.acquisition-page {
+/* ====== 页面容器 ====== */
+.page-container {
   min-height: 100vh;
-  background-color: #f3f4f6;
-  padding-bottom: 180rpx;
+  background: linear-gradient(180deg, #fff7ed 0%, #f8fafc 15%, #f8fafc 100%);
+  padding-bottom: 200rpx;
 }
 
-/* ==================== 页面标题 ==================== */
-
-.page-header {
+/* ====== 顶部背景装饰 ====== */
+.header-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 280rpx;
   background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-  padding: 48rpx 32rpx 40rpx;
-  color: #ffffff;
+  border-radius: 0 0 48rpx 48rpx;
+}
+
+/* ====== 页面标题 ====== */
+.page-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 32rpx 32rpx 48rpx;
+  z-index: 1;
+}
+
+.header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .page-title {
-  display: block;
   font-size: 44rpx;
-  font-weight: 600;
-  margin-bottom: 12rpx;
+  font-weight: 700;
+  color: #ffffff;
 }
 
 .page-subtitle {
-  display: block;
   font-size: 26rpx;
-  opacity: 0.9;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-/* ==================== 表单区域 ==================== */
-
-.form-section {
-  margin-top: 24rpx;
-}
-
-.section-header {
+.header-date {
   display: flex;
   align-items: center;
-  padding: 0 32rpx 16rpx;
-}
-
-.section-indicator {
-  width: 8rpx;
-  height: 28rpx;
-  border-radius: 4rpx;
-  margin-right: 12rpx;
-}
-
-.indicator-orange {
-  background-color: #f97316;
-}
-
-.indicator-blue {
-  background-color: #3b82f6;
-}
-
-.indicator-green {
-  background-color: #059669;
-}
-
-.indicator-purple {
-  background-color: #8b5cf6;
-}
-
-.section-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #111827;
-}
-
-/* ==================== t-cell-group 样式适配 ==================== */
-
-.form-card-group {
-  margin: 0 24rpx !important;
-}
-
-/* 覆盖 t-cell 默认样式 */
-.form-card-group .t-cell {
-  --td-cell-left-icon-color: #f97316;
-  --td-cell-note-color: #111827;
-  --td-cell-required-color: #ef4444;
-}
-
-/* ==================== 历史收购汇总 ==================== */
-
-.history-summary {
-  margin: 24rpx 24rpx 0;
-  background-color: #fef3c7;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  border: 2rpx solid #fcd34d;
-}
-
-.history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.history-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #92400e;
-}
-
-.history-count {
-  font-size: 24rpx;
-  color: #b45309;
-}
-
-.history-stats {
-  display: flex;
-  gap: 24rpx;
-  margin-bottom: 20rpx;
-}
-
-.history-stats .stat-item {
-  flex: 1;
-  background-color: #ffffff;
-  border-radius: 12rpx;
-  padding: 16rpx;
-  text-align: center;
-}
-
-.history-stats .stat-value {
-  display: block;
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #374151;
-}
-
-.history-stats .stat-value.highlight {
-  color: #059669;
-}
-
-.history-stats .stat-label {
-  display: block;
-  font-size: 22rpx;
-  color: #6b7280;
-  margin-top: 4rpx;
-}
-
-.history-stats .stat-value.warning {
-  color: #ef4444;
-}
-
-.warehouse-list {
-  background-color: #ffffff;
-  border-radius: 12rpx;
-  padding: 16rpx;
-}
-
-.warehouse-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-}
-
-.warehouse-item:last-child {
-  border-bottom: none;
-}
-
-.warehouse-name {
-  font-size: 26rpx;
-  color: #374151;
-  font-weight: 500;
-}
-
-.warehouse-data {
-  display: flex;
-  align-items: center;
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.warehouse-data .separator {
-  margin: 0 8rpx;
-  color: #d1d5db;
-}
-
-.warehouse-data .amount {
-  color: #059669;
-  font-weight: 600;
-}
-
-/* ==================== 简化表单行 ==================== */
-
-.form-card {
-  background-color: #ffffff;
-  border-radius: 16rpx;
-  margin: 0 24rpx;
-  padding: 8rpx 24rpx;
-}
-
-.form-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28rpx 0;
-  border-bottom: 1rpx solid #f3f4f6;
-}
-
-.form-row:last-child {
-  border-bottom: none;
-}
-
-.form-label {
-  font-size: 30rpx;
-  color: #374151;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.form-label.required::before {
-  content: '*';
-  color: #ef4444;
-  margin-right: 4rpx;
-}
-
-.form-input-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 1;
-  margin-left: 40rpx;
-}
-
-.form-input {
-  flex: 1;
-  max-width: 200rpx;
-  height: 64rpx;
-  font-size: 30rpx;
-  color: #111827;
-  text-align: right;
-  padding: 0 16rpx;
-  background-color: #f9fafb;
-  border-radius: 8rpx;
-  border: 1rpx solid #e5e7eb;
-}
-
-.form-unit {
-  font-size: 26rpx;
-  color: #6b7280;
-  margin-left: 12rpx;
-  flex-shrink: 0;
-  min-width: 60rpx;
-}
-
-.form-value-wrap {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  flex: 1;
-}
-
-.form-value {
-  font-size: 32rpx;
-  color: #374151;
-  font-weight: 600;
-}
-
-.form-value.highlight-blue {
-  font-size: 36rpx;
-  color: #3b82f6;
-}
-
-.form-value.highlight-green {
-  font-size: 36rpx;
-  color: #059669;
-}
-
-.form-value.highlight-purple {
-  font-size: 36rpx;
-  color: #8b5cf6;
-}
-
-.form-value.warning {
-  font-size: 36rpx;
-  color: #ef4444;
-}
-
-.formula-row {
-  padding: 16rpx 0 8rpx;
-  text-align: right;
-}
-
-.formula-text {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-/* ==================== 预估收购重量 ==================== */
-
-.estimated-weight-display {
-  display: flex;
-  align-items: baseline;
   gap: 8rpx;
-}
-
-.estimated-value {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: #8b5cf6;
-}
-
-.estimated-unit {
+  padding: 16rpx 24rpx;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  border-radius: 32rpx;
+  color: #ffffff;
   font-size: 26rpx;
-  color: #8b5cf6;
-  font-weight: 600;
 }
 
-.estimated-note {
-  font-size: 24rpx;
-  color: #9ca3af;
+/* ====== 通用卡片 ====== */
+.card {
+  position: relative;
+  margin: 0 24rpx 24rpx;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
-/* ==================== 净重显示 ==================== */
-
-.net-weight-display {
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.net-weight-value {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #3b82f6;
-}
-
-.net-weight-unit {
-  font-size: 26rpx;
-  color: #3b82f6;
-  font-weight: 600;
-}
-
-/* ==================== 金额显示 ==================== */
-
-.amount-display {
-  display: flex;
-  align-items: baseline;
-  gap: 8rpx;
-}
-
-.amount-value {
-  font-size: 44rpx;
-  font-weight: 700;
-  color: #059669;
-}
-
-.amount-unit {
-  font-size: 28rpx;
-  color: #059669;
-  font-weight: 600;
-}
-
-.amount-formula {
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-/* ==================== 备注输入 ==================== */
-
-.form-card {
-  background-color: #ffffff;
-  border-radius: 16rpx;
-  margin: 0 24rpx;
-  padding: 24rpx;
-}
-
-.form-card .t-textarea {
-  --td-textarea-background-color: #f9fafb;
-  --td-textarea-border-radius: 12rpx;
-}
-
-/* ==================== 提示信息 ==================== */
-
-.tips {
-  margin: 32rpx 24rpx;
-  padding: 24rpx;
-  background-color: #fff7ed;
-  border-radius: 12rpx;
-  border: 2rpx solid #fed7aa;
-}
-
-.tip-item {
+.card-header {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 16rpx;
-  font-size: 26rpx;
-  color: #9a3412;
+  margin-bottom: 24rpx;
 }
 
-.tip-item:last-child {
-  margin-bottom: 0;
+.card-indicator {
+  width: 6rpx;
+  height: 32rpx;
+  border-radius: 3rpx;
 }
 
-/* ==================== 底部按钮 ==================== */
-
-.bottom-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  gap: 24rpx;
-  padding: 24rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  background-color: #ffffff;
-  border-top: 1rpx solid #e5e7eb;
-  box-shadow: 0 -4rpx 12rpx rgba(0, 0, 0, 0.05);
+.card-indicator.blue {
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
 }
 
-.bottom-actions .t-button {
-  flex: 1;
+.card-indicator.green {
+  background: linear-gradient(180deg, #10b981, #059669);
 }
 
-/* ==================== 弹窗样式 ==================== */
+.card-indicator.purple {
+  background: linear-gradient(180deg, #8b5cf6, #7c3aed);
+}
 
-.popup-container {
-  background-color: #ffffff;
-  border-radius: 24rpx 24rpx 0 0;
-  max-height: 80vh;
+.card-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* ====== 农户选择卡片 ====== */
+.farmer-card {
+  margin-top: -24rpx;
+  z-index: 2;
+}
+
+.farmer-empty {
   display: flex;
   flex-direction: column;
-}
-
-.popup-header {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 32rpx;
-  border-bottom: 1rpx solid #f3f4f6;
-  flex-shrink: 0;
+  padding: 40rpx 0;
 }
 
-.popup-title {
-  font-size: 34rpx;
-  font-weight: 600;
-  color: #111827;
-}
-
-.popup-close {
-  width: 64rpx;
-  height: 64rpx;
+.empty-icon {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 32rpx;
-  background-color: #f3f4f6;
+  margin-bottom: 16rpx;
 }
 
-/* ==================== 搜索栏 ==================== */
+.empty-text {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 8rpx;
+}
 
-.popup-search {
-  padding: 16rpx 24rpx;
-  border-bottom: 1rpx solid #f3f4f6;
+.empty-hint {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.farmer-selected {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.farmer-main {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.farmer-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.popup-search .t-search {
-  --td-search-bg-color: #f3f4f6;
+.farmer-avatar text {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #c2410c;
 }
 
-/* ==================== 列表项 ==================== */
-
-.popup-list {
-  flex: 1;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.popup-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28rpx 32rpx;
-  border-bottom: 1rpx solid #f3f4f6;
-  transition: background-color 0.2s;
-}
-
-.popup-item:active {
-  background-color: #f9fafb;
-}
-
-.popup-item.selected {
-  background-color: #fff7ed;
-}
-
-.popup-item-left {
+.farmer-info {
   flex: 1;
   min-width: 0;
 }
 
-.popup-item-name-row {
+.farmer-name-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 8rpx;
+  margin-bottom: 6rpx;
 }
 
-.popup-item-name {
+.farmer-name {
   font-size: 32rpx;
   font-weight: 600;
   color: #111827;
 }
 
-.grade-badge {
+.grade-tag {
   padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  font-size: 22rpx;
+  border-radius: 6rpx;
+  font-size: 20rpx;
   font-weight: 600;
 }
 
-.grade-A {
-  background-color: #dcfce7;
-  color: #15803d;
+.grade-tag.grade-A, .grade-tag.grade-gold {
+  background: #fef3c7;
+  color: #b45309;
 }
 
-.grade-B {
-  background-color: #dbeafe;
-  color: #1e40af;
+.grade-tag.grade-B, .grade-tag.grade-silver {
+  background: #e5e7eb;
+  color: #4b5563;
 }
 
-.grade-C {
-  background-color: #fed7aa;
+.grade-tag.grade-C, .grade-tag.grade-bronze {
+  background: #fed7aa;
   color: #9a3412;
 }
 
-.popup-item-sub {
-  font-size: 26rpx;
-  color: #9ca3af;
+.farmer-meta {
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 26rpx;
+  color: #6b7280;
+  margin-bottom: 4rpx;
 }
 
-/* ==================== 空状态 ==================== */
+.farmer-address {
+  display: block;
+  font-size: 24rpx;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-.empty-state {
+.farmer-history {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  background: #fffbeb;
+  border-radius: 16rpx;
+  border: 1rpx solid #fde68a;
+}
+
+.history-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 120rpx 32rpx;
-  gap: 24rpx;
+  gap: 4rpx;
 }
 
-.empty-state text {
-  font-size: 28rpx;
-  color: #9ca3af;
+.history-divider {
+  width: 1rpx;
+  height: 48rpx;
+  background: #fcd34d;
 }
 
-/* ==================== 农户信息显示 ==================== */
+.history-value {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #92400e;
+}
 
-.farmer-info-slot {
+.history-value.highlight {
+  color: #059669;
+}
+
+.history-label {
+  font-size: 22rpx;
+  color: #a16207;
+}
+
+/* ====== 输入网格 ====== */
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.input-item {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12rpx;
 }
 
-.farmer-name {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #111827;
+.input-label {
+  font-size: 24rpx;
+  color: #6b7280;
+  font-weight: 500;
 }
 
-.farmer-phone {
+.input-box {
+  display: flex;
+  align-items: center;
+  height: 88rpx;
+  padding: 0 20rpx;
+  background: #f9fafb;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 16rpx;
+  transition: all 0.2s;
+}
+
+.input-box:focus-within {
+  border-color: #f97316;
+  background: #ffffff;
+  box-shadow: 0 0 0 4rpx rgba(249, 115, 22, 0.1);
+}
+
+.input-field {
+  flex: 1;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+}
+
+.input-unit {
+  font-size: 24rpx;
+  color: #9ca3af;
+  flex-shrink: 0;
+  margin-left: 8rpx;
+}
+
+/* ====== 计算结果卡片 ====== */
+.result-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 2rpx solid #bbf7d0;
+}
+
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.result-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #d1fae5;
+}
+
+.result-row-item:last-child {
+  border-bottom: none;
+}
+
+.result-row-item.highlight-row {
+  background: rgba(37, 99, 235, 0.08);
+  margin: 0 -28rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 12rpx;
+  border-bottom: none;
+}
+
+.result-item-label {
   font-size: 28rpx;
   color: #6b7280;
 }
 
-/* ==================== 提示圆点 ==================== */
-
-.tip-dot {
-  color: #f97316;
-  font-weight: bold;
-  margin-right: 8rpx;
+.result-item-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 6rpx;
 }
 
-/* ==================== 农户搜索弹窗 ==================== */
+.result-item-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #374151;
+}
 
-.popup-container {
-  background-color: #ffffff;
-  border-radius: 24rpx 24rpx 0 0;
+.result-item-value.highlight-blue {
+  font-size: 40rpx;
+  color: #2563eb;
+}
+
+.result-item-value.highlight-green {
+  font-size: 36rpx;
+  color: #059669;
+}
+
+.result-item-unit {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.formula {
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed #86efac;
+  text-align: center;
+}
+
+.formula text {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+/* ====== 农户概况卡片 ====== */
+.overview-card {
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  border: 2rpx solid #e9d5ff;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.overview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  padding: 16rpx;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12rpx;
+}
+
+.overview-label {
+  font-size: 22rpx;
+  color: #9ca3af;
+}
+
+.overview-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.overview-value.highlight-purple {
+  color: #8b5cf6;
+}
+
+/* ====== 预估收购区域 ====== */
+.estimate-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12rpx;
+  padding: 12rpx 16rpx;
+}
+
+.estimate-row-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid #f3e8ff;
+}
+
+.estimate-row-item:last-child {
+  border-bottom: none;
+}
+
+.estimate-row-item.highlight {
+  margin: 8rpx -16rpx 0;
+  padding: 12rpx 16rpx;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 8rpx;
+  border-bottom: none;
+}
+
+.estimate-label {
+  font-size: 24rpx;
+  color: #6b7280;
+}
+
+.estimate-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.estimate-row-item.highlight .estimate-value {
+  color: #8b5cf6;
+}
+
+.estimate-value.warning {
+  color: #ef4444;
+}
+
+/* ====== 备注区域 ====== */
+.card .t-textarea {
+  --td-textarea-background-color: #f9fafb;
+  --td-textarea-border-radius: 16rpx;
+  --td-textarea-padding: 20rpx;
+}
+
+/* ====== 底部安全区 ====== */
+.safe-bottom {
+  height: 60rpx;
+}
+
+/* ====== 底部操作栏 ====== */
+.bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+.bottom-summary {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12rpx 16rpx;
+  margin-bottom: 12rpx;
+  background: #f0fdf4;
+  border-radius: 12rpx;
+}
+
+.summary-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.summary-label {
+  font-size: 22rpx;
+  color: #6b7280;
+}
+
+.summary-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+}
+
+.summary-value.highlight {
+  color: #059669;
+}
+
+.bottom-actions {
+  display: flex;
+  gap: 20rpx;
+}
+
+.btn-cancel {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 44rpx;
+}
+
+.btn-submit {
+  flex: 2;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-radius: 44rpx;
+  box-shadow: 0 8rpx 24rpx rgba(249, 115, 22, 0.35);
+}
+
+.btn-submit.disabled {
+  background: #d1d5db;
+  box-shadow: none;
+}
+
+.btn-submit:active:not(.disabled) {
+  transform: scale(0.98);
+}
+
+/* ====== 弹窗样式 ====== */
+.popup-wrap {
+  background: #ffffff;
+  border-radius: 32rpx 32rpx 0 0;
   min-height: 50vh;
   max-height: 80vh;
   display: flex;
@@ -599,9 +587,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32rpx;
+  padding: 28rpx 32rpx;
   border-bottom: 1rpx solid #f3f4f6;
-  flex-shrink: 0;
 }
 
 .popup-title {
@@ -616,67 +603,105 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 32rpx;
-  background-color: #f3f4f6;
+  background: #f3f4f6;
+  border-radius: 50%;
 }
 
+/* ====== 搜索区 ====== */
 .search-section {
-  padding: 32rpx;
-  border-bottom: 1rpx solid #f3f4f6;
-}
-
-.search-row {
-  display: flex;
-  align-items: center;
-}
-
-.search-row .t-input {
-  flex: 1;
-  --td-input-bg-color: #f3f4f6;
-  --td-input-border-radius: 12rpx;
-}
-
-.search-hint {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #9ca3af;
-}
-
-.search-result {
-  flex: 1;
   padding: 24rpx 32rpx;
 }
 
-.result-header {
-  font-size: 28rpx;
-  color: #6b7280;
-  margin-bottom: 16rpx;
+.search-input-row {
+  display: flex;
+  gap: 16rpx;
 }
 
-.result-card {
+.search-input-wrap {
+  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  background-color: #f0fdf4;
-  border: 2rpx solid #86efac;
-  border-radius: 16rpx;
+  gap: 12rpx;
+  height: 88rpx;
+  padding: 0 20rpx;
+  background: #f3f4f6;
+  border-radius: 44rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 30rpx;
+  color: #111827;
+}
+
+.search-clear {
+  padding: 8rpx;
+}
+
+.search-btn {
+  width: 140rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #ffffff;
+  background: #d1d5db;
+  border-radius: 44rpx;
+  transition: all 0.2s;
+}
+
+.search-btn.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+/* ====== 搜索结果 ====== */
+.search-result {
+  padding: 24rpx 32rpx;
+}
+
+.search-result .result-card {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
   padding: 24rpx;
+  background: #f0fdf4;
+  border: 2rpx solid #86efac;
+  border-radius: 20rpx;
+}
+
+.result-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.result-avatar text {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #15803d;
 }
 
 .result-info {
   flex: 1;
+  min-width: 0;
 }
 
 .result-name-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin-bottom: 8rpx;
+  margin-bottom: 6rpx;
 }
 
 .result-name {
-  font-size: 34rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: #111827;
 }
@@ -685,65 +710,34 @@
   display: block;
   font-size: 28rpx;
   color: #059669;
-  margin-bottom: 4rpx;
-}
-
-.result-id {
-  display: block;
-  font-size: 26rpx;
-  color: #f97316;
   font-weight: 500;
   margin-bottom: 4rpx;
 }
 
-.result-address {
+.result-meta {
   display: block;
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: #6b7280;
-  margin-bottom: 4rpx;
 }
 
-.result-acreage {
-  display: block;
-  font-size: 26rpx;
-  color: #9ca3af;
+.result-select {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dcfce7;
+  border-radius: 50%;
 }
 
-.result-action {
-  flex-shrink: 0;
-  margin-left: 24rpx;
-}
-
-.search-empty {
+/* ====== 空状态 & 提示 ====== */
+.search-empty,
+.search-hint-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
   padding: 80rpx 32rpx;
-  text-align: center;
-}
-
-.empty-text {
-  font-size: 28rpx;
   color: #9ca3af;
-}
-
-/* ==================== 等级标签 ==================== */
-
-.grade-badge {
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-  font-size: 22rpx;
-  font-weight: 600;
-}
-
-.grade-A, .grade-gold {
-  background-color: #fef3c7;
-  color: #b45309;
-}
-
-.grade-B, .grade-silver {
-  background-color: #e5e7eb;
-  color: #4b5563;
-}
-
-.grade-C, .grade-bronze {
-  background-color: #fed7aa;
-  color: #9a3412;
+  font-size: 28rpx;
 }

@@ -130,10 +130,23 @@ Page({
     }
   },
 
+  // 适配两种事件名称
   onSearchPhoneChange(e: WechatMiniprogram.CustomEvent) {
+    this.onSearchPhoneInput(e);
+  },
+
+  onSearchPhoneInput(e: WechatMiniprogram.CustomEvent) {
     const value = String(e.detail.value || '').replace(/\D/g, '');
     this.setData({
       searchPhone: value.substring(0, 11),
+      searchResult: {},
+      searchedOnce: false
+    });
+  },
+
+  clearSearchPhone() {
+    this.setData({
+      searchPhone: '',
       searchResult: {},
       searchedOnce: false
     });
@@ -170,6 +183,7 @@ Page({
         const farmer = result.data;
 
         // 处理农户数据
+        const stats = farmer.stats || {};
         const processedFarmer = {
           id: farmer._id,
           farmerId: farmer.farmerId,  // 农户编号，用于查询收购记录
@@ -177,8 +191,14 @@ Page({
           phone: farmer.phone,
           grade: farmer.grade || 'C',
           gradeText: GRADE_TEXT_MAP[farmer.grade] || farmer.grade || 'C级',
-          acreage: farmer.acreage || 0,
-          addressText: `${farmer.county || ''}${farmer.township || ''}${farmer.village || ''}`
+          acreage: farmer.acreage || 0,  // 签约面积
+          seedTotal: farmer.seedTotal || 0,  // 签约万株数
+          addressText: `${farmer.county || ''}${farmer.township || ''}${farmer.village || ''}`,
+          // 发苗统计
+          distributedArea: stats.totalSeedDistributedArea || 0,  // 已发苗亩数
+          distributedQuantity: stats.totalSeedDistributed || 0,  // 已发苗万株数
+          seedDistributionCount: stats.seedDistributionCount || 0,  // 发苗次数
+          seedDistributionComplete: farmer.seedDistributionComplete || false  // 是否完成发苗
         };
 
         this.setData({
@@ -219,8 +239,9 @@ Page({
     const farmer = this.data.searchResult;
     if (!farmer.id) return;
 
-    // 计算预估收购重量：种植面积 × 300 KG/亩
-    const estimated = (farmer.acreage || 0) * 300;
+    // 计算预估收购重量：已发苗亩数 × 300 KG/亩（只有发了苗的地才会有收获）
+    const distributedArea = farmer.distributedArea || 0;
+    const estimated = distributedArea * 300;
 
     this.setData({
       selectedFarmer: farmer,
@@ -497,9 +518,11 @@ Page({
   },
 
   onCancel() {
-    // 由于页面通过reLaunch进入，没有历史可返回，使用switchTab返回首页
-    wx.switchTab({
-      url: '/pages/index/index'
-    });
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      wx.navigateBack();
+      return;
+    }
+    wx.switchTab({ url: '/pages/index/index' });
   }
 });

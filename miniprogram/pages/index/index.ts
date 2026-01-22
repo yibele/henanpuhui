@@ -136,8 +136,8 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ value: 0 });
     }
-    // 刷新数据
-    this.loadDashboardData();
+    // 不再每次进入页面都刷新数据
+    // 用户需要刷新时可以下拉刷新
   },
 
   /**
@@ -714,6 +714,15 @@ Page({
     });
   },
 
+  goAcquisitionCreate() {
+    const target = '/pages/operations/buy-add/index';
+    if (!app.canAccessPage(target)) {
+      wx.showToast({ title: app.getNoPermissionMessage(), icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: target });
+  },
+
   // ========== 仓库管理员专属方法 ==========
 
   /**
@@ -762,16 +771,16 @@ Page({
           managerName: data.warehouse.manager || ''
         },
         warehouseStats: {
-          todayQuantity: data.today.count || 0,
-          todayAmount: data.today.amount || 0,
-          todayAmountWan: this.formatAmountToWan(data.today.amount || 0),
-          todayFarmerCount: data.today.count || 0,
-          totalQuantity: data.total.count || 0,
-          totalAmount: data.total.amount || 0,
-          totalAmountWan: this.formatAmountToWan(data.total.amount || 0),
-          totalFarmerCount: data.total.count || 0,
-          currentStock: data.inventory.count || 0,
-          outStock: 0
+          todayQuantity: data.today?.weight || 0,
+          todayAmount: data.today?.amount || 0,
+          todayAmountWan: this.formatAmountToWan(data.today?.amount || 0),
+          todayFarmerCount: data.today?.farmerCount || 0,
+          totalQuantity: data.total?.weight || 0,
+          totalAmount: data.total?.amount || 0,
+          totalAmountWan: this.formatAmountToWan(data.total?.amount || 0),
+          totalFarmerCount: data.total?.farmerCount || 0,
+          currentStock: data.inventory?.stockWeight ?? data.inventory?.count ?? 0,
+          outStock: data.inventory?.totalOutWeight ?? 0
         },
         todayDate
       });

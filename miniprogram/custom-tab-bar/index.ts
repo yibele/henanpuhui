@@ -108,6 +108,7 @@ Component({
           'pages/index/index',
           'pages/farmers/list/index',
           'pages/operations/index/index',
+          'pages/operations/acquisition/index',
           'pages/stats/warehouse/index',
           'pages/finance/index/index',
           'pages/stats/acquisition/index',
@@ -139,4 +140,3 @@ Component({
     }
   }
 });
-

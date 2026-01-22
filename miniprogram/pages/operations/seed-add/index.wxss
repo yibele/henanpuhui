@@ -276,27 +276,25 @@
   color: #9ca3af;
 }
 
-/* 标记发苗完成操作按钮 */
-.mark-complete-action {
+/* 发苗完毕按钮 - 底部全宽 */
+.complete-seed-btn {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  background-color: #ffffff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-top: 16rpx;
-  color: #059669;
-  font-size: 28rpx;
-  font-weight: 500;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+  justify-content: center;
+  gap: 16rpx;
+  margin: 24rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #34d399, #059669);
+  border-radius: 20rpx;
+  color: #ffffff;
+  font-size: 34rpx;
+  font-weight: 700;
+  box-shadow: 0 8rpx 32rpx rgba(5, 150, 105, 0.4);
 }
 
-.mark-complete-action text {
-  flex: 1;
-}
-
-.mark-complete-action:active {
-  background-color: #f0fdf4;
+.complete-seed-btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
 }
 
 .form-label-row {

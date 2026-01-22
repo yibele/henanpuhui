@@ -87,7 +87,7 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
   // 仓库管理员导航栏：首页、收购、仓库
   [UserRole.WAREHOUSE_MANAGER]: [
     { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
-    { icon: 'cart', text: '收购', pagePath: '/pages/operations/buy-add/index' },
+    { icon: 'cart', text: '收购', pagePath: '/pages/operations/acquisition/index' },
     { icon: 'location', text: '仓库', pagePath: '/pages/stats/warehouse/index' }
   ],
 
@@ -178,6 +178,7 @@ export const PagePermissions: Record<string, Permission[]> = {
   '/pages/operations/seed-add/index': [Permission.SEED_DISTRIBUTE],
   '/pages/operations/guide-add/index': [Permission.GUIDE_CREATE],
   '/pages/operations/buy-add/index': [Permission.ACQUISITION_CREATE],
+  '/pages/operations/acquisition/index': [Permission.ACQUISITION_VIEW],
 
   // 仓库相关页面
   '/pages/stats/warehouse/index': [Permission.INVENTORY_VIEW],
@@ -231,4 +232,3 @@ export function getNoPermissionMessage(userRole: UserRole): string {
   };
   return `您当前角色（${roleNames[userRole]}）无权限访问此功能`;
 }
-

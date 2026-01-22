@@ -1,269 +1,260 @@
 <!--
-  收购登记页面（仓库工作人员填写）
-  使用 TDesign 组件库
+  收购登记页面
+  仓库管理员专用
 -->
-<view class="acquisition-page">
+<view class="page-container">
+  <!-- 顶部背景 -->
+  <view class="header-bg"></view>
+
   <!-- 页面标题 -->
   <view class="page-header">
-    <text class="page-title">收购登记</text>
-    <text class="page-subtitle">仓库工作人员填写收购信息</text>
+    <view class="header-info">
+      <text class="page-title">收购登记</text>
+      <text class="page-subtitle">{{warehouseInfo.name || '仓库'}}</text>
+    </view>
+    <view class="header-date" bindtap="showDatePicker">
+      <t-icon name="calendar" size="36rpx" />
+      <text>{{form.date || '选择日期'}}</text>
+    </view>
   </view>
 
-  <!-- 基本信息 -->
-  <view class="form-section">
-    <view class="section-header">
-      <view class="section-indicator indicator-orange"></view>
-      <text class="section-title">基本信息</text>
+  <!-- 农户选择卡片 -->
+  <view class="card farmer-card" bindtap="showFarmerSearch">
+    <view wx:if="{{!selectedFarmer.id}}" class="farmer-empty">
+      <view class="empty-icon">
+        <t-icon name="user-add" size="56rpx" color="#9ca3af" />
+      </view>
+      <text class="empty-text">点击选择农户</text>
+      <text class="empty-hint">请先搜索并选择交苗农户</text>
     </view>
     
-    <t-cell-group theme="card" class="form-card-group">
-      <!-- 收购日期 -->
-      <t-cell
-        title="收购日期"
-        arrow
-        hover
-        note="{{form.date || '选择日期'}}"
-        required
-        bind:click="showDatePicker"
-      />
-      
-      <!-- 仓库显示（自动获取，不可选择）-->
-      <t-cell
-        title="仓库"
-        note="{{warehouseInfo.name || '未绑定仓库'}}"
-        required
-      />
-      
-      <!-- 农户选择 -->
-      <t-cell
-        title="农户"
-        arrow
-        hover
-        note="{{selectedFarmer.name || '点击搜索农户'}}"
-        required
-        bind:click="showFarmerSearch"
-      />
-      
-      <!-- 搜索到的农户信息 -->
-      <t-cell
-        wx:if="{{selectedFarmer.id}}"
-        title="已选农户"
-        description="编号：{{selectedFarmer.farmerId}} | {{selectedFarmer.addressText}}"
-      >
-        <view slot="note" class="farmer-info-slot">
-          <text class="farmer-phone">{{selectedFarmer.phone}}</text>
-          <view class="grade-badge grade-{{selectedFarmer.grade}}">{{selectedFarmer.gradeText}}</view>
+    <view wx:else class="farmer-selected">
+      <view class="farmer-main">
+        <view class="farmer-avatar">
+          <text>{{selectedFarmer.name[0]}}</text>
         </view>
-      </t-cell>
-    </t-cell-group>
-    
-    <!-- 历史收购汇总 -->
-    <view class="history-summary" wx:if="{{selectedFarmer.id && farmerSummary.totalCount > 0}}">
-      <view class="history-header">
-        <text class="history-title">历史收购记录</text>
-        <text class="history-count">共 {{farmerSummary.totalCount}} 笔</text>
-      </view>
-      
-      <view class="history-stats">
-        <view class="stat-item">
-          <text class="stat-value">{{farmerSummary.totalWeight}}</text>
-          <text class="stat-label">已收购(KG)</text>
-        </view>
-        <view class="stat-item">
-          <text class="stat-value highlight">{{farmerSummary.totalAmountWan}}</text>
-          <text class="stat-label">累计金额(万)</text>
-        </view>
-      </view>
-      
-      <!-- 各仓库明细 -->
-      <view class="warehouse-list" wx:if="{{farmerSummary.warehouseStats.length > 0}}">
-        <view class="warehouse-item" wx:for="{{farmerSummary.warehouseStats}}" wx:key="warehouseId">
-          <text class="warehouse-name">{{item.warehouseName}}</text>
-          <view class="warehouse-data">
-            <text>{{item.count}}笔</text>
-            <text class="separator">|</text>
-            <text>{{item.weight}}KG</text>
-            <text class="separator">|</text>
-            <text class="amount">{{item.amountWan}}万</text>
+        <view class="farmer-info">
+          <view class="farmer-name-row">
+            <text class="farmer-name">{{selectedFarmer.name}}</text>
+            <view class="grade-tag grade-{{selectedFarmer.grade}}">{{selectedFarmer.gradeText}}</view>
           </view>
+          <text class="farmer-meta">{{selectedFarmer.phone}} · {{selectedFarmer.acreage}}亩</text>
+          <text class="farmer-address">{{selectedFarmer.addressText}}</text>
+        </view>
+        <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
+      </view>
+      
+      <!-- 历史收购统计 -->
+      <view wx:if="{{farmerSummary.totalCount > 0}}" class="farmer-history">
+        <view class="history-item">
+          <text class="history-value">{{farmerSummary.totalCount}}</text>
+          <text class="history-label">历史笔数</text>
+        </view>
+        <view class="history-divider"></view>
+        <view class="history-item">
+          <text class="history-value">{{farmerSummary.totalWeight}}</text>
+          <text class="history-label">累计(kg)</text>
+        </view>
+        <view class="history-divider"></view>
+        <view class="history-item">
+          <text class="history-value highlight">{{farmerSummary.totalAmountWan}}</text>
+          <text class="history-label">金额(万)</text>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 称重信息 -->
-  <view class="form-section">
-    <view class="section-header">
-      <view class="section-indicator indicator-blue"></view>
-      <text class="section-title">称重信息</text>
+  <!-- 称重信息卡片 -->
+  <view class="card">
+    <view class="card-header">
+      <view class="card-indicator blue"></view>
+      <text class="card-title">称重信息</text>
     </view>
     
-    <view class="form-card">
-      <!-- 预估收购重量 -->
-      <view class="form-row" wx:if="{{selectedFarmer.id}}">
-        <text class="form-label">预估收购</text>
-        <view class="form-value-wrap">
-          <text class="form-value {{remainingWeight >= 0 ? 'highlight-purple' : 'warning'}}">{{remainingWeight}}</text>
-          <text class="form-unit">KG</text>
-        </view>
-      </view>
-      
+    <view class="input-grid">
       <!-- 毛重 -->
-      <view class="form-row">
-        <text class="form-label required">毛重</text>
-        <view class="form-input-wrap">
+      <view class="input-item">
+        <text class="input-label">毛重 *</text>
+        <view class="input-box">
           <input 
-            class="form-input"
+            class="input-field"
             type="digit"
-            placeholder="请输入"
+            placeholder="0"
             value="{{form.grossWeight}}"
             bindinput="onGrossWeightInput"
           />
-          <text class="form-unit">KG</text>
+          <text class="input-unit">kg</text>
         </view>
       </view>
       
       <!-- 皮重 -->
-      <view class="form-row">
-        <text class="form-label required">皮重</text>
-        <view class="form-input-wrap">
+      <view class="input-item">
+        <text class="input-label">皮重 *</text>
+        <view class="input-box">
           <input 
-            class="form-input"
+            class="input-field"
             type="digit"
-            placeholder="请输入"
+            placeholder="0"
             value="{{form.tareWeight}}"
             bindinput="onTareWeightInput"
           />
-          <text class="form-unit">KG</text>
+          <text class="input-unit">kg</text>
         </view>
       </view>
       
       <!-- 水杂率 -->
-      <view class="form-row">
-        <text class="form-label required">水杂率</text>
-        <view class="form-input-wrap">
+      <view class="input-item">
+        <text class="input-label">水杂率 *</text>
+        <view class="input-box">
           <input 
-            class="form-input"
+            class="input-field"
             type="digit"
-            placeholder="请输入"
+            placeholder="0"
             value="{{form.moistureRate}}"
             bindinput="onMoistureRateInput"
           />
-          <text class="form-unit">%</text>
+          <text class="input-unit">%</text>
         </view>
       </view>
       
-      <!-- 水杂 -->
-      <view class="form-row">
-        <text class="form-label">水杂</text>
-        <view class="form-value-wrap">
-          <text class="form-value">{{moistureWeight}}</text>
-          <text class="form-unit">KG</text>
-        </view>
-      </view>
-      
-      <!-- 净重 -->
-      <view class="form-row">
-        <text class="form-label">净重</text>
-        <view class="form-value-wrap">
-          <text class="form-value highlight-blue">{{netWeight}}</text>
-          <text class="form-unit">KG</text>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 金额信息 -->
-  <view class="form-section">
-    <view class="section-header">
-      <view class="section-indicator indicator-green"></view>
-      <text class="section-title">金额信息</text>
-    </view>
-    
-    <view class="form-card">
       <!-- 单价 -->
-      <view class="form-row">
-        <text class="form-label required">单价</text>
-        <view class="form-input-wrap">
+      <view class="input-item">
+        <text class="input-label">单价 *</text>
+        <view class="input-box">
           <input 
-            class="form-input"
+            class="input-field"
             type="digit"
-            placeholder="请输入"
+            placeholder="0"
             value="{{form.unitPrice}}"
             bindinput="onUnitPriceInput"
           />
-          <text class="form-unit">元/KG</text>
+          <text class="input-unit">元/kg</text>
         </view>
-      </view>
-      
-      <!-- 金额 -->
-      <view class="form-row">
-        <text class="form-label">金额</text>
-        <view class="form-value-wrap">
-          <text class="form-value highlight-green">{{totalAmountWan}}</text>
-          <text class="form-unit">万元</text>
-        </view>
-      </view>
-      
-      <!-- 计算公式 -->
-      <view class="formula-row" wx:if="{{netWeight && form.unitPrice}}">
-        <text class="formula-text">{{netWeight}} KG × {{form.unitPrice}} 元 = ¥{{totalAmount}}</text>
       </view>
     </view>
   </view>
 
-  <!-- 备注信息 -->
-  <view class="form-section">
-    <view class="section-header">
-      <view class="section-indicator indicator-purple"></view>
-      <text class="section-title">备注信息</text>
+  <!-- 计算结果卡片 -->
+  <view class="card result-card">
+    <view class="card-header">
+      <view class="card-indicator green"></view>
+      <text class="card-title">计算结果</text>
     </view>
     
-    <view class="form-card">
-      <t-textarea
-        placeholder="请输入备注信息（选填）"
-        value="{{form.remark}}"
-        maxlength="200"
-        indicator
-        autosize
-        bind:change="onRemarkInput"
-      />
+    <!-- 结果列表 -->
+    <view class="result-list">
+      <view class="result-row-item">
+        <text class="result-item-label">水杂</text>
+        <view class="result-item-value-wrap">
+          <text class="result-item-value">{{moistureWeight}}</text>
+          <text class="result-item-unit">kg</text>
+        </view>
+      </view>
+      
+      <view class="result-row-item highlight-row">
+        <text class="result-item-label">净重</text>
+        <view class="result-item-value-wrap">
+          <text class="result-item-value highlight-blue">{{netWeight}}</text>
+          <text class="result-item-unit">kg</text>
+        </view>
+      </view>
+      
+      <view class="result-row-item">
+        <text class="result-item-label">金额</text>
+        <view class="result-item-value-wrap">
+          <text class="result-item-value highlight-green">¥{{totalAmount}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 计算公式 -->
+    <view class="formula" wx:if="{{netWeight && form.unitPrice}}">
+      <text>{{netWeight}} kg × {{form.unitPrice}} 元/kg = ¥{{totalAmount}}</text>
+    </view>
+  </view>
+  
+  <!-- 农户概况卡片（发苗+预估） -->
+  <view class="card overview-card" wx:if="{{selectedFarmer.id}}">
+    <view class="card-header">
+      <view class="card-indicator purple"></view>
+      <text class="card-title">农户概况</text>
+    </view>
+    
+    <!-- 发苗情况 -->
+    <view class="overview-grid">
+      <view class="overview-item">
+        <text class="overview-label">签约面积</text>
+        <text class="overview-value">{{selectedFarmer.acreage}} 亩</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-label">签约苗量</text>
+        <text class="overview-value">{{selectedFarmer.seedTotal}} 万株</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-label">已发苗</text>
+        <text class="overview-value highlight-purple">{{selectedFarmer.distributedArea}} 亩</text>
+      </view>
+      <view class="overview-item">
+        <text class="overview-label">已发苗量</text>
+        <text class="overview-value highlight-purple">{{selectedFarmer.distributedQuantity}} 万株</text>
+      </view>
+    </view>
+    
+    <!-- 预估收购 -->
+    <view class="estimate-section">
+      <view class="estimate-row-item">
+        <text class="estimate-label">预估总收购量</text>
+        <text class="estimate-value">{{estimatedWeight}} kg</text>
+      </view>
+      <view class="estimate-row-item">
+        <text class="estimate-label">已收购</text>
+        <text class="estimate-value">{{farmerSummary.totalWeight || 0}} kg</text>
+      </view>
+      <view class="estimate-row-item highlight">
+        <text class="estimate-label">剩余预估</text>
+        <text class="estimate-value {{remainingWeight >= 0 ? '' : 'warning'}}">{{remainingWeight}} kg</text>
+      </view>
     </view>
   </view>
 
-  <!-- 提示信息 -->
-  <view class="tips">
-    <view class="tip-item">
-      <text class="tip-dot">•</text>
-      <text>预估收购重量 = 种植面积 × 300 KG/亩</text>
+  <!-- 备注卡片 -->
+  <view class="card">
+    <view class="card-header">
+      <view class="card-indicator purple"></view>
+      <text class="card-title">备注（选填）</text>
     </view>
-    <view class="tip-item">
-      <text class="tip-dot">•</text>
-      <text>净重 = 毛重 - 皮重 - 水杂</text>
-    </view>
-    <view class="tip-item">
-      <text class="tip-dot">•</text>
-      <text>水杂 = (毛重 - 皮重) × 水杂率</text>
-    </view>
+    <t-textarea
+      placeholder="请输入备注信息"
+      value="{{form.remark}}"
+      maxlength="200"
+      indicator
+      autosize
+      bind:change="onRemarkInput"
+    />
   </view>
 
-  <!-- 底部按钮 -->
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>
+
+<!-- 底部操作栏 -->
+<view class="bottom-bar">
+  <view class="bottom-summary" wx:if="{{netWeight > 0}}">
+    <view class="summary-row">
+      <text class="summary-label">净重</text>
+      <text class="summary-value">{{netWeight}} kg</text>
+    </view>
+    <view class="summary-row">
+      <text class="summary-label">金额</text>
+      <text class="summary-value highlight">¥{{totalAmount}}</text>
+    </view>
+  </view>
   <view class="bottom-actions">
-    <t-button 
-      theme="light" 
-      size="large" 
-      block 
-      bind:tap="onCancel"
-    >取消</t-button>
-    <t-button 
-      theme="primary" 
-      size="large" 
-      block 
-      loading="{{submitting}}"
-      disabled="{{!canSubmit}}"
-      bind:tap="onSubmit"
-      style="--td-button-primary-bg-color: #f97316; --td-button-primary-border-color: #f97316;"
-    >确认收购</t-button>
+    <view class="btn-cancel" bindtap="onCancel">取消</view>
+    <view class="btn-submit {{canSubmit ? '' : 'disabled'}}" bindtap="onSubmit">
+      <t-loading wx:if="{{submitting}}" theme="circular" size="32rpx" color="#ffffff" />
+      <text wx:else>确认收购</text>
+    </view>
   </view>
 </view>
 
@@ -273,7 +264,7 @@
   placement="bottom"
   bind:visible-change="onFarmerPopupChange"
 >
-  <view class="popup-container">
+  <view class="popup-wrap">
     <view class="popup-header">
       <text class="popup-title">搜索农户</text>
       <view class="popup-close" bindtap="closeFarmerPopup">
@@ -281,58 +272,63 @@
       </view>
     </view>
     
-    <!-- 搜索输入区域 -->
+    <!-- 搜索区 -->
     <view class="search-section">
-      <view class="search-row">
-        <t-input
-          placeholder="请输入农户手机号"
-          type="number"
-          maxlength="11"
-          value="{{searchPhone}}"
-          clearable
-          bind:change="onSearchPhoneChange"
-          style="flex: 1;"
-        />
-        <t-button 
-          theme="primary" 
-          size="medium"
-          bind:tap="searchFarmer"
-          loading="{{searching}}"
-          disabled="{{searchPhone.length !== 11}}"
-          style="--td-button-primary-bg-color: #f97316; --td-button-primary-border-color: #f97316; margin-left: 20rpx;"
-        >搜索</t-button>
+      <view class="search-input-row">
+        <view class="search-input-wrap">
+          <t-icon name="search" size="36rpx" color="#9ca3af" />
+          <input 
+            class="search-input"
+            type="number"
+            maxlength="11"
+            placeholder="输入农户手机号"
+            value="{{searchPhone}}"
+            bindinput="onSearchPhoneInput"
+          />
+          <view wx:if="{{searchPhone}}" class="search-clear" bindtap="clearSearchPhone">
+            <t-icon name="close-circle-filled" size="36rpx" color="#d1d5db" />
+          </view>
+        </view>
+        <view 
+          class="search-btn {{searchPhone.length === 11 ? 'active' : ''}}" 
+          bindtap="searchFarmer"
+        >
+          <t-loading wx:if="{{searching}}" theme="circular" size="32rpx" color="#ffffff" />
+          <text wx:else>搜索</text>
+        </view>
       </view>
-      <text class="search-hint">请输入农户的11位手机号码进行搜索</text>
     </view>
     
     <!-- 搜索结果 -->
-    <view class="search-result" wx:if="{{searchResult.id}}">
-      <view class="result-header">搜索结果</view>
-      <view class="result-card">
-        <view class="result-info" bindtap="confirmSelectFarmer">
+    <view wx:if="{{searchResult.id}}" class="search-result">
+      <view class="result-card" bindtap="confirmSelectFarmer">
+        <view class="result-avatar">
+          <text>{{searchResult.name[0]}}</text>
+        </view>
+        <view class="result-info">
           <view class="result-name-row">
             <text class="result-name">{{searchResult.name}}</text>
-            <view class="grade-badge grade-{{searchResult.grade}}">{{searchResult.gradeText}}</view>
+            <view class="grade-tag grade-{{searchResult.grade}}">{{searchResult.gradeText}}</view>
           </view>
-          <text class="result-id">编号：{{searchResult.farmerId}}</text>
           <text class="result-phone">{{searchResult.phone}}</text>
-          <text class="result-address">{{searchResult.addressText}}</text>
-          <text class="result-acreage">种植面积：{{searchResult.acreage}} 亩</text>
+          <text class="result-meta">{{searchResult.acreage}}亩 · {{searchResult.addressText}}</text>
         </view>
-        <view class="result-action">
-          <t-button 
-            theme="primary" 
-            size="small"
-            catchtap="confirmSelectFarmer"
-            style="--td-button-primary-bg-color: #059669; --td-button-primary-border-color: #059669;"
-          >选择</t-button>
+        <view class="result-select">
+          <t-icon name="check" size="40rpx" color="#059669" />
         </view>
       </view>
     </view>
     
-    <!-- 未搜索或无结果提示 -->
-    <view class="search-empty" wx:if="{{!searchResult.id && searchedOnce}}">
-      <text class="empty-text">未找到该手机号对应的农户</text>
+    <!-- 空状态 -->
+    <view wx:if="{{!searchResult.id && searchedOnce}}" class="search-empty">
+      <t-icon name="user-error" size="80rpx" color="#d1d5db" />
+      <text>未找到该手机号对应的农户</text>
+    </view>
+    
+    <!-- 初始提示 -->
+    <view wx:if="{{!searchResult.id && !searchedOnce}}" class="search-hint-wrap">
+      <t-icon name="info-circle" size="40rpx" color="#9ca3af" />
+      <text>请输入农户的11位手机号码进行搜索</text>
     </view>
   </view>
 </t-popup>

@@ -8,6 +8,7 @@
     "pages/operations/index/index",
     "pages/operations/seed-add/index",
     "pages/operations/guide-add/index",
+    "pages/operations/acquisition/index",
     "pages/operations/buy-add/index",
     "pages/finance/index/index",
     "pages/finance/detail/index",
@@ -44,6 +45,10 @@
       {
         "pagePath": "pages/operations/index/index",
         "text": "作业"
+      },
+      {
+        "pagePath": "pages/operations/acquisition/index",
+        "text": "收购"
       },
       {
         "pagePath": "pages/stats/warehouse/index",

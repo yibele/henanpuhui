@@ -70,16 +70,6 @@
       </view>
     </view>
     
-    <!-- 标记发苗完成按钮（选择农户后显示，且未完成时显示） -->
-    <view 
-      class="mark-complete-action" 
-      wx:if="{{selectedFarmer && !selectedFarmer.seedDistributionComplete}}"
-      bindtap="onMarkSeedComplete"
-    >
-      <t-icon name="check-circle" size="36rpx" />
-      <text>标记该农户发苗已完成</text>
-      <t-icon name="chevron-right" size="32rpx" color="#9ca3af" />
-    </view>
   </view>
 
   <!-- 发放信息 -->
@@ -227,6 +217,16 @@
       <t-icon name="info-circle-filled" size="28rpx" color="#059669" />
       <text>已发放金额自动计算：发放数量（株）× 单价（元/株）</text>
     </view>
+  </view>
+
+  <!-- 发苗完毕按钮（选择农户后显示，且未完成时显示） -->
+  <view 
+    class="complete-seed-btn" 
+    wx:if="{{selectedFarmer && !selectedFarmer.seedDistributionComplete}}"
+    bindtap="onMarkSeedComplete"
+  >
+    <t-icon name="check-circle" size="40rpx" />
+    <text>发苗完毕</text>
   </view>
 
   <!-- 底部按钮 -->
