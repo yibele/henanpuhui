@@ -172,7 +172,8 @@ Page({
       [UserRole.ASSISTANT]: 'salesman',
       [UserRole.WAREHOUSE_MANAGER]: 'warehouse',
       [UserRole.FINANCE_ADMIN]: 'finance',
-      [UserRole.ADMIN]: 'finance'  // 管理员与财务共用视图
+      [UserRole.CASHIER]: 'cashier',       // 出纳专属视图
+      [UserRole.ADMIN]: 'finance'  // 管理员与会计共用视图
     };
 
     this.setData({
@@ -265,7 +266,13 @@ Page({
       return;
     }
 
-    // 管理层：加载全部统计数据
+    // 出纳：加载待付款结算单数据
+    if (roleKey === 'cashier') {
+      this.loadCashierData(forceRefresh);
+      return;
+    }
+
+    // 会计/管理层：加载全部统计数据
     this.loadManagerData();
   },
 
@@ -894,6 +901,81 @@ Page({
   goFarmerDetail(e: WechatMiniprogram.TouchEvent) {
     const { id } = e.currentTarget.dataset;
     wx.navigateTo({ url: `/pages/farmers/detail/index?id=${id}` });
+  },
+
+  // ========== 出纳专属方法 ==========
+
+  /**
+   * 加载出纳数据（待付款结算单统计）
+   */
+  async loadCashierData(forceRefresh: boolean = false) {
+    try {
+      wx.showLoading({ title: '加载中...' });
+
+      // 调用云函数获取出纳统计数据
+      const res = await wx.cloud.callFunction({
+        name: 'settlement-manage',
+        data: {
+          action: 'getCashierStats'
+        }
+      });
+
+      wx.hideLoading();
+
+      const result = res.result as any;
+      if (!result || !result.success) {
+        throw new Error(result?.message || '获取数据失败');
+      }
+
+      const data = result.data || {};
+
+      // 设置出纳统计数据
+      this.setData({
+        cashierStats: {
+          pendingCount: data.pendingCount || 0,             // 待付款笔数
+          pendingAmount: data.pendingAmount || 0,           // 待付款总金额
+          pendingAmountFormat: this.formatMoney(data.pendingAmount || 0),
+          todayPaidCount: data.todayPaidCount || 0,         // 今日已付笔数
+          todayPaidAmount: data.todayPaidAmount || 0,       // 今日已付金额
+          todayPaidAmountFormat: this.formatMoney(data.todayPaidAmount || 0),
+          totalPaidCount: data.totalPaidCount || 0,         // 累计已付笔数
+          totalPaidAmount: data.totalPaidAmount || 0        // 累计已付金额
+        }
+      });
+
+      if (forceRefresh) {
+        wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+      }
+
+    } catch (error: any) {
+      console.error('加载出纳数据失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: error.message || '加载数据失败',
+        icon: 'none'
+      });
+
+      // 失败时显示空数据
+      this.setData({
+        cashierStats: {
+          pendingCount: 0,
+          pendingAmount: 0,
+          pendingAmountFormat: '0',
+          todayPaidCount: 0,
+          todayPaidAmount: 0,
+          todayPaidAmountFormat: '0',
+          totalPaidCount: 0,
+          totalPaidAmount: 0
+        }
+      });
+    }
+  },
+
+  /**
+   * 跳转：去结算页面
+   */
+  goSettlementPage() {
+    wx.switchTab({ url: '/pages/finance/index/index' });
   },
 
   /**

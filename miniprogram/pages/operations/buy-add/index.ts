@@ -195,7 +195,7 @@ Page({
           seedTotal: farmer.seedTotal || 0,  // 签约万株数
           addressText: `${farmer.county || ''}${farmer.township || ''}${farmer.village || ''}`,
           // 发苗统计
-          distributedArea: stats.totalSeedDistributedArea || 0,  // 已发苗亩数
+          distributedArea: stats.totalSeedDistributedArea || stats.totalSeedArea || 0,  // 已发苗亩数
           distributedQuantity: stats.totalSeedDistributed || 0,  // 已发苗万株数
           seedDistributionCount: stats.seedDistributionCount || 0,  // 发苗次数
           seedDistributionComplete: farmer.seedDistributionComplete || false  // 是否完成发苗

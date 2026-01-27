@@ -9,7 +9,8 @@
 export enum UserRole {
   ASSISTANT = 'assistant',                    // 业务员/助理：负责用户签约和种苗发放
   WAREHOUSE_MANAGER = 'warehouse_manager',    // 仓库管理员：负责收苗入库、出库管理
-  FINANCE_ADMIN = 'finance_admin',            // 财务/管理层：系统总览、多维度查询、结算
+  FINANCE_ADMIN = 'finance_admin',            // 会计/财务：审核结算单、确认金额
+  CASHIER = 'cashier',                        // 出纳：确认付款、记录支付状态
   ADMIN = 'admin'                             // 超级管理员
 }
 
@@ -17,7 +18,8 @@ export enum UserRole {
 export const UserRoleNames: Record<UserRole, string> = {
   [UserRole.ASSISTANT]: '助理',
   [UserRole.WAREHOUSE_MANAGER]: '仓库管理员',
-  [UserRole.FINANCE_ADMIN]: '财务/管理层',
+  [UserRole.FINANCE_ADMIN]: '会计',
+  [UserRole.CASHIER]: '出纳',
   [UserRole.ADMIN]: '管理员'
 };
 
@@ -46,8 +48,9 @@ export enum Permission {
   INVENTORY_VIEW = 'INVENTORY_VIEW',    // 查看库存
 
   // 结算管理
-  SETTLEMENT_VIEW = 'SETTLEMENT_VIEW',  // 查看结算列表
-  SETTLEMENT_PAY = 'SETTLEMENT_PAY',    // 执行结算支付
+  SETTLEMENT_VIEW = 'SETTLEMENT_VIEW',    // 查看结算列表
+  SETTLEMENT_AUDIT = 'SETTLEMENT_AUDIT',  // 审核结算单（会计）
+  SETTLEMENT_PAY = 'SETTLEMENT_PAY',      // 确认付款（出纳）
 
   // 数据统计
   STATS_OWN = 'STATS_OWN',              // 查看自己的统计数据

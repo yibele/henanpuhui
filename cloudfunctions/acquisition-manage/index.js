@@ -273,39 +273,55 @@ async function createAcquisition(event, context) {
       data: acquisitionData
     });
 
-    // 2. 生成结算单
+    // 2. 生成结算单（初始状态为 pending，等待会计审核）
     const settlementId = generateSettlementId();
     const settlementData = {
       settlementId,
       acquisitionId,
+
+      // 农户信息
       farmerId: farmer.farmerId,
       farmerName: farmer.name,
       farmerPhone: farmer.phone,
       farmerBankAccount: farmer.bankAccount || '',
       farmerBankName: farmer.bankName || '',
       accountHolder: farmer.accountHolder || farmer.name,
+
+      // 仓库信息
       warehouseId: currentUser.warehouseId,
       warehouseName: warehouse.name,
+
+      // 收购信息
       acquisitionDate,
-      netWeight: Number(computedNetWeight.toFixed(2)),
-      unitPrice: unitPriceNum,
-      grossAmount: Number(computedTotalAmount.toFixed(2)),
-      seedDebt: farmer.stats.currentDebt || 0,
-      otherDeductions: 0,
-      actualPayment: Number((computedTotalAmount - (farmer.stats.currentDebt || 0)).toFixed(2)),
-      auditStatus: 'pending',
-      auditBy: '',
-      auditById: '',
+      acquisitionWeight: Number(computedNetWeight.toFixed(2)),
+      acquisitionPrice: unitPriceNum,
+      acquisitionAmount: Number(computedTotalAmount.toFixed(2)), // 收购货款
+
+      // 扣款明细（审核时才计算，初始为0）
+      advanceDeduction: 0,      // 预付款扣除
+      seedDeduction: 0,         // 种苗欠款扣除
+      agriculturalDeduction: 0, // 农资欠款扣除
+      totalDeduction: 0,        // 扣款合计
+      actualPayment: 0,         // 实付金额（审核时计算）
+
+      // 状态（三阶段：pending -> approved -> completed）
+      status: 'pending',  // pending=待审核, approved=待付款, completed=已完成
+
+      // 审核信息（会计操作）
+      auditorId: '',
+      auditorName: '',
       auditTime: null,
       auditRemark: '',
-      paymentStatus: 'unpaid',
-      paymentMethod: '',
-      paymentBy: '',
-      paymentById: '',
+
+      // 付款信息（出纳操作）
+      cashierId: '',
+      cashierName: '',
+      paymentMethod: '',      // 付款方式：cash/wechat/bank
+      paymentMethodName: '',  // 付款方式名称
       paymentTime: null,
-      paymentVoucher: '',
       paymentRemark: '',
-      status: 'pending_audit',
+
+      // 时间戳
       createTime: db.serverDate(),
       updateTime: db.serverDate(),
       completeTime: null
@@ -390,17 +406,17 @@ async function createAcquisition(event, context) {
         userId: currentUser._id,
         userName: currentUser.name,
         userRole: currentUser.role,
-          action: 'create_acquisition',
-          module: 'acquisition',
-          targetId: acquisitionId,
-          targetName: `${farmer.name} - ${computedNetWeight.toFixed(2)}kg`,
-          description: `创建收购记录：${farmer.name}，净重${computedNetWeight.toFixed(2)}kg`,
-          before: {},
-          after: acquisitionData,
-          changes: [],
-          createTime: db.serverDate()
-        }
-      });
+        action: 'create_acquisition',
+        module: 'acquisition',
+        targetId: acquisitionId,
+        targetName: `${farmer.name} - ${computedNetWeight.toFixed(2)}kg`,
+        description: `创建收购记录：${farmer.name}，净重${computedNetWeight.toFixed(2)}kg`,
+        before: {},
+        after: acquisitionData,
+        changes: [],
+        createTime: db.serverDate()
+      }
+    });
 
     return {
       success: true,
@@ -1166,6 +1182,8 @@ exports.main = async (event, context) => {
       return await deleteAcquisition(event);
     case 'financeUpdate':
       return await financeUpdateAcquisition(event);
+    case 'getDetail':
+      return await getAcquisitionDetail(event);
     default:
       return {
         success: false,
@@ -1173,3 +1191,58 @@ exports.main = async (event, context) => {
       };
   }
 };
+
+/**
+ * 获取收购详情（通过 _id 或 acquisitionId）
+ * 用于详情页面查看
+ */
+async function getAcquisitionDetail(event) {
+  const { acquisitionId, userId } = event;
+
+  if (!acquisitionId) {
+    return {
+      success: false,
+      message: '缺少收购ID'
+    };
+  }
+
+  try {
+    let result;
+
+    // 尝试通过 _id 查询
+    try {
+      result = await db.collection('acquisitions').doc(acquisitionId).get();
+      if (result.data) {
+        return {
+          success: true,
+          data: result.data
+        };
+      }
+    } catch (e) {
+      // _id 查询失败，尝试用 acquisitionId 业务编号查询
+    }
+
+    // 通过业务编号查询
+    result = await db.collection('acquisitions')
+      .where({ acquisitionId: acquisitionId })
+      .get();
+
+    if (result.data && result.data.length > 0) {
+      return {
+        success: true,
+        data: result.data[0]
+      };
+    }
+
+    return {
+      success: false,
+      message: '收购记录不存在'
+    };
+  } catch (error) {
+    console.error('获取收购详情失败:', error);
+    return {
+      success: false,
+      message: error.message || '获取收购详情失败'
+    };
+  }
+}

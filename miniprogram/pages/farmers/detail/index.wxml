@@ -94,7 +94,7 @@
         <view class="stat-divider"></view>
         <view class="stat-item">
           <text class="stat-value stat-blue">{{seedStats.totalQuantity || 0}}</text>
-          <text class="stat-label">发苗数量(株)</text>
+          <text class="stat-label">发苗数量(万株)</text>
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
@@ -187,9 +187,7 @@
                 <text class="record-desc">{{item.desc || '无详细信息'}}</text>
                 <text class="record-operator">操作人: {{item.operator}}</text>
               </view>
-              <view class="timeline-row-3" wx:if="{{item.amount}}">
-                <text class="record-amount {{item.isIncome ? 'amount-plus' : 'amount-minus'}}">{{item.isIncome ? '+' : '-'}}¥{{item.amount}}</text>
-              </view>
+
             </view>
           </view>
         </block>

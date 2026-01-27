@@ -266,7 +266,7 @@ Page({
   buildRecordDesc(record: any): string {
     switch (record.type) {
       case 'seed':
-        return `发放 ${record.quantity || 0} ${record.unit || '株'}，金额 ¥${record.totalAmount || 0}`;
+        return `发放 ${record.quantity || 0} 万株`;
       case 'addendum':
         return `面积 +${record.addedAcreage || 0} 亩${record.addedDeposit ? `，定金 +¥${record.addedDeposit}` : ''}`;
       case 'advance':

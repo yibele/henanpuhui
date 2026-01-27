@@ -1,0 +1,137 @@
+<!--
+  收购详情页面（只读）
+  仓库管理员查看收购记录
+-->
+<view class="page-container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-wrap">
+    <t-loading theme="circular" size="48rpx" text="加载中..." />
+  </view>
+
+  <!-- 详情内容 -->
+  <block wx:elif="{{record}}">
+    <!-- 顶部农户信息卡片 -->
+    <view class="farmer-card">
+      <view class="farmer-main">
+        <view class="farmer-avatar">
+          <text>{{record.farmerName[0] || '?'}}</text>
+        </view>
+        <view class="farmer-info">
+          <text class="farmer-name">{{record.farmerName}}</text>
+          <text class="farmer-phone">{{record.farmerPhone}}</text>
+        </view>
+      </view>
+      <view class="amount-wrap">
+        <text class="amount-label">收购金额</text>
+        <text class="amount-value">¥{{record.totalAmountRaw}}</text>
+      </view>
+    </view>
+
+    <!-- 称重信息卡片 -->
+    <view class="card">
+      <view class="card-header">
+        <view class="card-indicator blue"></view>
+        <text class="card-title">称重信息</text>
+        <t-tag theme="primary" variant="light" size="small">只读</t-tag>
+      </view>
+      
+      <view class="info-grid">
+        <view class="info-item">
+          <text class="info-label">毛重</text>
+          <text class="info-value">{{record.grossWeightDisplay}} kg</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">皮重</text>
+          <text class="info-value">{{record.tareWeightDisplay}} kg</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">水杂率</text>
+          <text class="info-value">{{record.moistureRateDisplay}} %</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">单价</text>
+          <text class="info-value">{{record.unitPriceDisplay}} 元/kg</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 计算结果卡片 -->
+    <view class="card">
+      <view class="card-header">
+        <view class="card-indicator green"></view>
+        <text class="card-title">计算结果</text>
+      </view>
+      
+      <view class="result-list">
+        <view class="result-item">
+          <text class="result-label">水杂重量</text>
+          <view class="result-value-wrap">
+            <text class="result-value">{{record.moistureWeightDisplay}}</text>
+            <text class="result-unit">kg</text>
+          </view>
+        </view>
+        <view class="result-item highlight">
+          <text class="result-label">净重</text>
+          <view class="result-value-wrap">
+            <text class="result-value blue">{{record.netWeightDisplay}}</text>
+            <text class="result-unit">kg</text>
+          </view>
+        </view>
+        <view class="result-item">
+          <text class="result-label">收购金额</text>
+          <view class="result-value-wrap">
+            <text class="result-value green">¥{{record.totalAmountRaw}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 计算公式 -->
+      <view class="formula">
+        <text>{{record.netWeightDisplay}} kg × {{record.unitPriceDisplay}} 元/kg = ¥{{record.totalAmountRaw}}</text>
+      </view>
+    </view>
+
+    <!-- 记录信息卡片 -->
+    <view class="card">
+      <view class="card-header">
+        <view class="card-indicator purple"></view>
+        <text class="card-title">记录信息</text>
+      </view>
+      
+      <view class="meta-list">
+        <view class="meta-item">
+          <text class="meta-label">收购日期</text>
+          <text class="meta-value">{{record.acquisitionDateDisplay}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">收购仓库</text>
+          <text class="meta-value">{{record.warehouseName || '-'}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">登记人</text>
+          <text class="meta-value">{{record.createByName || '-'}}</text>
+        </view>
+        <view class="meta-item">
+          <text class="meta-label">登记时间</text>
+          <text class="meta-value">{{record.createTimeDisplay}}</text>
+        </view>
+        <view class="meta-item" wx:if="{{record.estimatedWeight > 0}}">
+          <text class="meta-label">预估收购量</text>
+          <text class="meta-value">{{record.estimatedWeightDisplay}} kg</text>
+        </view>
+        <view class="meta-item" wx:if="{{record.remark}}">
+          <text class="meta-label">备注</text>
+          <text class="meta-value remark">{{record.remark}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部安全区 -->
+    <view class="safe-bottom"></view>
+  </block>
+
+  <!-- 空状态 -->
+  <view wx:else class="empty-wrap">
+    <t-empty description="未找到收购记录" />
+  </view>
+</view>

@@ -30,7 +30,7 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permission.STATS_WAREHOUSE     // 查看仓库统计
   ],
 
-  // 财务/管理层权限：全部查看 + 结算
+  // 会计/财务权限：全部查看 + 审核结算
   [UserRole.FINANCE_ADMIN]: [
     Permission.FARMER_VIEW_ALL,    // 查看所有农户
     Permission.SEED_VIEW,          // 查看发放记录
@@ -38,9 +38,17 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permission.ACQUISITION_VIEW,   // 查看收苗记录
     Permission.INVENTORY_VIEW,     // 查看库存
     Permission.SETTLEMENT_VIEW,    // 查看结算列表
-    Permission.SETTLEMENT_PAY,     // 执行结算支付
+    Permission.SETTLEMENT_AUDIT,   // 审核结算单
     Permission.STATS_ALL,          // 查看全部统计
     Permission.QUERY_MULTI         // 多维度查询
+  ],
+
+  // 出纳权限：查看结算 + 确认付款
+  [UserRole.CASHIER]: [
+    Permission.FARMER_VIEW_ALL,    // 查看所有农户
+    Permission.ACQUISITION_VIEW,   // 查看收苗记录
+    Permission.SETTLEMENT_VIEW,    // 查看结算列表
+    Permission.SETTLEMENT_PAY      // 确认付款
   ],
 
   // 超级管理员权限：全部
@@ -58,6 +66,7 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permission.INVENTORY_OUT,
     Permission.INVENTORY_VIEW,
     Permission.SETTLEMENT_VIEW,
+    Permission.SETTLEMENT_AUDIT,
     Permission.SETTLEMENT_PAY,
     Permission.STATS_OWN,
     Permission.STATS_WAREHOUSE,
@@ -91,7 +100,7 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'location', text: '仓库', pagePath: '/pages/stats/warehouse/index' }
   ],
 
-  // 财务/管理层导航栏：总览、签约、发苗、收苗、结算
+  // 会计导航栏：总览、签约、发苗、收苗、结算
   [UserRole.FINANCE_ADMIN]: [
     { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
     { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
@@ -100,7 +109,13 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
   ],
 
-  // 管理员导航栏：与财务相同
+  // 出纳导航栏：首页、结算
+  [UserRole.CASHIER]: [
+    { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
+    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
+  ],
+
+  // 管理员导航栏：与会计相同
   [UserRole.ADMIN]: [
     { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
     { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
@@ -227,7 +242,8 @@ export function getNoPermissionMessage(userRole: UserRole): string {
   const roleNames: Record<UserRole, string> = {
     [UserRole.ASSISTANT]: '助理',
     [UserRole.WAREHOUSE_MANAGER]: '仓库管理员',
-    [UserRole.FINANCE_ADMIN]: '财务/管理层',
+    [UserRole.FINANCE_ADMIN]: '会计',
+    [UserRole.CASHIER]: '出纳',
     [UserRole.ADMIN]: '管理员'
   };
   return `您当前角色（${roleNames[userRole]}）无权限访问此功能`;

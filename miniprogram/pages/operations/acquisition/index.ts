@@ -190,11 +190,15 @@ Page({
     this.loadData(true);
   },
 
-  // 点击记录（预留跳转详情）
+  // 点击记录 - 跳转到只读详情页
   onRecordTap(e: WechatMiniprogram.TouchEvent) {
     const item = e.currentTarget.dataset.item;
-    // TODO: 跳转到收购详情或编辑页面
-    console.log('点击收购记录:', item);
+    const id = item._id || item.acquisitionId;
+    if (id) {
+      wx.navigateTo({
+        url: `/pages/operations/acquisition-detail/index?id=${id}`
+      });
+    }
   },
 
   goCreate() {

@@ -1555,3 +1555,190 @@
 .bottom-space {
   height: 40rpx;
 }
+
+/* ==================== 出纳视图样式 ==================== */
+
+.cashier-header {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 32rpx;
+  padding: 40rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  box-shadow: 0 12rpx 32rpx rgba(99, 102, 241, 0.3);
+}
+
+.cashier-header .header-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.cashier-header .greeting-text {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.cashier-header .greeting-sub {
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cashier-header .header-logout {
+  width: 72rpx;
+  height: 72rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 出纳统计卡片 */
+.cashier-stats-card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+}
+
+.cashier-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.cashier-card-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pending-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.today-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.cashier-card-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.cashier-card-title .title-main {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.cashier-card-title .title-sub {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
+.cashier-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding-top: 12rpx;
+}
+
+.cashier-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.cashier-stat-value {
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+.pending-value {
+  color: #f59e0b;
+}
+
+.pending-amount {
+  color: #d97706;
+  font-size: 40rpx;
+}
+
+.today-value {
+  color: #10b981;
+}
+
+.today-amount {
+  color: #059669;
+  font-size: 40rpx;
+}
+
+.cashier-stat-label {
+  font-size: 26rpx;
+  color: #6b7280;
+}
+
+.cashier-stat-divider {
+  width: 1rpx;
+  height: 80rpx;
+  background-color: #e5e7eb;
+}
+
+/* 出纳快捷操作 */
+.cashier-actions {
+  margin-top: 32rpx;
+  display: flex;
+  justify-content: center;
+}
+
+.cashier-action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  padding: 40rpx 80rpx;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border-radius: 24rpx;
+  border: 2rpx solid #bbf7d0;
+  transition: all 0.2s ease;
+}
+
+.cashier-action-btn:active {
+  transform: scale(0.95);
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+}
+
+.cashier-action-btn .action-icon {
+  width: 100rpx;
+  height: 100rpx;
+  background: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(5, 150, 105, 0.2);
+}
+
+.cashier-action-btn .action-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #059669;
+}
+
+/* 待付款卡片点击效果 */
+.pending-card:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+

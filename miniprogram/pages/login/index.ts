@@ -123,7 +123,8 @@ Page({
         const roleNames: Record<string, string> = {
           'assistant': '助理',
           'warehouse_manager': '仓管',
-          'finance_admin': '财务',
+          'finance_admin': '会计',
+          'cashier': '出纳',
           'admin': '管理员'
         };
 

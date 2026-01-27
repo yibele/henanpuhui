@@ -27,8 +27,8 @@ Page({
     // 表单数据
     form: {
       distributeTime: '',     // 发放时间
-      quantity: '',           // 发放数量（株）
-      unitPrice: '',          // 单价（元/株）
+      quantity: '',           // 发放数量（万株）
+      unitPrice: '',          // 单价（元/万株）
       distributedArea: '',    // 本次发放面积（亩）
       receiverName: '',       // 领取人
       receiveLocation: '',    // 领取地点
@@ -524,7 +524,7 @@ Page({
   // ==================== 表单输入 ====================
 
   /**
-   * 输入发放数量（株）
+   * 输入发放数量（万株）
    */
   onQuantityInput(e: WechatMiniprogram.CustomEvent) {
     // 只允许整数
@@ -536,7 +536,7 @@ Page({
   },
 
   /**
-   * 输入单价（元/株）
+   * 输入单价（元/万株）
    */
   onUnitPriceInput(e: WechatMiniprogram.CustomEvent) {
     let value = e.detail.value.replace(/[^\d.]/g, '');
@@ -605,11 +605,11 @@ Page({
 
   /**
    * 计算已发放金额
-   * 已发放金额 = 发放数量（株）× 单价（元/株）
+   * 已发放金额 = 发放数量（万株）× 单价（元/万株）
    */
   calculateAmount() {
     const { quantity, unitPrice } = this.data.form;
-    const qty = parseInt(quantity) || 0;  // 株数为整数
+    const qty = parseFloat(quantity) || 0;  // 万株（可为小数）
     const price = parseFloat(unitPrice) || 0;
     const amount = (qty * price).toFixed(2);
 

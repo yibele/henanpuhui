@@ -444,9 +444,78 @@
             <view class="seed-core-item">
               <text class="seed-core-value seed-value-orange">{{seedYearFormat.unpaid}}</text>
               <text class="seed-core-label">欠款</text>
-            </view>
-          </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ==================== 出纳视图 ==================== -->
+  <block wx:if="{{currentRoleKey === 'cashier'}}">
+    <!-- 欢迎横幅 -->
+    <view class="cashier-header">
+      <view class="header-greeting">
+        <text class="greeting-text">{{greeting}}，{{userName}}</text>
+        <text class="greeting-sub">出纳工作台</text>
+      </view>
+      <view class="header-logout" bindtap="onLogout">
+        <t-icon name="poweroff" size="40rpx" color="#ffffff" />
+      </view>
+    </view>
+
+    <!-- 待付款统计卡片 -->
+    <view class="cashier-stats-card pending-card" bindtap="goSettlementPage">
+      <view class="cashier-card-header">
+        <view class="cashier-card-icon pending-icon">
+          <t-icon name="wallet" size="48rpx" color="#ffffff" />
         </view>
+        <view class="cashier-card-title">
+          <text class="title-main">待付款结算</text>
+          <text class="title-sub">点击查看详情</text>
+        </view>
+        <t-icon name="chevron-right" size="40rpx" color="#9ca3af" />
+      </view>
+      <view class="cashier-card-content">
+        <view class="cashier-stat-item">
+          <text class="cashier-stat-value pending-value">{{cashierStats.pendingCount || 0}}</text>
+          <text class="cashier-stat-label">待付笔数</text>
+        </view>
+        <view class="cashier-stat-divider"></view>
+        <view class="cashier-stat-item">
+          <text class="cashier-stat-value pending-amount">¥{{cashierStats.pendingAmountFormat || '0'}}</text>
+          <text class="cashier-stat-label">待付金额</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 今日已付款统计卡片 -->
+    <view class="cashier-stats-card today-card">
+      <view class="cashier-card-header">
+        <view class="cashier-card-icon today-icon">
+          <t-icon name="check-circle" size="48rpx" color="#ffffff" />
+        </view>
+        <view class="cashier-card-title">
+          <text class="title-main">今日已付</text>
+        </view>
+      </view>
+      <view class="cashier-card-content">
+        <view class="cashier-stat-item">
+          <text class="cashier-stat-value today-value">{{cashierStats.todayPaidCount || 0}}</text>
+          <text class="cashier-stat-label">已付笔数</text>
+        </view>
+        <view class="cashier-stat-divider"></view>
+        <view class="cashier-stat-item">
+          <text class="cashier-stat-value today-amount">¥{{cashierStats.todayPaidAmountFormat || '0'}}</text>
+          <text class="cashier-stat-label">已付金额</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 快捷操作 -->
+    <view class="cashier-actions">
+      <view class="cashier-action-btn" bindtap="goSettlementPage">
+        <view class="action-icon">
+          <t-icon name="wallet" size="56rpx" color="#059669" />
+        </view>
+        <text class="action-text">去付款</text>
       </view>
     </view>
   </block>

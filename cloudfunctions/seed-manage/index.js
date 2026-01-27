@@ -42,8 +42,8 @@ async function distributeSeed(event) {
     }
 
     const {
-        quantity,         // 发放数量（株）
-        unitPrice,        // 单价（元/株）
+        quantity,         // 发放数量（万株）
+        unitPrice,        // 单价（元/万株）
         amount,           // 金额（元）
         distributedArea,  // 已发放面积（亩）
         distributionDate, // 发放日期
@@ -144,7 +144,7 @@ async function distributeSeed(event) {
 
                 // 发放内容
                 quantity: qty,
-                unit: '株',
+                unit: '万株',
                 unitPrice: price,
                 totalAmount: seedAmount,
                 distributedArea: area,  // 已发面积
