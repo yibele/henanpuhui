@@ -444,6 +444,9 @@
             <view class="seed-core-item">
               <text class="seed-core-value seed-value-orange">{{seedYearFormat.unpaid}}</text>
               <text class="seed-core-label">欠款</text>
+            </view>
+          </view>
+        </view>
       </view>
     </view>
   </block>
