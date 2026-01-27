@@ -1,5 +1,5 @@
 /**
- * 结算管理页面样式（管理层视图）
+ * 结算管理页面样式
  */
 
 .finance-page {
@@ -7,6 +7,48 @@
   background-color: #f5f5f5;
   padding: 24rpx;
   padding-bottom: 180rpx;
+}
+
+/* ==================== 角色头部 ==================== */
+
+.role-header {
+  margin-bottom: 20rpx;
+}
+
+.role-info {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.role-label {
+  font-size: 24rpx;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+
+.role-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* ==================== 红色扣款样式 ==================== */
+
+.amount-value-red {
+  color: #ef4444;
+}
+
+.status-indicator-red {
+  background-color: #ef4444;
+}
+
+.status-badge-red {
+  background-color: #fee2e2;
+  color: #dc2626;
 }
 
 /* ==================== 汇总统计卡片 ==================== */

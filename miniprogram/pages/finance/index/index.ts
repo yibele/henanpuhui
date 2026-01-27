@@ -1,26 +1,28 @@
 /**
- * 结算管理页面（管理层视图）
- * @description 显示结算汇总、待审核、待支付、已完成等状态的结算记录
- * 支持分页加载，适应7000+农户的大数据量场景
+ * 结算管理页面
+ * @description 根据角色显示不同视图：
+ *   - 会计(finance_admin): 待审核、已审核、全部
+ *   - 出纳(cashier): 待付款、已付款、全部
+ *   - 管理员(admin): 全部视图
  */
 
-import { getSettlementsByPage, MOCK_SETTLEMENT_OVERVIEW } from '../../../models/mock-data';
-import type { Settlement, SettlementOverviewStats } from '../../../models/types';
+// 获取应用实例
+const financeIndexApp = getApp();
 
 // 结算状态标签
 const STATUS_LABELS: Record<string, string> = {
   pending: '待审核',
-  approved: '待支付',
-  paying: '支付中',
-  completed: '已完成'
+  approved: '待付款',
+  completed: '已完成',
+  rejected: '已驳回'
 };
 
 // 状态对应的颜色类
 const STATUS_COLORS: Record<string, string> = {
   pending: 'orange',
   approved: 'blue',
-  paying: 'blue',  // 支付中也用蓝色（合并到待支付）
-  completed: 'green'
+  completed: 'green',
+  rejected: 'red'
 };
 
 // 每页加载条数
@@ -28,42 +30,53 @@ const PAGE_SIZE = 20;
 
 Page({
   data: {
-    // 汇总统计
-    overview: {} as SettlementOverviewStats,
-    formattedOverview: {
-      totalPayable: '',
-      totalPaid: '',
-      totalPending: '',
-      totalPrepaid: ''
-    },
-    
-    // Tab切换
-    currentTab: 0,  // 0:全部 1:待审核 2:待支付 3:已完成
-    tabs: ['全部', '待审核', '待支付', '已完成'],
-    tabStatusMap: ['all', 'pending', 'approved', 'completed'],
-    
+    // 当前用户角色
+    userRole: '' as string,
+    roleLabel: '' as string,
+
+    // Tab配置（根据角色动态设置）
+    currentTab: 0,
+    tabs: [] as string[],
+    tabStatusMap: [] as string[],
+
     // 结算列表
     settlements: [] as any[],
-    
+
     // 分页
     page: 1,
     total: 0,
     hasMore: true,
     isLoading: false,
-    
+
     // 搜索
     searchValue: '',
-    
-    // 统计数量（各Tab的总数）
+
+    // 统计数量
     counts: {
       all: 0,
       pending: 0,
       approved: 0,
       completed: 0
+    },
+
+    // 汇总统计
+    overview: {
+      pendingCount: 0,
+      pendingAmount: 0,
+      approvedCount: 0,
+      approvedAmount: 0,
+      completedCount: 0,
+      completedAmount: 0
+    },
+    formattedOverview: {
+      pendingAmount: '0',
+      approvedAmount: '0',
+      completedAmount: '0'
     }
   },
 
   onLoad() {
+    this.initRoleConfig();
     this.loadOverview();
     this.loadSettlements(true);
   },
@@ -71,83 +84,151 @@ Page({
   onShow() {
     // 更新 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      this.getTabBar().setData({ value: 4 });
+      // 出纳是第2个Tab，会计/管理员是第5个Tab
+      const tabIndex = this.data.userRole === 'cashier' ? 1 : 4;
+      this.getTabBar().setData({ value: tabIndex });
     }
+  },
+
+  /**
+   * 根据角色初始化Tab配置
+   */
+  initRoleConfig() {
+    const userRole = financeIndexApp.globalData?.userRole || 'finance_admin';
+    let tabs: string[] = [];
+    let tabStatusMap: string[] = [];
+    let roleLabel = '';
+
+    if (userRole === 'cashier') {
+      // 出纳视图：待付款、已付款、全部
+      tabs = ['待付款', '已付款', '全部'];
+      tabStatusMap = ['approved', 'completed', 'all'];
+      roleLabel = '出纳';
+    } else {
+      // 会计/管理员视图：待审核、待付款、已完成、全部
+      tabs = ['待审核', '待付款', '已完成', '全部'];
+      tabStatusMap = ['pending', 'approved', 'completed', 'all'];
+      roleLabel = userRole === 'admin' ? '管理员' : '会计';
+    }
+
+    this.setData({
+      userRole,
+      roleLabel,
+      tabs,
+      tabStatusMap,
+      currentTab: 0  // 默认显示第一个Tab
+    });
   },
 
   /**
    * 加载汇总统计
    */
-  loadOverview() {
-    const overview = MOCK_SETTLEMENT_OVERVIEW;
-    const formattedOverview = {
-      totalPayable: this.formatAmount(overview.totalPayable),
-      totalPaid: this.formatAmount(overview.totalPaid),
-      totalPending: this.formatAmount(overview.totalPending),
-      totalPrepaid: this.formatAmount(overview.totalPrepaid)
-    };
-    
-    // 计算各Tab的总数
-    const allData = getSettlementsByPage(1, 9999, 'all', '');
-    const pendingData = getSettlementsByPage(1, 9999, 'pending', '');
-    const approvedData = getSettlementsByPage(1, 9999, 'approved', '');
-    const completedData = getSettlementsByPage(1, 9999, 'completed', '');
-    
-    const counts = {
-      all: allData.total,
-      pending: pendingData.total,
-      approved: approvedData.total,
-      completed: completedData.total
-    };
-    
-    this.setData({ overview, formattedOverview, counts });
+  async loadOverview() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'settlement-manage',
+        data: {
+          action: 'getCashierStats'  // 复用出纳统计接口
+        }
+      });
+
+      const result = res.result as any;
+      if (result && result.success) {
+        const data = result.data || {};
+
+        this.setData({
+          overview: {
+            pendingCount: data.pendingCount || 0,
+            pendingAmount: data.pendingAmount || 0,
+            approvedCount: data.pendingCount || 0,  // approved就是待付款
+            approvedAmount: data.pendingAmount || 0,
+            completedCount: data.totalPaidCount || 0,
+            completedAmount: data.totalPaidAmount || 0
+          },
+          formattedOverview: {
+            pendingAmount: this.formatAmount(data.pendingAmount || 0),
+            approvedAmount: this.formatAmount(data.pendingAmount || 0),
+            completedAmount: this.formatAmount(data.totalPaidAmount || 0)
+          },
+          counts: {
+            all: (data.pendingCount || 0) + (data.totalPaidCount || 0),
+            pending: 0,  // 待获取
+            approved: data.pendingCount || 0,
+            completed: data.totalPaidCount || 0
+          }
+        });
+      }
+    } catch (error) {
+      console.error('加载汇总统计失败:', error);
+    }
   },
 
   /**
    * 加载结算列表（分页）
    */
-  loadSettlements(reset: boolean = false) {
+  async loadSettlements(reset: boolean = false) {
     if (this.data.isLoading) return;
-    
+
     const page = reset ? 1 : this.data.page;
     const status = this.data.tabStatusMap[this.data.currentTab];
     const keyword = this.data.searchValue.trim();
-    
+
     this.setData({ isLoading: true });
-    
-    // 模拟网络请求延迟
-    setTimeout(() => {
-      const result = getSettlementsByPage(page, PAGE_SIZE, status, keyword);
-      
-      // 格式化数据
-      const formattedList = result.list.map(s => ({
-        ...s,
-        statusLabel: STATUS_LABELS[s.auditStatus] || '未知',
-        statusColor: STATUS_COLORS[s.auditStatus] || 'gray',
-        formattedPayable: this.formatAmount(s.finalPayment),
-        formattedPaid: this.formatAmount(s.totalPaid),
-        formattedRemaining: this.formatAmount(s.remainingPayment),
-        formattedDeduction: this.formatAmount(s.totalDeduction),
-        formattedAcquisition: this.formatAmount(s.totalAcquisitionAmount),
-        paymentProgress: s.finalPayment > 0 
-          ? Math.round((s.totalPaid / s.finalPayment) * 100) 
-          : 0
-      }));
-      
-      this.setData({
-        settlements: reset ? formattedList : [...this.data.settlements, ...formattedList],
-        page: page + 1,
-        total: result.total,
-        hasMore: result.hasMore,
-        isLoading: false
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'settlement-manage',
+        data: {
+          action: 'list',
+          page,
+          pageSize: PAGE_SIZE,
+          status: status === 'all' ? '' : status,
+          keyword
+        }
       });
-    }, 300);
+
+      const result = res.result as any;
+
+      if (result && result.success) {
+        const list = result.data?.list || [];
+
+        // 格式化数据
+        const formattedList = list.map((s: any) => ({
+          ...s,
+          statusLabel: STATUS_LABELS[s.status] || '未知',
+          statusColor: STATUS_COLORS[s.status] || 'gray',
+          formattedAmount: this.formatAmount(s.acquisitionAmount || 0),
+          formattedActual: this.formatAmount(s.actualPayment || 0),
+          formattedDeduction: this.formatAmount(s.totalDeduction || 0),
+          createTimeStr: this.formatDate(s.createTime)
+        }));
+
+        this.setData({
+          settlements: reset ? formattedList : [...this.data.settlements, ...formattedList],
+          page: page + 1,
+          total: result.data?.total || 0,
+          hasMore: formattedList.length >= PAGE_SIZE,
+          isLoading: false
+        });
+      } else {
+        throw new Error(result?.message || '获取数据失败');
+      }
+    } catch (error: any) {
+      console.error('加载结算列表失败:', error);
+      this.setData({ isLoading: false });
+
+      wx.showToast({
+        title: error.message || '加载失败',
+        icon: 'none'
+      });
+    }
   },
 
   /**
    * 格式化金额
    */
   formatAmount(amount: number): string {
+    if (!amount || amount === 0) return '0';
     if (amount >= 100000000) {
       return (amount / 100000000).toFixed(2) + '亿';
     } else if (amount >= 10000) {
@@ -155,7 +236,18 @@ Page({
     } else if (amount >= 1000) {
       return (amount / 1000).toFixed(1) + '千';
     }
-    return amount.toFixed(0);
+    return amount.toFixed(2);
+  },
+
+  /**
+   * 格式化日期
+   */
+  formatDate(dateStr: string | Date): string {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}-${day}`;
   },
 
   /**
@@ -164,8 +256,8 @@ Page({
   onTabChange(e: WechatMiniprogram.TouchEvent) {
     const tab = parseInt(e.currentTarget.dataset.tab);
     if (tab === this.data.currentTab) return;
-    
-    this.setData({ 
+
+    this.setData({
       currentTab: tab,
       settlements: [],
       page: 1,
@@ -197,7 +289,7 @@ Page({
    * 清空搜索
    */
   onClearSearch() {
-    this.setData({ 
+    this.setData({
       searchValue: '',
       settlements: [],
       page: 1,

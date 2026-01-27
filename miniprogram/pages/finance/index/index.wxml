@@ -1,38 +1,49 @@
 <!--
-  结算管理页面（管理层视图）
-  显示结算汇总统计和分状态结算列表
+  结算管理页面
+  根据角色显示不同视图：会计看待审核，出纳看待付款
 -->
 <view class="finance-page">
+  <!-- 角色提示 -->
+  <view class="role-header">
+    <view class="role-info">
+      <text class="role-label">{{roleLabel}}</text>
+      <text class="role-title">结算中心</text>
+    </view>
+  </view>
+
   <!-- 汇总统计卡片 -->
   <view class="overview-card">
-    <view class="overview-title">结算汇总</view>
-    <!-- 金额统计 3列布局 -->
     <view class="overview-stats">
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-blue">{{formattedOverview.totalPayable}}</text>
-        <text class="stat-label">应付款</text>
-      </view>
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-green">{{formattedOverview.totalPaid}}</text>
-        <text class="stat-label">已付款</text>
-      </view>
-      <view class="overview-stat-item">
-        <text class="stat-value stat-value-orange">{{formattedOverview.totalPending}}</text>
-        <text class="stat-label">待付款</text>
-      </view>
-    </view>
-    
-    <!-- 农户统计 -->
-    <view class="farmer-stats">
-      <view class="farmer-stat-item">
-        <text class="farmer-count">{{overview.settledFarmerCount}}</text>
-        <text class="farmer-label">已结算农户</text>
-      </view>
-      <view class="farmer-stat-divider"></view>
-      <view class="farmer-stat-item">
-        <text class="farmer-count farmer-count-orange">{{overview.pendingAuditCount}}</text>
-        <text class="farmer-label">待审核</text>
-      </view>
+      <!-- 出纳视图：待付款、已付款 -->
+      <block wx:if="{{userRole === 'cashier'}}">
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-orange">{{overview.approvedCount}}</text>
+          <text class="stat-label">待付款</text>
+        </view>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-blue">{{formattedOverview.approvedAmount}}</text>
+          <text class="stat-label">待付金额</text>
+        </view>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-green">{{overview.completedCount}}</text>
+          <text class="stat-label">已付款</text>
+        </view>
+      </block>
+      <!-- 会计视图：待审核、待付款、已完成 -->
+      <block wx:else>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-orange">{{counts.pending}}</text>
+          <text class="stat-label">待审核</text>
+        </view>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-blue">{{overview.approvedCount}}</text>
+          <text class="stat-label">待付款</text>
+        </view>
+        <view class="overview-stat-item">
+          <text class="stat-value stat-value-green">{{overview.completedCount}}</text>
+          <text class="stat-label">已完成</text>
+        </view>
+      </block>
     </view>
   </view>
 
@@ -67,10 +78,6 @@
       data-tab="{{index}}"
     >
       <text class="tab-text">{{item}}</text>
-      <view class="tab-badge" wx:if="{{index === 0}}">{{counts.all}}</view>
-      <view class="tab-badge tab-badge-orange" wx:if="{{index === 1}}">{{counts.pending}}</view>
-      <view class="tab-badge tab-badge-blue" wx:if="{{index === 2}}">{{counts.approved}}</view>
-      <view class="tab-badge tab-badge-green" wx:if="{{index === 3}}">{{counts.completed}}</view>
     </view>
   </view>
 
@@ -79,9 +86,9 @@
     <view 
       class="settlement-card"
       wx:for="{{settlements}}"
-      wx:key="id"
+      wx:key="settlementId"
       bindtap="onSettlementTap"
-      data-id="{{item.id}}"
+      data-id="{{item.settlementId}}"
     >
       <!-- 状态标识 -->
       <view class="status-indicator status-indicator-{{item.statusColor}}"></view>
@@ -101,49 +108,25 @@
         <!-- 金额信息 -->
         <view class="amount-grid">
           <view class="amount-item">
-            <text class="amount-label">应付金额</text>
-            <text class="amount-value">¥{{item.formattedPayable}}</text>
+            <text class="amount-label">收购货款</text>
+            <text class="amount-value">¥{{item.formattedAmount}}</text>
           </view>
-          <view class="amount-item">
-            <text class="amount-label">已支付</text>
-            <text class="amount-value amount-value-green">¥{{item.formattedPaid}}</text>
+          <view class="amount-item" wx:if="{{item.status !== 'pending'}}">
+            <text class="amount-label">扣款</text>
+            <text class="amount-value amount-value-red">-¥{{item.formattedDeduction}}</text>
           </view>
-          <view class="amount-item">
-            <text class="amount-label">待支付</text>
-            <text class="amount-value amount-value-orange">¥{{item.formattedRemaining}}</text>
-          </view>
-        </view>
-        
-        <!-- 支付进度（支付中和已完成显示） -->
-        <view class="payment-progress" wx:if="{{item.auditStatus === 'paying' || item.auditStatus === 'completed'}}">
-          <view class="progress-bar-wrap">
-            <view class="progress-bar-fill" style="width: {{item.paymentProgress}}%;"></view>
-          </view>
-          <text class="progress-text">{{item.paymentProgress}}%</text>
-        </view>
-        
-        <!-- 扣款明细（折叠显示） -->
-        <view class="deduction-info">
-          <view class="deduction-row">
-            <text class="deduction-label">收购总额</text>
-            <text class="deduction-value">¥{{item.totalAcquisitionAmount}}</text>
-          </view>
-          <view class="deduction-row">
-            <text class="deduction-label">扣款合计</text>
-            <text class="deduction-value deduction-value-red">-¥{{item.formattedDeduction}}</text>
+          <view class="amount-item" wx:if="{{item.status !== 'pending'}}">
+            <text class="amount-label">实付</text>
+            <text class="amount-value amount-value-green">¥{{item.formattedActual}}</text>
           </view>
         </view>
         
         <!-- 底部信息 -->
         <view class="card-footer">
-          <text class="date">{{item.date}}</text>
-          <view class="payment-count" wx:if="{{item.payments.length > 0}}">
-            <t-icon name="money-circle" size="28rpx" color="#9ca3af" />
-            <text>{{item.payments.length}}笔支付</text>
-          </view>
-          <view class="audit-info" wx:if="{{item.auditor}}">
-            <t-icon name="user" size="28rpx" color="#9ca3af" />
-            <text>{{item.auditor}}</text>
+          <text class="date">{{item.createTimeStr}}</text>
+          <view class="warehouse-info" wx:if="{{item.warehouseName}}">
+            <t-icon name="location" size="28rpx" color="#9ca3af" />
+            <text>{{item.warehouseName}}</text>
           </view>
         </view>
       </view>
@@ -164,11 +147,6 @@
   <!-- 加载完成提示 -->
   <view class="load-complete" wx:if="{{!hasMore && settlements.length > 0}}">
     <text>已加载全部 {{total}} 条记录</text>
-  </view>
-  
-  <!-- 数据统计提示 -->
-  <view class="list-info" wx:if="{{settlements.length > 0 && !isLoading}}">
-    <text>当前显示 {{settlements.length}} / {{total}} 条</text>
   </view>
 
   <!-- 底部间距 -->
