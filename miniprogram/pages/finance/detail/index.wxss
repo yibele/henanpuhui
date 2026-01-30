@@ -139,12 +139,139 @@
   font-weight: 500;
 }
 
+.info-value-green {
+  color: #059669;
+  font-weight: 600;
+}
+
+.info-value-red {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* 信息行头部 */
+.info-row-header {
+  background-color: #f3f4f6;
+  margin: 0 -24rpx 12rpx -24rpx;
+  padding: 12rpx 24rpx;
+}
+
+.info-header-text {
+  font-size: 24rpx;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 欠款合计卡片 */
+.total-debt-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-top: 16rpx;
+  border: 2rpx solid #fecaca;
+}
+
+.total-debt-label {
+  font-size: 28rpx;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.total-debt-value {
+  font-size: 40rpx;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* 多个 info-card 间距 */
+.section > .info-card + .info-card {
+  margin-top: 16rpx;
+}
+
+/* 备注行 */
+.info-row-note {
+  padding: 12rpx 0;
+  border-top: 1rpx dashed #e5e7eb;
+  margin-top: 8rpx;
+}
+
+.info-note-text {
+  font-size: 22rpx;
+  color: #9ca3af;
+  font-style: italic;
+}
+
 /* ==================== 金额计算卡片 ==================== */
 
 .calc-card {
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 24rpx;
+}
+
+/* 待结算计算卡片 */
+.settlement-calc-card {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  border: 2rpx solid #e5e7eb;
+}
+
+.calc-section-title {
+  font-size: 24rpx;
+  color: #6b7280;
+  margin-bottom: 12rpx;
+  padding-bottom: 8rpx;
+}
+
+.calc-row-deduction {
+  background-color: #fef2f2;
+  margin: 12rpx -24rpx;
+  padding: 12rpx 24rpx;
+}
+
+.calc-value-large {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+/* 待结算金额（重点展示） */
+.settlement-amount-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin: 16rpx -24rpx;
+}
+
+.settlement-amount-label {
+  font-size: 30rpx;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+.settlement-amount-value {
+  font-size: 52rpx;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* 公式说明 */
+.calc-formula {
+  text-align: center;
+  padding-top: 12rpx;
+}
+
+.calc-formula-text {
+  font-size: 22rpx;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .calc-row {

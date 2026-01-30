@@ -123,6 +123,28 @@
           <text class="stat-label">农资欠款</text>
         </view>
       </view>
+      
+      <!-- 欠款汇总（收购时扣除） -->
+      <view class="section-title-row section-title-row-mt">
+        <text class="section-title-text">欠款汇总</text>
+        <text class="section-subtitle">结算时从货款扣除</text>
+      </view>
+      <view class="stats-row">
+        <view class="stat-item">
+          <text class="stat-value stat-red">¥{{farmer.seedDebt || 0}}</text>
+          <text class="stat-label">种苗欠款</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-red">¥{{farmer.agriculturalDebt || 0}}</text>
+          <text class="stat-label">农资欠款</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value stat-orange">¥{{farmer.advancePayment || 0}}</text>
+          <text class="stat-label">预支款</text>
+        </view>
+      </view>
     </view>
 
     <!-- 3. 快捷操作区 (管理层不显示) -->

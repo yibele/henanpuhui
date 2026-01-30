@@ -166,7 +166,9 @@ Page({
           // 农资信息
           fertilizerAmount: farmerData.fertilizerAmount || 0,   // 化肥金额
           pesticideAmount: farmerData.pesticideAmount || 0,     // 农药金额
-          agriculturalDebt: farmerData.agriculturalDebt || 0    // 农资欠款
+          agriculturalDebt: farmerData.agriculturalDebt || 0,   // 农资欠款
+          // 预支款
+          advancePayment: farmerData.advancePayment || 0        // 预支款余额
         };
 
         this.setData({ farmer });
@@ -550,30 +552,63 @@ Page({
     this.setData({ 'advanceForm.remark': e.detail.value });
   },
 
-  onSubmitAdvance() {
-    const { advanceForm, currentUser, businessRecords } = this.data;
+  async onSubmitAdvance() {
+    const { advanceForm, farmer, farmerId } = this.data;
 
     if (!advanceForm.amount) {
       wx.showToast({ title: '请填写预付金额', icon: 'none' });
       return;
     }
 
-    const newRecord = {
-      id: `advance_${Date.now()}`,
-      type: 'advance',
-      date: advanceForm.date,
-      name: '预付款',
-      amount: parseFloat(advanceForm.amount),
-      remark: advanceForm.remark,
-      operator: currentUser
-    };
+    const amount = parseFloat(advanceForm.amount);
+    if (isNaN(amount) || amount <= 0) {
+      wx.showToast({ title: '请输入有效金额', icon: 'none' });
+      return;
+    }
 
-    this.setData({
-      businessRecords: [newRecord, ...businessRecords],
-      advancePopupVisible: false
-    });
+    wx.showLoading({ title: '提交中...' });
 
-    wx.showToast({ title: '预付成功', icon: 'success' });
+    try {
+      // 获取当前用户信息
+      const userInfo = app.globalData.userInfo as any;
+      const userId = userInfo?.id || userInfo?._id || '';
+      const userName = userInfo?.name || '助理';
+
+      // 调用云函数
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'advancePayment',
+          userId,
+          userName,
+          farmerId: farmer?.id || farmerId,
+          data: {
+            amount: amount,
+            paymentDate: advanceForm.date,
+            remark: advanceForm.remark
+          }
+        }
+      });
+
+      const result = res.result as any;
+      wx.hideLoading();
+
+      if (result.success) {
+        wx.showToast({ title: '预支款登记成功', icon: 'success' });
+
+        // 关闭弹窗
+        this.setData({ advancePopupVisible: false });
+
+        // 刷新页面数据
+        this.loadFarmerDetail(farmer?.id || farmerId);
+      } else {
+        wx.showToast({ title: result.message || '登记失败', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('预支款登记失败:', error);
+      wx.hideLoading();
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+    }
   },
 
   // ==================== 追加购苗 ====================

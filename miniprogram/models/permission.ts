@@ -100,12 +100,9 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'location', text: '仓库', pagePath: '/pages/stats/warehouse/index' }
   ],
 
-  // 会计导航栏：总览、签约、发苗、收苗、结算
+  // 会计导航栏：农户（查看交易记录）、结算（审核）
   [UserRole.FINANCE_ADMIN]: [
-    { icon: 'chart-pie', text: '总览', pagePath: '/pages/index/index' },
-    { icon: 'edit', text: '签约', pagePath: '/pages/stats/farmers/index' },
-    { icon: 'corn', text: '发苗', pagePath: '/pages/stats/seeds/index' },
-    { icon: 'cart', text: '收苗', pagePath: '/pages/stats/acquisition/index' },
+    { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' },
     { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
   ],
 

@@ -48,12 +48,25 @@ async function getSettlement(event) {
     const acquisitionRes = await db.collection('acquisitions')
       .where({ acquisitionId: settlement.acquisitionId })
       .get();
+    const acquisition = acquisitionRes.data[0] || null;
+
+    // 获取农户完整信息（签约、欠款汇总）
+    let farmer = null;
+    if (settlement.farmerId) {
+      const farmerRes = await db.collection('farmers')
+        .where({ farmerId: settlement.farmerId })
+        .get();
+      if (farmerRes.data.length > 0) {
+        farmer = farmerRes.data[0];
+      }
+    }
 
     return {
       success: true,
       data: {
         settlement,
-        acquisition: acquisitionRes.data[0] || null
+        acquisition,
+        farmer  // 包含签约信息、欠款汇总
       }
     };
   } catch (error) {
@@ -65,57 +78,58 @@ async function getSettlement(event) {
   }
 }
 
+
 /**
  * 获取结算单列表
  */
 async function listSettlements(event, context) {
   const { OPENID } = cloud.getWXContext();
   const {
+    userId = '',              // 前端传入的用户ID
     page = 1,
     pageSize = 20,
+    status = '',              // 前端传入的状态参数
     auditStatus = '',
     paymentStatus = '',
     warehouseId = '',
+    keyword = '',             // 搜索关键词
     startDate = '',
     endDate = ''
   } = event;
 
   try {
-    // 获取当前用户信息
-    const userRes = await db.collection('users')
-      .where({ _openid: OPENID })
-      .get();
-
-    if (userRes.data.length === 0) {
-      return {
-        success: false,
-        errMsg: '用户不存在'
-      };
+    // 获取当前用户信息（优先使用 userId，其次使用 OPENID）
+    let userRes;
+    if (userId) {
+      userRes = await db.collection('users')
+        .where({ _id: userId })
+        .get();
+    } else if (OPENID) {
+      userRes = await db.collection('users')
+        .where({ _openid: OPENID })
+        .get();
     }
 
-    const currentUser = userRes.data[0];
+    // 如果找不到用户，直接返回空列表（允许查看但没有权限限制）
+    const currentUser = userRes && userRes.data.length > 0 ? userRes.data[0] : null;
 
     // 构建查询条件
     let whereCondition = {};
 
     // 如果是仓库管理员，只能查看自己仓库的结算单
-    if (currentUser.role === 'warehouse_manager') {
+    if (currentUser && currentUser.role === 'warehouse_manager') {
       whereCondition.warehouseId = currentUser.warehouseId;
     }
 
     // 如果指定了仓库ID
-    if (warehouseId && currentUser.role !== 'warehouse_manager') {
+    if (warehouseId && (!currentUser || currentUser.role !== 'warehouse_manager')) {
       whereCondition.warehouseId = warehouseId;
     }
 
-    // 如果指定了审核状态
-    if (auditStatus) {
-      whereCondition.auditStatus = auditStatus;
-    }
-
-    // 如果指定了支付状态
-    if (paymentStatus) {
-      whereCondition.paymentStatus = paymentStatus;
+    // 处理状态筛选（优先使用 status，兼容 auditStatus/paymentStatus）
+    const effectiveStatus = status || auditStatus || paymentStatus;
+    if (effectiveStatus) {
+      whereCondition.status = effectiveStatus;
     }
 
     // 如果指定了日期范围
@@ -127,14 +141,31 @@ async function listSettlements(event, context) {
       whereCondition.acquisitionDate = _.lte(endDate);
     }
 
+    // 关键词搜索（农户姓名或电话）
+    let finalWhere = whereCondition;
+    const trimmedKeyword = String(keyword || '').trim();
+    if (trimmedKeyword) {
+      const searchRegex = db.RegExp({
+        regexp: trimmedKeyword,
+        options: 'i'
+      });
+      finalWhere = _.and([
+        whereCondition,
+        _.or([
+          { farmerName: searchRegex },
+          { farmerPhone: searchRegex }
+        ])
+      ]);
+    }
+
     // 查询总数
     const countResult = await db.collection('settlements')
-      .where(whereCondition)
+      .where(finalWhere)
       .count();
 
     // 查询数据
     const result = await db.collection('settlements')
-      .where(whereCondition)
+      .where(finalWhere)
       .orderBy('createTime', 'desc')
       .skip((page - 1) * pageSize)
       .limit(pageSize)
@@ -1012,6 +1043,7 @@ exports.main = async (event, context) => {
 
   switch (action) {
     case 'get':
+    case 'getDetail':
       return await getSettlement(event);
     case 'list':
       return await listSettlements(event, context);

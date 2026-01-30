@@ -100,15 +100,20 @@ Page({
     let roleLabel = '';
 
     if (userRole === 'cashier') {
-      // 出纳视图：待付款、已付款、全部
-      tabs = ['待付款', '已付款', '全部'];
-      tabStatusMap = ['approved', 'completed', 'all'];
+      // 出纳视图：待付款、已付款
+      tabs = ['待付款', '已付款'];
+      tabStatusMap = ['approved', 'completed'];
       roleLabel = '出纳';
+    } else if (userRole === 'finance_admin') {
+      // 会计视图：只显示待审核
+      tabs = ['待审核'];
+      tabStatusMap = ['pending'];
+      roleLabel = '会计';
     } else {
-      // 会计/管理员视图：待审核、待付款、已完成、全部
+      // 管理员视图：待审核、待付款、已完成、全部
       tabs = ['待审核', '待付款', '已完成', '全部'];
       tabStatusMap = ['pending', 'approved', 'completed', 'all'];
-      roleLabel = userRole === 'admin' ? '管理员' : '会计';
+      roleLabel = '管理员';
     }
 
     this.setData({
@@ -176,10 +181,12 @@ Page({
     this.setData({ isLoading: true });
 
     try {
+      const userInfo = financeIndexApp.globalData.userInfo;
       const res = await wx.cloud.callFunction({
         name: 'settlement-manage',
         data: {
           action: 'list',
+          userId: userInfo?._id || '',
           page,
           pageSize: PAGE_SIZE,
           status: status === 'all' ? '' : status,

@@ -53,15 +53,146 @@
         </view>
         <view class="info-row">
           <text class="info-label">收购重量</text>
-          <text class="info-value">{{settlement.acquisitionWeight}}kg</text>
+          <text class="info-value">{{settlement.acquisitionWeight || acquisition.netWeight}}kg</text>
         </view>
         <view class="info-row">
           <text class="info-label">收购单价</text>
-          <text class="info-value">¥{{settlement.acquisitionPrice}}/kg</text>
+          <text class="info-value">¥{{settlement.acquisitionPrice || acquisition.unitPrice}}/kg</text>
         </view>
         <view class="info-row info-row-highlight">
           <text class="info-label">收购货款</text>
           <text class="info-value info-value-bold">¥{{formatted.acquisitionAmount}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 农户欠款明细 -->
+    <view class="section" wx:if="{{farmer}}">
+      <view class="section-title">农户欠款明细</view>
+      
+      <!-- 签约信息 -->
+      <view class="info-card">
+        <view class="info-row-header">
+          <text class="info-header-text">签约信息</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">签约面积</text>
+          <text class="info-value">{{farmer.acreage}} 亩</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">约定种苗</text>
+          <text class="info-value">{{farmer.seedTotal}} 万株</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">已交定金</text>
+          <text class="info-value info-value-green">¥{{formatted.deposit}}</text>
+        </view>
+      </view>
+
+      <!-- 发苗信息 -->
+      <view class="info-card">
+        <view class="info-row-header">
+          <text class="info-header-text">实际发苗</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">发苗次数</text>
+          <text class="info-value">{{farmer.stats.seedDistributionCount || 0}} 次</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">累计发苗</text>
+          <text class="info-value">{{formatted.totalSeedDistributed}} 株</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">发苗金额</text>
+          <text class="info-value">¥{{formatted.totalSeedAmount}}</text>
+        </view>
+        <view class="info-row info-row-highlight">
+          <text class="info-label">种苗欠款</text>
+          <text class="info-value info-value-red">¥{{formatted.seedDebt}}</text>
+        </view>
+        <view class="info-row-note">
+          <text class="info-note-text">种苗欠款 = 发苗金额 - 已交定金</text>
+        </view>
+      </view>
+
+      <!-- 农资欠款 -->
+      <view class="info-card" wx:if="{{farmer.agriculturalDebt > 0}}">
+        <view class="info-row-header">
+          <text class="info-header-text">农资欠款</text>
+        </view>
+        <view class="info-row" wx:if="{{farmer.fertilizerAmount > 0}}">
+          <text class="info-label">化肥金额</text>
+          <text class="info-value">¥{{formatted.fertilizerAmount}}</text>
+        </view>
+        <view class="info-row" wx:if="{{farmer.pesticideAmount > 0}}">
+          <text class="info-label">农药金额</text>
+          <text class="info-value">¥{{formatted.pesticideAmount}}</text>
+        </view>
+        <view class="info-row info-row-highlight">
+          <text class="info-label">农资欠款合计</text>
+          <text class="info-value info-value-red">¥{{formatted.agriculturalDebt}}</text>
+        </view>
+      </view>
+
+      <!-- 预支款 -->
+      <view class="info-card" wx:if="{{farmer.advancePayment > 0}}">
+        <view class="info-row-header">
+          <text class="info-header-text">预支款</text>
+        </view>
+        <view class="info-row info-row-highlight">
+          <text class="info-label">累计预支</text>
+          <text class="info-value info-value-red">¥{{formatted.advancePayment}}</text>
+        </view>
+      </view>
+
+      <!-- 欠款汇总 -->
+      <view class="total-debt-card">
+        <text class="total-debt-label">农户欠款合计</text>
+        <text class="total-debt-value">¥{{formatted.totalDebt}}</text>
+      </view>
+    </view>
+
+    <!-- 待结算计算 -->
+    <view class="section" wx:if="{{farmer}}">
+      <view class="section-title">待结算计算</view>
+      <view class="settlement-calc-card">
+        <!-- 本次收购货款 -->
+        <view class="calc-row calc-row-main">
+          <text class="calc-label">本次收购货款</text>
+          <text class="calc-value calc-value-large">¥{{formatted.acquisitionAmount}}</text>
+        </view>
+
+        <view class="calc-divider"></view>
+
+        <!-- 本次扣款明细 -->
+        <view class="calc-section-title">本次可扣款项</view>
+        <view class="calc-row calc-row-sub" wx:if="{{settlement.seedDeduction > 0 || farmer.seedDebt > 0}}">
+          <text class="calc-label">种苗欠款抵扣</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.seedDeduction}}</text>
+        </view>
+        <view class="calc-row calc-row-sub" wx:if="{{settlement.agriculturalDeduction > 0 || farmer.agriculturalDebt > 0}}">
+          <text class="calc-label">农资欠款抵扣</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.agriculturalDeduction}}</text>
+        </view>
+        <view class="calc-row calc-row-sub" wx:if="{{settlement.advanceDeduction > 0 || farmer.advancePayment > 0}}">
+          <text class="calc-label">预支款抵扣</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.advanceDeduction}}</text>
+        </view>
+        <view class="calc-row calc-row-deduction">
+          <text class="calc-label">扣款小计</text>
+          <text class="calc-value calc-value-red">-¥{{formatted.totalDeduction}}</text>
+        </view>
+
+        <view class="calc-divider"></view>
+
+        <!-- 待结算金额（重点展示） -->
+        <view class="settlement-amount-card">
+          <text class="settlement-amount-label">待结算金额</text>
+          <text class="settlement-amount-value">¥{{formatted.actualPayment}}</text>
+        </view>
+
+        <view class="calc-formula">
+          <text class="calc-formula-text">待结算金额 = 收购货款 - 扣款（不超过欠款总额）</text>
         </view>
       </view>
     </view>

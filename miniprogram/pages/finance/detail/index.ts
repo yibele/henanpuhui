@@ -26,12 +26,16 @@ const PAYMENT_METHODS = [
 
 Page({
   data: {
+    // 结算单详情
+    settlement: null as any,
+    // 收购记录
+    acquisition: null as any,
+    // 农户信息（签约、欠款）
+    farmer: null as any,
+    // 状态配置
+    statusConfig: {} as any,
     // 当前用户角色
     userRole: '' as string,
-
-    // 结算数据
-    settlement: null as any,
-    statusConfig: {} as { label: string; color: string; desc: string },
 
     // 格式化后的金额
     formatted: {
@@ -40,7 +44,21 @@ Page({
       seedDeduction: '',
       agriculturalDeduction: '',
       totalDeduction: '',
-      actualPayment: ''
+      actualPayment: '',
+      // 签约信息
+      deposit: '',
+      // 发苗统计
+      totalSeedDistributed: '',
+      totalSeedAmount: '',
+      seedDebt: '',
+      // 农资欠款
+      fertilizerAmount: '',
+      pesticideAmount: '',
+      agriculturalDebt: '',
+      // 预支款
+      advancePayment: '',
+      // 欠款合计
+      totalDebt: ''
     },
 
     // 操作权限
@@ -93,10 +111,12 @@ Page({
     this.setData({ isLoading: true });
 
     try {
+      const userInfo = financeDetailApp.globalData.userInfo;
       const res = await wx.cloud.callFunction({
         name: 'settlement-manage',
         data: {
           action: 'getDetail',
+          userId: userInfo?._id || '',
           settlementId: id
         }
       });
@@ -104,7 +124,11 @@ Page({
       const result = res.result as any;
 
       if (result && result.success && result.data) {
-        const settlement = result.data;
+        // 云函数返回 { settlement, acquisition, farmer } 结构
+        const settlement = result.data.settlement || result.data;
+        const acquisition = result.data.acquisition;
+        const farmer = result.data.farmer;
+
         const statusConfig = STATUS_CONFIG[settlement.status] || STATUS_CONFIG.pending;
 
         // 格式化金额
@@ -114,17 +138,38 @@ Page({
           seedDeduction: this.formatMoney(settlement.seedDeduction || 0),
           agriculturalDeduction: this.formatMoney(settlement.agriculturalDeduction || 0),
           totalDeduction: this.formatMoney(settlement.totalDeduction || 0),
-          actualPayment: this.formatMoney(settlement.actualPayment || 0)
+          actualPayment: this.formatMoney(settlement.actualPayment || 0),
+          // 农户签约信息
+          deposit: this.formatMoney(farmer?.deposit || 0),
+          // 发苗统计（基于实际发苗计算）
+          totalSeedDistributed: this.formatNumber(farmer?.stats?.totalSeedDistributed || 0),
+          totalSeedAmount: this.formatMoney(farmer?.stats?.totalSeedAmount || 0),
+          // 种苗欠款 = 发苗金额 - 已交定金
+          seedDebt: this.formatMoney((farmer?.stats?.totalSeedAmount || 0) - (farmer?.deposit || 0)),
+          // 农资欠款
+          fertilizerAmount: this.formatMoney(farmer?.fertilizerAmount || 0),
+          pesticideAmount: this.formatMoney(farmer?.pesticideAmount || 0),
+          agriculturalDebt: this.formatMoney(farmer?.agriculturalDebt || 0),
+          // 预支款
+          advancePayment: this.formatMoney(farmer?.advancePayment || 0),
+          // 欠款合计 = 种苗欠款 + 农资欠款 + 预支款
+          totalDebt: this.formatMoney(
+            Math.max(0, (farmer?.stats?.totalSeedAmount || 0) - (farmer?.deposit || 0)) +
+            (farmer?.agriculturalDebt || 0) +
+            (farmer?.advancePayment || 0)
+          )
         };
 
         this.setData({
           settlement,
+          acquisition,
+          farmer,
           statusConfig,
           formatted,
           isLoading: false
         });
       } else {
-        throw new Error(result?.message || '获取详情失败');
+        throw new Error(result?.message || result?.errMsg || '获取详情失败');
       }
     } catch (error: any) {
       console.error('加载结算详情失败:', error);
@@ -143,6 +188,14 @@ Page({
   formatMoney(amount: number): string {
     if (!amount || amount === 0) return '0.00';
     return amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  },
+
+  /**
+   * 格式化数字（带千分位，无小数）
+   */
+  formatNumber(num: number): string {
+    if (!num || num === 0) return '0';
+    return num.toLocaleString('zh-CN');
   },
 
   // ==================== 审核操作 ====================

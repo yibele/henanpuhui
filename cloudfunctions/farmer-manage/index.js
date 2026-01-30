@@ -599,6 +599,119 @@ async function addFarmerAddendum(event) {
 }
 
 /**
+ * 预支款登记
+ * 记录预付给农户的现金，结算时从货款中扣除
+ */
+async function addAdvancePayment(event) {
+  const { userId, userName, farmerId, data } = event;
+
+  if (!userId || !farmerId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  const { amount, remark, paymentDate } = data;
+
+  // 验证金额
+  const paymentAmount = parseFloat(amount) || 0;
+  if (paymentAmount <= 0) {
+    return {
+      success: false,
+      message: '请输入有效的预支金额'
+    };
+  }
+
+  try {
+    // 1. 获取当前农户信息
+    const farmerRes = await db.collection('farmers')
+      .where({ _id: farmerId, isDeleted: false })
+      .get();
+
+    if (farmerRes.data.length === 0) {
+      return {
+        success: false,
+        message: '农户不存在'
+      };
+    }
+
+    const farmer = farmerRes.data[0];
+
+    // 2. 计算新的预支款余额
+    const currentAdvance = farmer.advancePayment || 0;
+    const newAdvancePayment = currentAdvance + paymentAmount;
+
+    // 3. 更新农户主表的预支款字段
+    await db.collection('farmers').doc(farmerId).update({
+      data: {
+        advancePayment: newAdvancePayment,
+        updateTime: db.serverDate()
+      }
+    });
+
+    // 4. 生成业务记录编号
+    const now = new Date();
+    const recordId = `ADV_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+    // 5. 写入业务记录表
+    await db.collection('business_records').add({
+      data: {
+        recordId,
+        farmerId,
+        farmerName: farmer.name,
+        type: 'advance',  // 预支款类型
+
+        // 预支款信息
+        amount: paymentAmount,
+        paymentDate: paymentDate || now.toISOString().split('T')[0],
+
+        // 余额快照（记录此次操作后的余额）
+        snapshotAdvancePayment: newAdvancePayment,
+
+        remark: remark || '',
+        createTime: db.serverDate(),
+        createBy: userId,
+        createByName: userName || ''
+      }
+    });
+
+    // 6. 记录操作日志
+    await db.collection('operation_logs').add({
+      data: {
+        userId,
+        userName: userName || '',
+        userRole: 'assistant',
+        action: 'add_advance_payment',
+        module: 'farmer',
+        targetId: farmerId,
+        targetName: farmer.name,
+        description: `预支款 ¥${paymentAmount}，累计预支 ¥${newAdvancePayment}`,
+        before: { advancePayment: currentAdvance },
+        after: { advancePayment: newAdvancePayment },
+        createTime: db.serverDate()
+      }
+    });
+
+    return {
+      success: true,
+      message: '预支款登记成功',
+      data: {
+        amount: paymentAmount,
+        newAdvancePayment: newAdvancePayment
+      }
+    };
+
+  } catch (error) {
+    console.error('预支款登记失败:', error);
+    return {
+      success: false,
+      message: error.message || '预支款登记失败'
+    };
+  }
+}
+
+/**
  * 获取农户发苗状态统计
  * 返回各状态的农户数量：all, pending, inProgress, completed
  */
@@ -703,6 +816,9 @@ exports.main = async (event, context) => {
 
     case 'getStatusStats':
       return await getFarmerStatusStats(event);
+
+    case 'advancePayment':
+      return await addAdvancePayment(event);
 
     default:
       return {
