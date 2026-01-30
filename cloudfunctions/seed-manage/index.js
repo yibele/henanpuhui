@@ -30,6 +30,7 @@ function generateRecordId() {
 
 /**
  * 发放种苗
+ * 权限：助理只能给自己创建的农户发苗，管理员可以给所有农户发苗
  */
 async function distributeSeed(event) {
     const { userId, userName, farmerId, data } = event;
@@ -63,7 +64,44 @@ async function distributeSeed(event) {
     }
 
     try {
-        // 1. 获取农户信息
+        // ==================== 权限检查开始 ====================
+
+        // 1. 获取用户信息，验证角色
+        const userRes = await db.collection('users').doc(userId).get();
+        if (!userRes.data) {
+            return {
+                success: false,
+                message: '用户不存在'
+            };
+        }
+
+        const currentUser = userRes.data;
+
+        // 2. 只有助理和管理员可以发放种苗
+        if (!['assistant', 'admin', 'finance_admin'].includes(currentUser.role)) {
+            return {
+                success: false,
+                message: `您当前角色（${currentUser.role}）无权限发放种苗`
+            };
+        }
+
+        // 3. 如果是助理，检查农户是否是自己创建的
+        if (currentUser.role === 'assistant') {
+            const farmerCheck = await db.collection('farmers')
+                .where({ _id: farmerId, createBy: userId })
+                .get();
+
+            if (farmerCheck.data.length === 0) {
+                return {
+                    success: false,
+                    message: '只能为自己签约的农户发放种苗'
+                };
+            }
+        }
+
+        // ==================== 权限检查结束 ====================
+
+        // 4. 获取农户信息
         const farmerRes = await db.collection('farmers')
             .where({ _id: farmerId, isDeleted: false })
             .get();
@@ -183,9 +221,10 @@ async function distributeSeed(event) {
 
 /**
  * 获取农户的发放记录
+ * 权限：助理只能查看自己创建的农户的记录，管理员和财务可以查看所有农户
  */
 async function getSeedRecordsByFarmer(event) {
-    const { farmerId, page = 1, pageSize = 20 } = event;
+    const { farmerId, page = 1, pageSize = 20, userId } = event;
 
     if (!farmerId) {
         return {
@@ -195,6 +234,33 @@ async function getSeedRecordsByFarmer(event) {
     }
 
     try {
+        // ==================== 权限检查开始 ====================
+
+        // 获取用户角色
+        let userRole = null;
+        if (userId) {
+            const userRes = await db.collection('users').doc(userId).get();
+            if (userRes.data) {
+                userRole = userRes.data.role;
+            }
+        }
+
+        // 如果是助理，检查农户是否是自己创建的
+        if (userRole === 'assistant' && userId) {
+            const farmerCheck = await db.collection('farmers')
+                .where({ _id: farmerId, createBy: userId })
+                .get();
+
+            if (farmerCheck.data.length === 0) {
+                return {
+                    success: false,
+                    message: '无权限查看此农户的发放记录'
+                };
+            }
+        }
+
+        // ==================== 权限检查结束 ====================
+
         const skip = (page - 1) * pageSize;
 
         // 获取总数
@@ -230,22 +296,41 @@ async function getSeedRecordsByFarmer(event) {
 }
 
 /**
- * 获取发放记录列表（按操作人）
+ * 获取发放记录列表
+ * 权限：助理只能查看自己的记录，管理员和财务可以查看所有记录
  */
 async function listSeedRecords(event) {
     const { userId, page = 1, pageSize = 20, startDate, endDate } = event;
 
     try {
+        // ==================== 权限检查开始 ====================
+
+        // 获取用户角色
+        let userRole = null;
+        if (userId) {
+            const userRes = await db.collection('users').doc(userId).get();
+            if (userRes.data) {
+                userRole = userRes.data.role;
+            }
+        }
+
         const skip = (page - 1) * pageSize;
 
         // 构建查询条件
         let whereCondition = {};
-        if (userId) {
+
+        // 助理只能查看自己创建的记录
+        if (userRole === 'assistant' && userId) {
             whereCondition.createBy = userId;
         }
+        // 管理员和财务不限制，可以查看所有记录
+        // 仓库管理员和出纳不应该调用此接口，但如果不小心调用了，返回空列表
+
         if (startDate && endDate) {
             whereCondition.createTime = _.gte(new Date(startDate)).and(_.lte(new Date(endDate)));
         }
+
+        // ==================== 权限检查结束 ====================
 
         // 获取总数
         const countRes = await db.collection('seed_records')
@@ -281,9 +366,10 @@ async function listSeedRecords(event) {
 
 /**
  * 获取单条记录详情
+ * 权限：助理只能查看自己创建的记录，管理员和财务可以查看所有记录
  */
 async function getRecordDetail(event) {
-    const { recordId } = event;
+    const { recordId, userId } = event;
 
     if (!recordId) {
         return {
@@ -293,19 +379,41 @@ async function getRecordDetail(event) {
     }
 
     try {
+        // ==================== 权限检查开始 ====================
+
+        // 获取用户角色
+        let userRole = null;
+        if (userId) {
+            const userRes = await db.collection('users').doc(userId).get();
+            if (userRes.data) {
+                userRole = userRes.data.role;
+            }
+        }
+
+        // 获取记录
         const res = await db.collection('seed_records').doc(recordId).get();
 
-        if (res.data) {
-            return {
-                success: true,
-                data: res.data
-            };
-        } else {
+        if (!res.data) {
             return {
                 success: false,
                 message: '记录不存在'
             };
         }
+
+        // 如果是助理，检查是否是自己创建的记录
+        if (userRole === 'assistant' && res.data.createBy !== userId) {
+            return {
+                success: false,
+                message: '无权限查看此记录'
+            };
+        }
+
+        // ==================== 权限检查结束 ====================
+
+        return {
+            success: true,
+            data: res.data
+        };
     } catch (error) {
         console.error('获取记录详情失败:', error);
         return {
@@ -316,10 +424,11 @@ async function getRecordDetail(event) {
 }
 
 /**
- * 更新发放记录（同步更新农户统计）
+ * 更新发放记录
+ * 权限：只有创建者可以修改自己的记录，管理员可以修改所有记录
  */
 async function updateSeedRecord(event) {
-    const { recordId, data } = event;
+    const { recordId, data, userId } = event;
 
     if (!recordId || !data) {
         return {
@@ -329,6 +438,8 @@ async function updateSeedRecord(event) {
     }
 
     try {
+        // ==================== 权限检查开始 ====================
+
         // 1. 先获取原记录
         const oldRecord = await db.collection('seed_records').doc(recordId).get();
         if (!oldRecord.data) {
@@ -338,8 +449,25 @@ async function updateSeedRecord(event) {
             };
         }
 
+        // 2. 检查权限
         const old = oldRecord.data;
-        const farmerId = old.farmerId;
+
+        if (userId) {
+            const userRes = await db.collection('users').doc(userId).get();
+            if (userRes.data) {
+                const currentUser = userRes.data;
+
+                // 只有管理员和记录创建者可以修改
+                if (currentUser.role !== 'admin' && old.createBy !== userId) {
+                    return {
+                        success: false,
+                        message: '无权限修改此记录'
+                    };
+                }
+            }
+        }
+
+        // ==================== 权限检查结束 ====================
 
         // 2. 计算差值
         const diffQuantity = (data.quantity || 0) - (old.quantity || 0);
@@ -389,10 +517,11 @@ async function updateSeedRecord(event) {
 }
 
 /**
- * 删除发放记录（同步更新农户统计）
+ * 删除发放记录
+ * 权限：只有创建者可以删除自己的记录，管理员可以删除所有记录
  */
 async function deleteSeedRecord(event) {
-    const { recordId } = event;
+    const { recordId, userId } = event;
 
     if (!recordId) {
         return {
@@ -402,6 +531,8 @@ async function deleteSeedRecord(event) {
     }
 
     try {
+        // ==================== 权限检查开始 ====================
+
         // 1. 先获取原记录
         const oldRecord = await db.collection('seed_records').doc(recordId).get();
         if (!oldRecord.data) {
@@ -411,7 +542,26 @@ async function deleteSeedRecord(event) {
             };
         }
 
+        // 2. 检查权限
         const old = oldRecord.data;
+
+        if (userId) {
+            const userRes = await db.collection('users').doc(userId).get();
+            if (userRes.data) {
+                const currentUser = userRes.data;
+
+                // 只有管理员和记录创建者可以删除
+                if (currentUser.role !== 'admin' && old.createBy !== userId) {
+                    return {
+                        success: false,
+                        message: '无权限删除此记录'
+                    };
+                }
+            }
+        }
+
+        // ==================== 权限检查结束 ====================
+
         const farmerId = old.farmerId;
         const quantity = old.quantity || 0;
         const amount = old.amount || 0;
