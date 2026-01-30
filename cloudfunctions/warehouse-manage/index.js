@@ -49,18 +49,86 @@ function getTodayDate() {
 }
 
 /**
+ * 权限检查：验证用户是否有权限访问指定仓库
+ * @param {string} userId - 用户ID
+ * @param {string} warehouseId - 仓库ID
+ * @returns {object} { allowed: boolean, message: string }
+ */
+async function checkWarehouseAccess(userId, warehouseId) {
+    if (!userId) {
+        return { allowed: false, message: '缺少用户ID' };
+    }
+
+    try {
+        // 获取用户信息
+        const userRes = await db.collection('users').doc(userId).get();
+        if (!userRes.data) {
+            return { allowed: false, message: '用户不存在' };
+        }
+
+        const currentUser = userRes.data;
+
+        // 管理员可以访问所有仓库
+        if (currentUser.role === 'admin') {
+            return { allowed: true };
+        }
+
+        // 仓库管理员只能访问自己绑定的仓库
+        if (currentUser.role === 'warehouse_manager') {
+            if (!currentUser.warehouseId) {
+                return { allowed: false, message: '您尚未绑定仓库' };
+            }
+            if (currentUser.warehouseId === warehouseId) {
+                return { allowed: true };
+            } else {
+                return { allowed: false, message: '您无权限访问该仓库' };
+            }
+        }
+
+        // 会计和财务可以查看所有仓库的统计数据（只读）
+        if (currentUser.role === 'finance_admin') {
+            return { allowed: true };
+        }
+
+        // 出纳可以查看仓库数据（只读）
+        if (currentUser.role === 'cashier') {
+            return { allowed: true };
+        }
+
+        return { allowed: false, message: '您当前角色无权限访问仓库数据' };
+    } catch (error) {
+        console.error('权限检查失败:', error);
+        return { allowed: false, message: '权限验证失败' };
+    }
+}
+
+/**
  * 获取所有仓库列表（简化版，用于出库时查看其他仓库）
+ * 权限：需要登录才能查看
  */
 async function listWarehouses(event) {
     const { userId } = event;
 
+    // ==================== 权限检查开始 ====================
+    if (!userId) {
+        return {
+            success: false,
+            message: '缺少用户ID，请先登录'
+        };
+    }
+
+    // 验证用户是否存在
+    const userRes = await db.collection('users').doc(userId).get();
+    if (!userRes.data) {
+        return {
+            success: false,
+            message: '用户不存在'
+        };
+    }
+    // ==================== 权限检查结束 ====================
+
     try {
-        // 获取当前用户信息
-        let currentUser = null;
-        if (userId) {
-            const userRes = await db.collection('users').doc(userId).get();
-            currentUser = userRes.data;
-        }
+        const currentUser = userRes.data;
 
         // 获取所有仓库
         const warehousesRes = await db.collection('warehouses')
@@ -93,9 +161,10 @@ async function listWarehouses(event) {
 
 /**
  * 获取仓库日报列表（按日期）
+ * 权限：仓库管理员只能查看自己绑定的仓库，管理员、会计、出纳可以查看所有仓库
  */
 async function getDailyList(event) {
-    const { warehouseId, page = 1, pageSize = 30 } = event;
+    const { warehouseId, page = 1, pageSize = 30, userId } = event;
 
     if (!warehouseId) {
         return {
@@ -103,6 +172,23 @@ async function getDailyList(event) {
             message: '缺少仓库ID'
         };
     }
+
+    // ==================== 权限检查开始 ====================
+    if (!userId) {
+        return {
+            success: false,
+            message: '缺少用户ID'
+        };
+    }
+
+    const accessCheck = await checkWarehouseAccess(userId, warehouseId);
+    if (!accessCheck.allowed) {
+        return {
+            success: false,
+            message: accessCheck.message
+        };
+    }
+    // ==================== 权限检查结束 ====================
 
     try {
         // 生成最近N天的日期列表
@@ -312,9 +398,10 @@ async function saveDaily(event) {
 /**
  * 获取仓库看板数据
  * 返回今日数据、库存汇总、历史记录
+ * 权限：仓库管理员只能查看自己绑定的仓库，管理员、会计、出纳可以查看所有仓库
  */
 async function getDashboard(event) {
-    const { warehouseId, page = 1 } = event;
+    const { warehouseId, page = 1, userId } = event;
 
     if (!warehouseId) {
         return {
@@ -322,6 +409,23 @@ async function getDashboard(event) {
             message: '缺少仓库ID'
         };
     }
+
+    // ==================== 权限检查开始 ====================
+    if (!userId) {
+        return {
+            success: false,
+            message: '缺少用户ID'
+        };
+    }
+
+    const accessCheck = await checkWarehouseAccess(userId, warehouseId);
+    if (!accessCheck.allowed) {
+        return {
+            success: false,
+            message: accessCheck.message
+        };
+    }
+    // ==================== 权限检查结束 ====================
 
     try {
         const today = getTodayDate();
