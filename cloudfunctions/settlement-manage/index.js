@@ -273,7 +273,10 @@ async function auditSettlement(event, context) {
       const acquisitionAmount = settlement.acquisitionAmount || 0; // 收购货款
 
       // 2. 读取当前欠款余额
-      const currentSeedDebt = farmer.seedDebt || farmer.stats?.seedDebt || 0;           // 种苗欠款
+      // 种苗欠款 = 实际发苗金额 - 定金
+      const totalSeedAmount = farmer.stats?.totalSeedAmount || 0;
+      const deposit = farmer.deposit || 0;
+      const currentSeedDebt = Math.max(0, totalSeedAmount - deposit);
       const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;  // 农资欠款
       const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;  // 预付款
 
@@ -783,7 +786,10 @@ async function recalculateSettlement(event) {
 
     // 计算各项扣款
     const grossAmount = settlement.grossAmount || 0;  // 收购总额
-    const seedDebt = farmer.seedDebt || 0;            // 种苗欠款
+    // 种苗欠款 = 实际发苗金额 - 定金
+    const totalSeedAmount = farmer.stats?.totalSeedAmount || 0;
+    const deposit = farmer.deposit || 0;
+    const seedDebt = Math.max(0, totalSeedAmount - deposit);
     const agriDebt = parseFloat(agriculturalDebt) || farmer.agriculturalDebt || 0;  // 农资款
     const advPay = parseFloat(advancePayment) || farmer.advancePayment || 0;        // 预支款
 
@@ -982,7 +988,10 @@ async function previewDeduction(event) {
     const acquisitionAmount = settlement.acquisitionAmount || 0;
 
     // 读取当前欠款余额
-    const currentSeedDebt = farmer.seedDebt || farmer.stats?.seedDebt || 0;
+    // 种苗欠款 = 实际发苗金额 - 定金
+    const totalSeedAmount = farmer.stats?.totalSeedAmount || 0;
+    const deposit = farmer.deposit || 0;
+    const currentSeedDebt = Math.max(0, totalSeedAmount - deposit);
     const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;
     const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;
 
