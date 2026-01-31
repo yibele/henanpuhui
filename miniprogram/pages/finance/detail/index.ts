@@ -272,7 +272,7 @@ Page({
       const res = await wx.cloud.callFunction({
         name: 'settlement-manage',
         data: {
-          action: 'auditSettlement',
+          action: 'audit',
           settlementId: this.data.settlement.settlementId,
           approved,
           auditRemark: remark

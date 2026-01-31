@@ -404,6 +404,50 @@ wx.cloud.uploadFile({
 });
 ```
 
+#### 管理员回填数据（可选）
+
+```javascript
+// 结算单字段回填（只补缺失字段）
+wx.cloud.callFunction({
+  name: 'settlement-manage',
+  data: {
+    action: 'backfillSettlements',
+    batchSize: 50,
+    dryRun: true
+  },
+  success: res => {
+    console.log('回填预览', res.result.data);
+  }
+});
+
+// 农户种苗欠款回填（仅缺失 seedDebt 时回填）
+wx.cloud.callFunction({
+  name: 'settlement-manage',
+  data: {
+    action: 'backfillFarmersSeedDebt',
+    batchSize: 50,
+    dryRun: true
+  },
+  success: res => {
+    console.log('回填预览', res.result.data);
+  }
+});
+```
+
+#### 管理员清空业务数据（保留所有账号）
+
+```javascript
+wx.cloud.callFunction({
+  name: 'settlement-manage',
+  data: {
+    action: 'purgeBusinessData'
+  },
+  success: res => {
+    console.log('清空结果', res.result.data);
+  }
+});
+```
+
 ---
 
 ## 🔐 权限控制说明

@@ -426,7 +426,7 @@
   paymentRemark: "已转账",           // 支付备注
   
   // 状态
-  status: "completed",               // 状态：pending_audit/approved/rejected/unpaid/paying/paid/completed/cancelled
+  status: "completed",               // 状态：pending/approved/paying/completed/rejected
   
   // 时间戳
   createTime: Date,                  // 创建时间

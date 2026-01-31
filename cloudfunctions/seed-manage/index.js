@@ -158,6 +158,8 @@ async function distributeSeed(event) {
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
         const currentArea = farmer.stats?.totalSeedArea || 0;
         const currentCount = farmer.stats?.seedDistributionCount || 0;
+        const currentSeedDebt = farmer.seedDebt || 0;
+        const newSeedDebt = currentSeedDebt + seedAmount;
 
         await db.collection('farmers').doc(farmerId).update({
             data: {
@@ -166,6 +168,8 @@ async function distributeSeed(event) {
                 'stats.totalSeedArea': currentArea + area,  // 累加已发面积
                 'stats.seedDistributionCount': currentCount + 1, // 累计发苗次数
                 'stats.lastSeedDistributionDate': db.serverDate(),
+                seedDebt: newSeedDebt,
+                'stats.seedDebt': newSeedDebt,
                 updateTime: db.serverDate()
             }
         });
@@ -497,6 +501,8 @@ async function updateSeedRecord(event) {
                     'stats.totalSeedDistributed': _.inc(diffQuantity),
                     'stats.totalSeedAmount': _.inc(diffAmount),
                     'stats.totalSeedArea': _.inc(diffArea),
+                    seedDebt: _.inc(diffAmount),
+                    'stats.seedDebt': _.inc(diffAmount),
                     updateTime: db.serverDate()
                 }
             });
@@ -577,6 +583,8 @@ async function deleteSeedRecord(event) {
                 'stats.totalSeedAmount': _.inc(-amount),
                 'stats.totalSeedArea': _.inc(-area),
                 'stats.seedDistributionCount': _.inc(-1),
+                seedDebt: _.inc(-amount),
+                'stats.seedDebt': _.inc(-amount),
                 updateTime: db.serverDate()
             }
         });

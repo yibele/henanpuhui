@@ -294,20 +294,25 @@ async function getFinanceStats(user) {
     const warehouses = warehousesRes.data;
 
     // 获取待审核结算单
-    const pendingSettlements = await db.collection('settlements').where({
-      auditStatus: 'pending'
-    }).get();
+    const pendingSettlements = await db.collection('settlements').where(
+      _.or([
+        { auditStatus: 'pending' },
+        { status: 'pending' }
+      ])
+    ).get();
 
     // 获取待支付结算单
-    const approvedSettlements = await db.collection('settlements').where({
-      auditStatus: 'approved',
-      paymentStatus: 'unpaid'
-    }).get();
+    const approvedSettlements = await db.collection('settlements').where(
+      _.and([
+        _.or([{ auditStatus: 'approved' }, { status: 'approved' }]),
+        _.or([{ paymentStatus: 'unpaid' }, { paymentStatus: 'paying' }])
+      ])
+    ).get();
 
     // 计算待支付总额
     let totalPendingAmount = 0;
     approvedSettlements.data.forEach(settlement => {
-      totalPendingAmount += settlement.finalAmount || 0;
+      totalPendingAmount += settlement.actualPayment || settlement.finalAmount || 0;
     });
 
     // 获取所有农户统计

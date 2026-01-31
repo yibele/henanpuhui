@@ -296,6 +296,10 @@ async function createAcquisition(event, context) {
       acquisitionWeight: Number(computedNetWeight.toFixed(2)),
       acquisitionPrice: unitPriceNum,
       acquisitionAmount: Number(computedTotalAmount.toFixed(2)), // 收购货款
+      // 兼容字段
+      netWeight: Number(computedNetWeight.toFixed(2)),
+      unitPrice: unitPriceNum,
+      grossAmount: Number(computedTotalAmount.toFixed(2)),
 
       // 扣款明细（审核时才计算，初始为0）
       advanceDeduction: 0,      // 预付款扣除
@@ -306,6 +310,8 @@ async function createAcquisition(event, context) {
 
       // 状态（三阶段：pending -> approved -> completed）
       status: 'pending',  // pending=待审核, approved=待付款, completed=已完成
+      auditStatus: 'pending',
+      paymentStatus: 'unpaid',
 
       // 审核信息（会计操作）
       auditorId: '',
@@ -709,15 +715,25 @@ async function updateAcquisition(event, context) {
       if (settlementRes.data.length > 0) {
         const settlement = settlementRes.data[0];
         // 重新计算应付金额（保持原有的扣款项）
-        const newActualPayment = Number((newTotalAmount - (settlement.seedDebt || 0) - (settlement.otherDeductions || 0)).toFixed(2));
+        const totalDeduction = Number.isFinite(settlement.totalDeduction)
+          ? settlement.totalDeduction
+          : Number.isFinite(settlement.totalDeductions)
+            ? settlement.totalDeductions
+            : (settlement.advanceDeduction || 0) + (settlement.seedDeduction || 0) + (settlement.agriculturalDeduction || 0) + (settlement.otherDeductions || 0);
+        const newActualPayment = Number((newTotalAmount - totalDeduction).toFixed(2));
 
         const settlementUpdates = {
+          acquisitionWeight: newNetWeight,
+          acquisitionAmount: newTotalAmount,
+          acquisitionPrice: updateData.unitPrice !== undefined ? updateData.unitPrice : settlement.acquisitionPrice,
+          // 兼容字段
           netWeight: newNetWeight,
           grossAmount: newTotalAmount,
           unitPrice: updateData.unitPrice !== undefined ? updateData.unitPrice : settlement.unitPrice,
           actualPayment: newActualPayment,
-          status: 'pending_audit',
+          status: 'pending',
           auditStatus: 'pending',
+          paymentStatus: 'unpaid',
           updateTime: db.serverDate()
         };
 
@@ -769,8 +785,9 @@ async function updateAcquisition(event, context) {
         .where({ acquisitionId })
         .update({
           data: {
-            status: 'pending_audit',
+            status: 'pending',
             auditStatus: 'pending',
+            paymentStatus: 'unpaid',
             updateTime: db.serverDate()
           }
         });
