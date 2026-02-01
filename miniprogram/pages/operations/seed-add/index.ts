@@ -527,8 +527,13 @@ Page({
    * 输入发放数量（万株）
    */
   onQuantityInput(e: WechatMiniprogram.CustomEvent) {
-    // 只允许整数
-    let value = e.detail.value.replace(/[^\d]/g, '');
+    // 允许数字和小数点
+    let value = e.detail.value.replace(/[^\d.]/g, '');
+    // 确保只有一个小数点
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
 
     this.setData({ 'form.quantity': value });
     this.calculateAmount();
@@ -677,7 +682,7 @@ Page({
 
       // 构建数据
       const submitData = {
-        quantity: parseInt(form.quantity),
+        quantity: parseFloat(form.quantity),
         unitPrice: parseFloat(form.unitPrice),
         amount: parseFloat(calculatedAmount),
         distributedArea: parseFloat(form.distributedArea),

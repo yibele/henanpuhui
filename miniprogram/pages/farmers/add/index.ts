@@ -20,8 +20,7 @@ Page({
       grade: 'silver',    // 农户等级，默认银牌
       deposit: '',        // 定金
       seedTotal: '',      // 种苗合计（万株）
-      seedUnitPrice: '',  // 单价（元/万株）
-      seedDebt: '0'       // 种苗欠款（元），默认0
+      seedUnitPrice: ''   // 单价（元/万株）
     },
     // 应收款（自动计算）
     receivableAmount: '0.00',
@@ -218,40 +217,6 @@ Page({
   },
 
   /**
-   * 输入种苗欠款（只允许数字和小数点）
-   */
-  onSeedDebtInput(e: WechatMiniprogram.CustomEvent) {
-    // 过滤非数字字符，只保留数字和小数点
-    let value = e.detail.value.replace(/[^\d.]/g, '');
-    // 确保只有一个小数点
-    const parts = value.split('.');
-    if (parts.length > 2) {
-      value = parts[0] + '.' + parts.slice(1).join('');
-    }
-    this.setData({ 'form.seedDebt': value });
-  },
-
-  /**
-   * 种苗欠款减少（每次减100元）
-   */
-  onSeedDebtMinus() {
-    const current = parseFloat(this.data.form.seedDebt) || 0;
-    if (current > 0) {
-      const newValue = Math.max(0, current - 100);
-      this.setData({ 'form.seedDebt': newValue.toString() });
-    }
-  },
-
-  /**
-   * 种苗欠款增加（每次加100元）
-   */
-  onSeedDebtPlus() {
-    const current = parseFloat(this.data.form.seedDebt) || 0;
-    const newValue = current + 100;
-    this.setData({ 'form.seedDebt': newValue.toString() });
-  },
-
-  /**
    * 计算应收款
    * 应收款 = 种苗合计（万株）× 单价（元/万株）
    */
@@ -379,15 +344,6 @@ Page({
       }
     }
 
-    // 验证种苗欠款（可以为0，但如果填了必须是有效数字）
-    if (form.seedDebt) {
-      const seedDebt = parseFloat(form.seedDebt);
-      if (isNaN(seedDebt) || seedDebt < 0) {
-        this.showToast('请输入正确的种苗欠款');
-        return false;
-      }
-    }
-
     return true;
   },
 
@@ -426,7 +382,7 @@ Page({
         seedTotal: parseFloat(form.seedTotal) || 0,  // 种苗合计（万株）
         seedUnitPrice: parseFloat(form.seedUnitPrice) || 0,  // 单价（元/万株）
         receivableAmount: parseFloat(receivableAmount) || 0,  // 应收款（元）
-        seedDebt: parseFloat(form.seedDebt) || 0,  // 种苗欠款（元）
+        seedDebt: 0,  // 种苗欠款：签约时为0，发苗后才计算
         firstManager: firstManager.trim(),  // 第一负责人
         secondManager: secondManager.trim() || ''  // 第二负责人（可选）
       };

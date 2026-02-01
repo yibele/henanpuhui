@@ -69,15 +69,10 @@
         <view class="stat-divider"></view>
         <view class="stat-item">
           <text class="stat-value stat-orange">¥{{farmer.receivableAmount || 0}}</text>
-          <text class="stat-label">应收款</text>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <text class="stat-value stat-red">¥{{farmer.seedDebt || 0}}</text>
-          <text class="stat-label">种苗欠款</text>
+          <text class="stat-label">签约金额</text>
         </view>
       </view>
-      
+
       <!-- 种苗发放 -->
       <view class="section-title-row section-title-row-mt">
         <text class="section-title-text">种苗发放</text>
@@ -98,11 +93,17 @@
         </view>
         <view class="stat-divider"></view>
         <view class="stat-item">
-          <text class="stat-value stat-orange">{{seedStats.totalAmount || 0}}</text>
+          <text class="stat-value stat-green">{{seedStats.totalArea || 0}}</text>
+          <text class="stat-label">发放面积(亩)</text>
+        </view>
+      </view>
+      <view class="stats-row stats-row-tertiary">
+        <view class="stat-item">
+          <text class="stat-value stat-orange">¥{{seedStats.totalAmount || 0}}</text>
           <text class="stat-label">苗款金额(元)</text>
         </view>
       </view>
-      
+
       <!-- 农资 -->
       <view class="section-title-row section-title-row-mt">
         <text class="section-title-text">农资</text>
@@ -124,14 +125,14 @@
         </view>
       </view>
       
-      <!-- 欠款汇总（收购时扣除） -->
+      <!-- 欠款汇总 -->
       <view class="section-title-row section-title-row-mt">
         <text class="section-title-text">欠款汇总</text>
-        <text class="section-subtitle">结算时从货款扣除</text>
       </view>
       <view class="stats-row">
         <view class="stat-item">
-          <text class="stat-value stat-red">¥{{farmer.seedDebt || 0}}</text>
+          <!-- 种苗欠款：只有发过苗才显示实际欠款，否则显示0 -->
+          <text class="stat-value stat-red">¥{{seedStats.recordCount > 0 ? (farmer.seedDebt || 0) : 0}}</text>
           <text class="stat-label">种苗欠款</text>
         </view>
         <view class="stat-divider"></view>
@@ -159,9 +160,9 @@
           </view>
           <text class="action-name">{{farmer.seedDistributionComplete ? '发苗完成' : '发放种苗'}}</text>
         </view>
-        <view class="action-item" bindtap="onOpenAcreagePopup">
-          <view class="action-icon-bg bg-blue">
-            <t-icon name="measurement" size="44rpx" color="#3b82f6" />
+        <view class="action-item {{farmer.seedDistributionComplete ? 'action-item-disabled' : ''}}" bindtap="{{farmer.seedDistributionComplete ? '' : 'onOpenAcreagePopup'}}">
+          <view class="action-icon-bg {{farmer.seedDistributionComplete ? 'bg-gray' : 'bg-blue'}}">
+            <t-icon name="measurement" size="44rpx" color="{{farmer.seedDistributionComplete ? '#9ca3af' : '#3b82f6'}}" />
           </view>
           <text class="action-name">追加面积</text>
         </view>
@@ -169,7 +170,7 @@
           <view class="action-icon-bg bg-orange">
             <t-icon name="wallet" size="44rpx" color="#f59e0b" />
           </view>
-          <text class="action-name">预付款</text>
+          <text class="action-name">预支款</text>
         </view>
         <view class="action-item" bindtap="onOpenFertilizerPopup">
           <view class="action-icon-bg bg-cyan">
@@ -369,5 +370,131 @@
     </view>
   </t-popup>
 
-  <!-- 4. 发放种苗/化肥/农药 (复用之前的逻辑，简化弹窗样式) -->
+  <!-- 4. 发放化肥弹窗 -->
+  <t-popup visible="{{fertilizerPopupVisible}}" placement="bottom" bind:visible-change="onCloseFertilizerPopup">
+    <view class="popup-container popup-container-tall">
+      <view class="popup-header-bar">
+        <text class="popup-title">发放化肥</text>
+        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseFertilizerPopup" />
+      </view>
+
+      <scroll-view class="popup-scroll" scroll-y>
+        <!-- 发放日期 -->
+        <view class="form-field">
+          <text class="field-label">发放日期</text>
+          <picker mode="date" value="{{fertilizerForm.date}}" bindchange="onFertilizerDateChange">
+            <view class="picker-box">{{fertilizerForm.date}}</view>
+          </picker>
+        </view>
+
+        <!-- 化肥名称 -->
+        <view class="form-field">
+          <text class="field-label required">化肥名称</text>
+          <input class="field-input" placeholder="如：复合肥、尿素等" value="{{fertilizerForm.name}}" bindinput="onFertilizerNameInput" />
+        </view>
+
+        <!-- 种类 -->
+        <view class="form-field">
+          <text class="field-label">种类</text>
+          <input class="field-input" placeholder="可选填种类" value="{{fertilizerForm.category}}" bindinput="onFertilizerCategoryInput" />
+        </view>
+
+        <!-- 数量 -->
+        <view class="form-field">
+          <text class="field-label required">数量</text>
+          <view class="input-with-unit">
+            <input class="field-input flex-1" type="digit" placeholder="请输入数量" value="{{fertilizerForm.quantity}}" bindinput="onFertilizerQuantityInput" />
+            <input class="unit-input" placeholder="袋" value="{{fertilizerForm.unit}}" bindinput="onFertilizerUnitInput" />
+          </view>
+        </view>
+
+        <!-- 单价 -->
+        <view class="form-field">
+          <text class="field-label required">单价（元）</text>
+          <input class="field-input" type="digit" placeholder="请输入单价" value="{{fertilizerForm.price}}" bindinput="onFertilizerPriceInput" />
+        </view>
+
+        <!-- 金额（自动计算） -->
+        <view class="popup-info-row" wx:if="{{fertilizerForm.amount > 0}}">
+          <text>金额合计</text>
+          <text class="popup-highlight">¥{{fertilizerForm.amount}}</text>
+        </view>
+
+        <!-- 备注 -->
+        <view class="form-field">
+          <text class="field-label">备注</text>
+          <input class="field-input" placeholder="可选填备注" value="{{fertilizerForm.remark}}" bindinput="onFertilizerRemarkInput" />
+        </view>
+      </scroll-view>
+
+      <view class="popup-footer-bar">
+        <button class="btn-cancel" bindtap="onCloseFertilizerPopup">取消</button>
+        <button class="btn-confirm" bindtap="onSubmitFertilizer">确认发放</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- 5. 发放农药弹窗 -->
+  <t-popup visible="{{pesticidePopupVisible}}" placement="bottom" bind:visible-change="onClosePesticidePopup">
+    <view class="popup-container popup-container-tall">
+      <view class="popup-header-bar">
+        <text class="popup-title">发放农药</text>
+        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onClosePesticidePopup" />
+      </view>
+
+      <scroll-view class="popup-scroll" scroll-y>
+        <!-- 发放日期 -->
+        <view class="form-field">
+          <text class="field-label">发放日期</text>
+          <picker mode="date" value="{{pesticideForm.date}}" bindchange="onPesticideDateChange">
+            <view class="picker-box">{{pesticideForm.date}}</view>
+          </picker>
+        </view>
+
+        <!-- 农药名称 -->
+        <view class="form-field">
+          <text class="field-label required">农药名称</text>
+          <input class="field-input" placeholder="如：吡虫啉、多菌灵等" value="{{pesticideForm.name}}" bindinput="onPesticideNameInput" />
+        </view>
+
+        <!-- 种类 -->
+        <view class="form-field">
+          <text class="field-label">种类</text>
+          <input class="field-input" placeholder="可选填种类" value="{{pesticideForm.category}}" bindinput="onPesticideCategoryInput" />
+        </view>
+
+        <!-- 数量 -->
+        <view class="form-field">
+          <text class="field-label required">数量</text>
+          <view class="input-with-unit">
+            <input class="field-input flex-1" type="digit" placeholder="请输入数量" value="{{pesticideForm.quantity}}" bindinput="onPesticideQuantityInput" />
+            <input class="unit-input" placeholder="瓶" value="{{pesticideForm.unit}}" bindinput="onPesticideUnitInput" />
+          </view>
+        </view>
+
+        <!-- 单价 -->
+        <view class="form-field">
+          <text class="field-label required">单价（元）</text>
+          <input class="field-input" type="digit" placeholder="请输入单价" value="{{pesticideForm.price}}" bindinput="onPesticidePriceInput" />
+        </view>
+
+        <!-- 金额（自动计算） -->
+        <view class="popup-info-row" wx:if="{{pesticideForm.amount > 0}}">
+          <text>金额合计</text>
+          <text class="popup-highlight">¥{{pesticideForm.amount}}</text>
+        </view>
+
+        <!-- 备注 -->
+        <view class="form-field">
+          <text class="field-label">备注</text>
+          <input class="field-input" placeholder="可选填备注" value="{{pesticideForm.remark}}" bindinput="onPesticideRemarkInput" />
+        </view>
+      </scroll-view>
+
+      <view class="popup-footer-bar">
+        <button class="btn-cancel" bindtap="onClosePesticidePopup">取消</button>
+        <button class="btn-confirm" bindtap="onSubmitPesticide">确认发放</button>
+      </view>
+    </view>
+  </t-popup>
 </view>

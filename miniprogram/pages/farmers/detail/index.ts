@@ -42,9 +42,12 @@ Page({
     fertilizerForm: {
       date: getTodayDate(),
       name: '',
+      category: '',
       quantity: '',
+      unit: '袋',
       price: '',
-      amount: 0
+      amount: 0,
+      remark: ''
     },
 
     // ========== 发放农药 ==========
@@ -52,9 +55,12 @@ Page({
     pesticideForm: {
       date: getTodayDate(),
       name: '',
+      category: '',
       quantity: '',
+      unit: '瓶',
       price: '',
-      amount: 0
+      amount: 0,
+      remark: ''
     },
 
     // ========== 预付款 ==========
@@ -100,6 +106,17 @@ Page({
     }
     this.loadCurrentUser();
     this.checkUserRole();
+  },
+
+  /**
+   * 页面显示时刷新数据（从发苗等页面返回时触发）
+   */
+  onShow() {
+    const { farmerId } = this.data;
+    if (farmerId) {
+      this.loadFarmerDetail(farmerId);
+      this.loadSeedStats(farmerId);
+    }
   },
 
   /**
@@ -269,6 +286,10 @@ Page({
     switch (record.type) {
       case 'seed':
         return `发放 ${record.quantity || 0} 万株`;
+      case 'fertilizer':
+        return `${record.name || '化肥'} ${record.quantity || 0}${record.unit || '袋'}，¥${record.totalAmount || record.amount || 0}`;
+      case 'pesticide':
+        return `${record.name || '农药'} ${record.quantity || 0}${record.unit || '瓶'}，¥${record.totalAmount || record.amount || 0}`;
       case 'addendum':
         return `面积 +${record.addedAcreage || 0} 亩${record.addedDeposit ? `，定金 +¥${record.addedDeposit}` : ''}`;
       case 'advance':
@@ -313,7 +334,7 @@ Page({
 
         this.setData({
           seedStats: {
-            totalQuantity,
+            totalQuantity: Number.isInteger(totalQuantity) ? totalQuantity : parseFloat(totalQuantity.toFixed(2)),
             totalQuantityText,
             totalAmount: Math.round(totalAmount),
             totalArea: totalArea.toFixed(1),
@@ -380,9 +401,12 @@ Page({
       fertilizerForm: {
         date: getTodayDate(),
         name: '',
+        category: '',
         quantity: '',
+        unit: '袋',
         price: '',
-        amount: 0
+        amount: 0,
+        remark: ''
       }
     });
   },
@@ -397,6 +421,10 @@ Page({
 
   onFertilizerNameInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'fertilizerForm.name': e.detail.value });
+  },
+
+  onFertilizerCategoryInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'fertilizerForm.category': e.detail.value });
   },
 
   onFertilizerQuantityInput(e: WechatMiniprogram.CustomEvent) {
@@ -419,32 +447,70 @@ Page({
     });
   },
 
-  onSubmitFertilizer() {
-    const { fertilizerForm, currentUser, businessRecords } = this.data;
+  onFertilizerUnitInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'fertilizerForm.unit': e.detail.value });
+  },
 
-    if (!fertilizerForm.name || !fertilizerForm.quantity || !fertilizerForm.price) {
-      wx.showToast({ title: '请填写完整信息', icon: 'none' });
+  onFertilizerRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'fertilizerForm.remark': e.detail.value });
+  },
+
+  async onSubmitFertilizer() {
+    const { fertilizerForm, farmer, farmerId } = this.data;
+
+    if (!fertilizerForm.name) {
+      wx.showToast({ title: '请输入化肥名称', icon: 'none' });
+      return;
+    }
+    if (!fertilizerForm.quantity || !fertilizerForm.price) {
+      wx.showToast({ title: '请填写数量和单价', icon: 'none' });
       return;
     }
 
-    const newRecord = {
-      id: `fertilizer_${Date.now()}`,
-      type: 'fertilizer',
-      date: fertilizerForm.date,
-      name: fertilizerForm.name,
-      quantity: fertilizerForm.quantity,
-      unit: '袋',
-      price: fertilizerForm.price,
-      amount: fertilizerForm.amount,
-      operator: currentUser
-    };
+    wx.showLoading({ title: '提交中...' });
 
-    this.setData({
-      businessRecords: [newRecord, ...businessRecords],
-      fertilizerPopupVisible: false
-    });
+    try {
+      const userInfo = (app.globalData as any)?.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+      const userName = userInfo.name || '助理';
 
-    wx.showToast({ title: '发放成功', icon: 'success' });
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'addAgriculturalSupply',
+          userId,
+          userName,
+          farmerId: farmer?.id || farmerId,
+          data: {
+            type: 'fertilizer',
+            name: fertilizerForm.name,
+            category: fertilizerForm.category,
+            quantity: parseFloat(fertilizerForm.quantity),
+            unit: fertilizerForm.unit || '袋',
+            unitPrice: parseFloat(fertilizerForm.price),
+            amount: fertilizerForm.amount,
+            supplyDate: fertilizerForm.date,
+            remark: fertilizerForm.remark
+          }
+        }
+      });
+
+      wx.hideLoading();
+      const result = res.result as any;
+
+      if (result.success) {
+        wx.showToast({ title: '化肥发放成功', icon: 'success' });
+        this.setData({ fertilizerPopupVisible: false });
+        // 刷新页面数据
+        this.loadFarmerDetail(farmer?.id || farmerId);
+      } else {
+        wx.showToast({ title: result.message || '发放失败', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('化肥发放失败:', error);
+      wx.hideLoading();
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+    }
   },
 
   // ==================== 发放农药 ====================
@@ -455,9 +521,12 @@ Page({
       pesticideForm: {
         date: getTodayDate(),
         name: '',
+        category: '',
         quantity: '',
+        unit: '瓶',
         price: '',
-        amount: 0
+        amount: 0,
+        remark: ''
       }
     });
   },
@@ -472,6 +541,10 @@ Page({
 
   onPesticideNameInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'pesticideForm.name': e.detail.value });
+  },
+
+  onPesticideCategoryInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'pesticideForm.category': e.detail.value });
   },
 
   onPesticideQuantityInput(e: WechatMiniprogram.CustomEvent) {
@@ -494,32 +567,70 @@ Page({
     });
   },
 
-  onSubmitPesticide() {
-    const { pesticideForm, currentUser, businessRecords } = this.data;
+  onPesticideUnitInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'pesticideForm.unit': e.detail.value });
+  },
 
-    if (!pesticideForm.name || !pesticideForm.quantity || !pesticideForm.price) {
-      wx.showToast({ title: '请填写完整信息', icon: 'none' });
+  onPesticideRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'pesticideForm.remark': e.detail.value });
+  },
+
+  async onSubmitPesticide() {
+    const { pesticideForm, farmer, farmerId } = this.data;
+
+    if (!pesticideForm.name) {
+      wx.showToast({ title: '请输入农药名称', icon: 'none' });
+      return;
+    }
+    if (!pesticideForm.quantity || !pesticideForm.price) {
+      wx.showToast({ title: '请填写数量和单价', icon: 'none' });
       return;
     }
 
-    const newRecord = {
-      id: `pesticide_${Date.now()}`,
-      type: 'pesticide',
-      date: pesticideForm.date,
-      name: pesticideForm.name,
-      quantity: pesticideForm.quantity,
-      unit: '瓶',
-      price: pesticideForm.price,
-      amount: pesticideForm.amount,
-      operator: currentUser
-    };
+    wx.showLoading({ title: '提交中...' });
 
-    this.setData({
-      businessRecords: [newRecord, ...businessRecords],
-      pesticidePopupVisible: false
-    });
+    try {
+      const userInfo = (app.globalData as any)?.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+      const userName = userInfo.name || '助理';
 
-    wx.showToast({ title: '发放成功', icon: 'success' });
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'addAgriculturalSupply',
+          userId,
+          userName,
+          farmerId: farmer?.id || farmerId,
+          data: {
+            type: 'pesticide',
+            name: pesticideForm.name,
+            category: pesticideForm.category,
+            quantity: parseFloat(pesticideForm.quantity),
+            unit: pesticideForm.unit || '瓶',
+            unitPrice: parseFloat(pesticideForm.price),
+            amount: pesticideForm.amount,
+            supplyDate: pesticideForm.date,
+            remark: pesticideForm.remark
+          }
+        }
+      });
+
+      wx.hideLoading();
+      const result = res.result as any;
+
+      if (result.success) {
+        wx.showToast({ title: '农药发放成功', icon: 'success' });
+        this.setData({ pesticidePopupVisible: false });
+        // 刷新页面数据
+        this.loadFarmerDetail(farmer?.id || farmerId);
+      } else {
+        wx.showToast({ title: result.message || '发放失败', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('农药发放失败:', error);
+      wx.hideLoading();
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+    }
   },
 
   // ==================== 预付款 ====================

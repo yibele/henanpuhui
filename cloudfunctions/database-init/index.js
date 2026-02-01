@@ -194,6 +194,7 @@ exports.main = async (event, context) => {
   console.log('========================================');
 
   const results = {};
+  const { onlyWarehouses = false } = event || {};
 
   // 1. 初始化仓库数据
   try {
@@ -233,6 +234,15 @@ exports.main = async (event, context) => {
     results.warehouses = {
       success: false,
       error: error
+    };
+  }
+
+  if (onlyWarehouses) {
+    console.log('仅初始化仓库，跳过用户/农户/收购初始化');
+    return {
+      success: true,
+      message: '仅初始化仓库完成',
+      results
     };
   }
 

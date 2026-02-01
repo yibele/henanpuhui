@@ -220,8 +220,9 @@ async function createAcquisition(event, context) {
       return { success: false, errMsg: '净重不合法' };
     }
 
-    // 计算预估重量和差异
-    const estimatedWeightKg = (farmer.acreage || 0) * 300; // 每亩 300kg
+    // 计算预估重量和差异（使用已发苗面积，而非签约面积）
+    const distributedArea = farmer.stats?.totalSeedArea || 0;
+    const estimatedWeightKg = distributedArea * 300; // 每亩 300kg
     const weightDifference = computedNetWeight - estimatedWeightKg;
     const weightDifferenceRate = estimatedWeightKg > 0 ? (weightDifference / estimatedWeightKg) * 100 : 0;
     const isAbnormal = estimatedWeightKg > 0 ? Math.abs(weightDifferenceRate) > 50 : false; // 差异率超过50%为异常
@@ -679,9 +680,18 @@ async function updateAcquisition(event, context) {
       };
     }
 
-    // 更新收购记录
+    // 禁止修改收购日期，防止跨日期统计错误
+    if (updateData && updateData.acquisitionDate && updateData.acquisitionDate !== acquisition.acquisitionDate) {
+      return {
+        success: false,
+        errMsg: '收购日期不允许修改'
+      };
+    }
+
+    // 更新收购记录（排除收购日期字段）
+    const { acquisitionDate, ...safeUpdateData } = updateData || {};
     const updates = {
-      ...updateData,
+      ...safeUpdateData,
       correctionRemark: correctionRemark || '',
       status: 'confirmed', // 修改后重新提交审核
       updateTime: db.serverDate()
@@ -981,6 +991,27 @@ async function deleteAcquisition(event) {
     }
 
     const acquisition = acquisitionRes.data[0];
+
+    // 检查关联的结算单状态，已审核或已付款的不能删除
+    const settlementCheckRes = await db.collection('settlements')
+      .where({ acquisitionId })
+      .get();
+
+    if (settlementCheckRes.data.length > 0) {
+      const settlement = settlementCheckRes.data[0];
+      if (settlement.status === 'completed') {
+        return {
+          success: false,
+          message: '该收购记录已完成付款，无法删除'
+        };
+      }
+      if (settlement.status === 'approved') {
+        return {
+          success: false,
+          message: '该收购记录已审核通过，请先撤销审核再删除'
+        };
+      }
+    }
 
     // 记录修改日志
     await db.collection('modification_logs').add({

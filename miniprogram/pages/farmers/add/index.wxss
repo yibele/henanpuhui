@@ -353,6 +353,10 @@
   color: #3b82f6;
 }
 
+.readonly-value-red {
+  color: #ef4444;
+}
+
 .auto-calc-tag {
   font-size: 20rpx;
   color: #3b82f6;

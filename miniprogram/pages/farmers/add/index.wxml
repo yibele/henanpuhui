@@ -203,32 +203,6 @@
         </view>
       </view>
       
-      <view class="form-divider"></view>
-      
-      <!-- 种苗欠款 -->
-      <view class="form-item">
-        <text class="form-label">种苗欠款（元）</text>
-        <view class="stepper-input-row">
-          <view class="deposit-input-wrapper">
-            <text class="deposit-prefix">¥</text>
-            <input 
-              class="stepper-input deposit-input"
-              type="digit"
-              placeholder="0"
-              value="{{form.seedDebt}}"
-              bindinput="onSeedDebtInput"
-            />
-          </view>
-          <view class="stepper-controls">
-            <view class="stepper-btn stepper-btn-minus" bindtap="onSeedDebtMinus">
-              <t-icon name="remove" size="36rpx" color="{{form.seedDebt > 0 ? '#ef4444' : '#d1d5db'}}" />
-            </view>
-            <view class="stepper-btn stepper-btn-plus" bindtap="onSeedDebtPlus">
-              <t-icon name="add" size="36rpx" color="#ef4444" />
-            </view>
-          </view>
-        </view>
-      </view>
     </view>
   </view>
 

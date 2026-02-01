@@ -786,6 +786,192 @@ async function getFarmerStatusStats(event) {
 }
 
 /**
+ * 农资发放登记（化肥/农药）
+ * 记录发放给农户的农资，结算时从货款中扣除
+ * @param {string} type - 类型：fertilizer(化肥) / pesticide(农药)
+ * @param {string} name - 名称
+ * @param {string} category - 种类
+ * @param {number} quantity - 数量/重量
+ * @param {string} unit - 单位
+ * @param {number} unitPrice - 单价
+ * @param {number} amount - 金额（自动计算）
+ * @param {string} remark - 备注
+ */
+async function addAgriculturalSupply(event) {
+  const { userId, userName, farmerId, data } = event;
+
+  if (!userId || !farmerId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  const {
+    type,         // fertilizer 或 pesticide
+    name,         // 名称（如：复合肥、尿素、吡虫啉等）
+    category,     // 种类
+    quantity,     // 数量/重量
+    unit,         // 单位（袋、瓶、kg等）
+    unitPrice,    // 单价
+    amount,       // 金额
+    supplyDate,   // 发放日期
+    remark        // 备注
+  } = data;
+
+  // 验证类型
+  if (!type || !['fertilizer', 'pesticide'].includes(type)) {
+    return {
+      success: false,
+      message: '请选择正确的农资类型'
+    };
+  }
+
+  // 验证名称
+  if (!name || !name.trim()) {
+    return {
+      success: false,
+      message: '请输入农资名称'
+    };
+  }
+
+  // 验证数量
+  const qty = parseFloat(quantity) || 0;
+  if (qty <= 0) {
+    return {
+      success: false,
+      message: '请输入有效的数量'
+    };
+  }
+
+  // 验证单价
+  const price = parseFloat(unitPrice) || 0;
+  if (price <= 0) {
+    return {
+      success: false,
+      message: '请输入有效的单价'
+    };
+  }
+
+  // 计算金额
+  const totalAmount = parseFloat(amount) || (qty * price);
+
+  try {
+    // 1. 获取当前农户信息
+    const farmerRes = await db.collection('farmers')
+      .where({ _id: farmerId, isDeleted: false })
+      .get();
+
+    if (farmerRes.data.length === 0) {
+      return {
+        success: false,
+        message: '农户不存在'
+      };
+    }
+
+    const farmer = farmerRes.data[0];
+
+    // 2. 计算新的农资欠款
+    const currentAgriDebt = farmer.agriculturalDebt || 0;
+    const currentFertilizer = farmer.fertilizerAmount || 0;
+    const currentPesticide = farmer.pesticideAmount || 0;
+
+    const newAgriDebt = currentAgriDebt + totalAmount;
+
+    // 根据类型更新对应金额
+    const updateData = {
+      agriculturalDebt: newAgriDebt,
+      updateTime: db.serverDate()
+    };
+
+    if (type === 'fertilizer') {
+      updateData.fertilizerAmount = currentFertilizer + totalAmount;
+    } else {
+      updateData.pesticideAmount = currentPesticide + totalAmount;
+    }
+
+    // 3. 更新农户主表
+    await db.collection('farmers').doc(farmerId).update({
+      data: updateData
+    });
+
+    // 4. 生成业务记录编号
+    const now = new Date();
+    const prefix = type === 'fertilizer' ? 'FER' : 'PES';
+    const recordId = `${prefix}_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+    // 5. 写入业务记录表
+    await db.collection('business_records').add({
+      data: {
+        recordId,
+        farmerId,
+        farmerName: farmer.name,
+        type,  // fertilizer 或 pesticide
+
+        // 农资信息
+        name: name.trim(),
+        category: category || '',
+        quantity: qty,
+        unit: unit || (type === 'fertilizer' ? '袋' : '瓶'),
+        unitPrice: price,
+        totalAmount: totalAmount,
+        supplyDate: supplyDate || now.toISOString().split('T')[0],
+
+        // 余额快照
+        snapshotAgriDebt: newAgriDebt,
+        snapshotFertilizer: type === 'fertilizer' ? (currentFertilizer + totalAmount) : currentFertilizer,
+        snapshotPesticide: type === 'pesticide' ? (currentPesticide + totalAmount) : currentPesticide,
+
+        remark: remark || '',
+        createTime: db.serverDate(),
+        createBy: userId,
+        createByName: userName || ''
+      }
+    });
+
+    // 6. 记录操作日志
+    const typeName = type === 'fertilizer' ? '化肥' : '农药';
+    await db.collection('operation_logs').add({
+      data: {
+        userId,
+        userName: userName || '',
+        userRole: 'assistant',
+        action: 'add_agricultural_supply',
+        module: 'farmer',
+        targetId: farmerId,
+        targetName: farmer.name,
+        description: `发放${typeName}：${name}，${qty}${unit || ''}，金额 ¥${totalAmount}，农资欠款累计 ¥${newAgriDebt}`,
+        before: { agriculturalDebt: currentAgriDebt },
+        after: { agriculturalDebt: newAgriDebt },
+        createTime: db.serverDate()
+      }
+    });
+
+    return {
+      success: true,
+      message: `${typeName}发放成功`,
+      data: {
+        recordId,
+        name,
+        quantity: qty,
+        unitPrice: price,
+        totalAmount,
+        newAgriDebt,
+        newFertilizerAmount: type === 'fertilizer' ? (currentFertilizer + totalAmount) : currentFertilizer,
+        newPesticideAmount: type === 'pesticide' ? (currentPesticide + totalAmount) : currentPesticide
+      }
+    };
+
+  } catch (error) {
+    console.error('农资发放失败:', error);
+    return {
+      success: false,
+      message: error.message || '农资发放失败'
+    };
+  }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -821,6 +1007,9 @@ exports.main = async (event, context) => {
 
     case 'advancePayment':
       return await addAdvancePayment(event);
+
+    case 'addAgriculturalSupply':
+      return await addAgriculturalSupply(event);
 
     default:
       return {
