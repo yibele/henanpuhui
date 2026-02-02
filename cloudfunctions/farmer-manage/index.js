@@ -1085,9 +1085,12 @@ async function getBusinessRecords(event) {
     // 合并所有记录
     let allRecords = [];
 
-    // 处理 business_records
+    // 处理 business_records（排除 acquisition 和 settlement 类型，这些从专用表查）
     if (businessRes.data && businessRes.data.length > 0) {
-      allRecords = allRecords.concat(businessRes.data.map(r => ({
+      const filteredRecords = businessRes.data.filter(r =>
+        !['acquisition', 'settlement', 'settlement_audit', 'payment'].includes(r.type)
+      );
+      allRecords = allRecords.concat(filteredRecords.map(r => ({
         ...r,
         _source: 'business_records'
       })));
