@@ -100,16 +100,18 @@ export const RoleTabBars: Record<UserRole, TabBarItem[]> = {
     { icon: 'location', text: '仓库', pagePath: '/pages/stats/warehouse/index' }
   ],
 
-  // 会计导航栏：农户（查看交易记录）、结算（审核）
+  // 会计导航栏：报表、结算、农户
   [UserRole.FINANCE_ADMIN]: [
-    { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' },
-    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
+    { icon: 'chart-bar', text: '报表', pagePath: '/pages/finance/report/index' },
+    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' },
+    { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' }
   ],
 
-  // 出纳导航栏：首页、结算
+  // 出纳导航栏：报表、结算、农户
   [UserRole.CASHIER]: [
-    { icon: 'home', text: '首页', pagePath: '/pages/index/index' },
-    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' }
+    { icon: 'chart-bar', text: '报表', pagePath: '/pages/finance/report/index' },
+    { icon: 'wallet', text: '结算', pagePath: '/pages/finance/index/index' },
+    { icon: 'user', text: '农户', pagePath: '/pages/farmers/list/index' }
   ],
 
   // 管理员导航栏：与会计相同

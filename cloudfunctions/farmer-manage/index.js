@@ -531,9 +531,11 @@ async function addFarmerAddendum(event) {
     const newSeedTotal = (farmer.seedTotal || 0) + seedTotal;
     const newReceivable = (farmer.receivableAmount || 0) + receivable;
     const newDeposit = (farmer.deposit || 0) + deposit;
-    // 计算新的种苗欠款：在已有欠款基础上叠加
-    const currentSeedDebt = Number.isFinite(farmer.seedDebt) ? farmer.seedDebt : Math.max(0, (farmer.receivableAmount || 0) - (farmer.deposit || 0));
-    const newSeedDebt = Math.max(0, currentSeedDebt + receivable - deposit);
+    // 种苗欠款为剩余欠款：追加定金后减少欠款余额
+    const currentSeedDebt = Number.isFinite(farmer.seedDebt)
+      ? farmer.seedDebt
+      : Math.max(0, (farmer.stats?.totalSeedAmount || 0) - (farmer.deposit || 0));
+    const newSeedDebt = Math.max(0, currentSeedDebt - deposit);
 
     // 3. 更新农户主表
     await db.collection('farmers').doc(farmerId).update({
@@ -1021,6 +1023,7 @@ exports.main = async (event, context) => {
 
 /**
  * 获取农户的业务往来记录
+ * 合并查询 business_records、acquisitions、settlements
  */
 async function getBusinessRecords(event) {
   const { farmerId, page = 1, pageSize = 50 } = event;
@@ -1033,26 +1036,111 @@ async function getBusinessRecords(event) {
   }
 
   try {
-    const skip = (page - 1) * pageSize;
-
-    // 获取总数
-    const countRes = await db.collection('business_records')
-      .where({ farmerId })
-      .count();
-
-    // 获取列表，按时间倒序
-    const listRes = await db.collection('business_records')
+    // 1. 查询 business_records 集合
+    const businessRes = await db.collection('business_records')
       .where({ farmerId })
       .orderBy('createTime', 'desc')
-      .skip(skip)
-      .limit(pageSize)
+      .limit(100)
       .get();
+
+    // 2. 查询 acquisitions 集合（收购记录）
+    const acquisitionRes = await db.collection('acquisitions')
+      .where({ farmerId })
+      .orderBy('createTime', 'desc')
+      .limit(50)
+      .get();
+
+    // 3. 查询 settlements 集合（结算记录）
+    const settlementRes = await db.collection('settlements')
+      .where({ farmerId })
+      .orderBy('createTime', 'desc')
+      .limit(50)
+      .get();
+
+    // 合并所有记录
+    let allRecords = [];
+
+    // 处理 business_records
+    if (businessRes.data && businessRes.data.length > 0) {
+      allRecords = allRecords.concat(businessRes.data.map(r => ({
+        ...r,
+        _source: 'business_records'
+      })));
+    }
+
+    // 处理 acquisitions（收购记录）
+    if (acquisitionRes.data && acquisitionRes.data.length > 0) {
+      const acquisitionRecords = acquisitionRes.data.map(r => ({
+        _id: r._id,
+        type: 'acquisition',
+        farmerId: r.farmerId,
+        farmerName: r.farmerName,
+        amount: r.totalAmount || 0,
+        weight: r.totalWeight || 0,
+        desc: `收购 ${r.totalWeight || 0}kg，¥${r.totalAmount || 0}`,
+        createTime: r.createTime,
+        createByName: r.operatorName || r.createByName || '仓管',
+        warehouseName: r.warehouseName,
+        _source: 'acquisitions'
+      }));
+      allRecords = allRecords.concat(acquisitionRecords);
+    }
+
+    // 处理 settlements（结算记录）
+    if (settlementRes.data && settlementRes.data.length > 0) {
+      const settlementRecords = settlementRes.data.map(r => {
+        let type = 'settlement';
+        let desc = `货款¥${r.acquisitionAmount || 0}`;
+        let operator = '系统';
+
+        if (r.status === 'completed' || r.paymentStatus === 'paid') {
+          type = 'payment';
+          desc = `实付¥${r.actualPayment || 0}（货款¥${r.acquisitionAmount || 0}，扣款¥${r.totalDeduction || 0}）`;
+          operator = r.cashierName || '出纳';
+        } else if (r.status === 'approved') {
+          type = 'settlement_audit';
+          desc = `审核通过，待付¥${r.actualPayment || 0}`;
+          operator = r.auditorName || '会计';
+        } else if (r.status === 'pending') {
+          type = 'settlement';
+          desc = `待审核，货款¥${r.acquisitionAmount || 0}`;
+          operator = '系统';
+        }
+
+        return {
+          _id: r._id,
+          type,
+          farmerId: r.farmerId,
+          farmerName: r.farmerName,
+          amount: r.actualPayment || r.acquisitionAmount || 0,
+          grossAmount: r.acquisitionAmount || 0,
+          deduction: r.totalDeduction || 0,
+          desc,
+          status: r.status,
+          createTime: r.paymentTime || r.auditTime || r.createTime,
+          createByName: operator,
+          _source: 'settlements'
+        };
+      });
+      allRecords = allRecords.concat(settlementRecords);
+    }
+
+    // 按时间倒序排序
+    allRecords.sort((a, b) => {
+      const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
+      const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
+      return timeB - timeA;
+    });
+
+    // 分页
+    const skip = (page - 1) * pageSize;
+    const pagedRecords = allRecords.slice(skip, skip + pageSize);
 
     return {
       success: true,
       data: {
-        list: listRes.data,
-        total: countRes.total,
+        list: pagedRecords,
+        total: allRecords.length,
         page,
         pageSize
       }

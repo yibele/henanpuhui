@@ -1,0 +1,89 @@
+<!--
+  结算报表页面
+  展示结算统计数据，支持日期筛选和分页
+-->
+<view class="report-page">
+  <!-- 顶部汇总卡片 -->
+  <view class="summary-card">
+    <view class="summary-header">
+      <text class="summary-title">结算统计</text>
+      <text class="summary-count">共 {{summary.totalCount}} 笔</text>
+    </view>
+
+    <view class="summary-main">
+      <text class="main-amount-label">实付金额</text>
+      <text class="main-amount-value">¥{{formatted.totalActualPayment}}</text>
+    </view>
+
+    <view class="summary-row">
+      <view class="summary-item">
+        <text class="summary-item-label">收购货款</text>
+        <text class="summary-item-value">¥{{formatted.totalAcquisitionAmount}}</text>
+      </view>
+      <view class="summary-item">
+        <text class="summary-item-label">扣款合计</text>
+        <text class="summary-item-value summary-item-red">-¥{{formatted.totalDeduction}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 日期筛选 -->
+  <view class="filter-bar">
+    <view
+      class="filter-item {{activeShortcut === item.value ? 'active' : ''}}"
+      wx:for="{{dateShortcuts}}"
+      wx:key="value"
+      bindtap="onShortcutTap"
+      data-value="{{item.value}}"
+    >
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <!-- 结算明细列表 -->
+  <view class="list-section">
+    <view class="section-header">
+      <text class="section-title">结算明细</text>
+      <text class="section-count">{{total}} 条记录</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!isLoading && settlements.length === 0}}">
+      <t-icon name="folder-open" size="100rpx" color="#d1d5db" />
+      <text class="empty-text">暂无结算记录</text>
+    </view>
+
+    <!-- 列表 -->
+    <view class="settlement-list" wx:if="{{settlements.length > 0}}">
+      <view
+        class="settlement-item"
+        wx:for="{{settlements}}"
+        wx:key="settlementId"
+        bindtap="onSettlementTap"
+        data-id="{{item.settlementId}}"
+      >
+        <view class="item-left">
+          <text class="item-name">{{item.farmerName}}</text>
+          <text class="item-time">{{item.paymentDateStr}}</text>
+        </view>
+        <view class="item-right">
+          <text class="item-amount">¥{{item.formattedActual}}</text>
+          <text class="item-detail">货款{{item.formattedAmount}} 扣款{{item.formattedDeduction}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="loading-wrap" wx:if="{{isLoading}}">
+      <t-loading theme="circular" size="40rpx" text="加载中..." />
+    </view>
+
+    <!-- 加载完成 -->
+    <view class="load-complete" wx:if="{{!hasMore && settlements.length > 0}}">
+      <text>已加载全部 {{total}} 条记录</text>
+    </view>
+  </view>
+
+  <!-- 底部间距 -->
+  <view class="bottom-space"></view>
+</view>

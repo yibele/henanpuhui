@@ -671,6 +671,7 @@ async function markPayment(event, context) {
 async function completePayment(event, context) {
   const { OPENID } = cloud.getWXContext();
   const {
+    userId,
     settlementId,
     paymentMethod,   // 付款方式：cash/wechat/bank
     paymentRemark
@@ -684,12 +685,24 @@ async function completePayment(event, context) {
   }
 
   try {
-    // 获取当前用户信息
-    const userRes = await db.collection('users')
-      .where({ _openid: OPENID })
-      .get();
+    // 获取当前用户信息（优先 userId，其次 OPENID）
+    let userRes;
+    if (userId) {
+      userRes = await db.collection('users').doc(userId).get();
+      if (userRes.data) {
+        userRes = { data: [userRes.data] };
+      } else {
+        userRes = { data: [] };
+      }
+    } else if (OPENID) {
+      userRes = await db.collection('users')
+        .where({ _openid: OPENID })
+        .get();
+    } else {
+      userRes = { data: [] };
+    }
 
-    if (userRes.data.length === 0) {
+    if (!userRes.data || userRes.data.length === 0) {
       return {
         success: false,
         errMsg: '用户不存在'
@@ -1381,6 +1394,169 @@ async function purgeBusinessData(event) {
   };
 }
 
+/**
+ * 获取结算统计数据
+ * 支持按日期范围筛选，返回汇总和每日明细
+ */
+async function getStatistics(event) {
+  const { startDate, endDate, groupBy = 'day' } = event;
+
+  try {
+    // 构建查询条件：只统计已完成的结算
+    let matchCondition = _.or([
+      { status: 'completed' },
+      { paymentStatus: 'paid' }
+    ]);
+
+    // 日期范围筛选
+    if (startDate && endDate) {
+      matchCondition = _.and([
+        matchCondition,
+        { paymentTime: _.gte(new Date(startDate)) },
+        { paymentTime: _.lte(new Date(endDate + 'T23:59:59')) }
+      ]);
+    } else if (startDate) {
+      matchCondition = _.and([
+        matchCondition,
+        { paymentTime: _.gte(new Date(startDate)) }
+      ]);
+    } else if (endDate) {
+      matchCondition = _.and([
+        matchCondition,
+        { paymentTime: _.lte(new Date(endDate + 'T23:59:59')) }
+      ]);
+    }
+
+    // 1. 获取汇总统计
+    const summaryRes = await db.collection('settlements')
+      .aggregate()
+      .match(matchCondition)
+      .group({
+        _id: null,
+        totalCount: $.sum(1),
+        totalAcquisitionAmount: $.sum('$acquisitionAmount'),
+        totalDeduction: $.sum('$totalDeduction'),
+        totalActualPayment: $.sum('$actualPayment'),
+        totalSeedDeduction: $.sum('$seedDeduction'),
+        totalAgriDeduction: $.sum('$agriculturalDeduction'),
+        totalAdvanceDeduction: $.sum('$advanceDeduction')
+      })
+      .end();
+
+    const summary = summaryRes.list[0] || {
+      totalCount: 0,
+      totalAcquisitionAmount: 0,
+      totalDeduction: 0,
+      totalActualPayment: 0,
+      totalSeedDeduction: 0,
+      totalAgriDeduction: 0,
+      totalAdvanceDeduction: 0
+    };
+
+    // 2. 按日期分组统计
+    const dailyRes = await db.collection('settlements')
+      .aggregate()
+      .match(matchCondition)
+      .addFields({
+        dateStr: $.dateToString({
+          date: '$paymentTime',
+          format: '%Y-%m-%d',
+          timezone: 'Asia/Shanghai'
+        })
+      })
+      .group({
+        _id: '$dateStr',
+        count: $.sum(1),
+        acquisitionAmount: $.sum('$acquisitionAmount'),
+        deduction: $.sum('$totalDeduction'),
+        actualPayment: $.sum('$actualPayment')
+      })
+      .sort({ _id: -1 })
+      .limit(60)
+      .end();
+
+    const dailyStats = dailyRes.list.map(item => ({
+      date: item._id,
+      count: item.count,
+      acquisitionAmount: item.acquisitionAmount || 0,
+      deduction: item.deduction || 0,
+      actualPayment: item.actualPayment || 0
+    }));
+
+    // 3. 按仓库分组统计
+    const warehouseRes = await db.collection('settlements')
+      .aggregate()
+      .match(matchCondition)
+      .group({
+        _id: '$warehouseId',
+        warehouseName: $.first('$warehouseName'),
+        count: $.sum(1),
+        acquisitionAmount: $.sum('$acquisitionAmount'),
+        actualPayment: $.sum('$actualPayment')
+      })
+      .sort({ actualPayment: -1 })
+      .end();
+
+    const warehouseStats = warehouseRes.list.map(item => ({
+      warehouseId: item._id,
+      warehouseName: item.warehouseName || '未知仓库',
+      count: item.count,
+      acquisitionAmount: item.acquisitionAmount || 0,
+      actualPayment: item.actualPayment || 0
+    }));
+
+    // 4. 按付款方式统计
+    const methodRes = await db.collection('settlements')
+      .aggregate()
+      .match(matchCondition)
+      .group({
+        _id: '$paymentMethod',
+        methodName: $.first('$paymentMethodName'),
+        count: $.sum(1),
+        actualPayment: $.sum('$actualPayment')
+      })
+      .sort({ actualPayment: -1 })
+      .end();
+
+    const methodNames = {
+      'cash': '现金',
+      'wechat': '微信转账',
+      'bank': '银行转账'
+    };
+
+    const paymentMethodStats = methodRes.list.map(item => ({
+      method: item._id || 'unknown',
+      methodName: item.methodName || methodNames[item._id] || '其他',
+      count: item.count,
+      actualPayment: item.actualPayment || 0
+    }));
+
+    return {
+      success: true,
+      data: {
+        summary: {
+          totalCount: summary.totalCount,
+          totalAcquisitionAmount: Number((summary.totalAcquisitionAmount || 0).toFixed(2)),
+          totalDeduction: Number((summary.totalDeduction || 0).toFixed(2)),
+          totalActualPayment: Number((summary.totalActualPayment || 0).toFixed(2)),
+          totalSeedDeduction: Number((summary.totalSeedDeduction || 0).toFixed(2)),
+          totalAgriDeduction: Number((summary.totalAgriDeduction || 0).toFixed(2)),
+          totalAdvanceDeduction: Number((summary.totalAdvanceDeduction || 0).toFixed(2))
+        },
+        dailyStats,
+        warehouseStats,
+        paymentMethodStats
+      }
+    };
+  } catch (error) {
+    console.error('获取结算统计失败:', error);
+    return {
+      success: false,
+      errMsg: error.message || '获取结算统计失败'
+    };
+  }
+}
+
 // 主函数
 exports.main = async (event, context) => {
   const { action } = event;
@@ -1409,6 +1585,8 @@ exports.main = async (event, context) => {
       return await backfillFarmersSeedDebt(event);
     case 'purgeBusinessData':
       return await purgeBusinessData(event);
+    case 'getStatistics':
+      return await getStatistics(event);
     default:
       return {
         success: false,

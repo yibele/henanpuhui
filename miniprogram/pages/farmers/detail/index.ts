@@ -274,7 +274,11 @@ Page({
       'deposit': '追加定金',
       'addendum': '追加签约',
       'acreage': '追加面积',
-      'contract': '农户签约'
+      'contract': '农户签约',
+      'acquisition': '收购入库',
+      'settlement': '结算',
+      'settlement_audit': '结算审核',
+      'payment': '结算付款'
     };
     return typeNames[type] || '业务记录';
   },
@@ -296,8 +300,15 @@ Page({
         return `预付款 ¥${record.amount || 0}`;
       case 'deposit':
         return `追加定金 ¥${record.amount || 0}`;
+      case 'acquisition':
+        return record.desc || `收购 ${record.weight || 0}kg，¥${record.amount || 0}`;
+      case 'settlement':
+      case 'settlement_audit':
+        return record.desc || `货款¥${record.grossAmount || record.amount || 0}`;
+      case 'payment':
+        return record.desc || `实付¥${record.amount || 0}`;
       default:
-        return record.remark || '';
+        return record.desc || record.remark || '';
     }
   },
 

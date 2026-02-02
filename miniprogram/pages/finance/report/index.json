@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "结算报表",
+  "usingComponents": {
+    "t-calendar": "tdesign-miniprogram/calendar/calendar"
+  }
+}

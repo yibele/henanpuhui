@@ -407,10 +407,12 @@ Page({
     this.setData({ isSubmitting: true });
 
     try {
+      const userInfo = financeDetailApp.globalData.userInfo;
       const res = await wx.cloud.callFunction({
         name: 'settlement-manage',
         data: {
           action: 'completePayment',
+          userId: userInfo?._id || '',
           settlementId: this.data.settlement.settlementId,
           paymentMethod: this.data.paymentMethod,
           paymentRemark: this.data.paymentRemark

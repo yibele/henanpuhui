@@ -84,10 +84,13 @@ Page({
   onShow() {
     // 更新 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
-      // 出纳是第2个Tab，会计/管理员是第5个Tab
-      const tabIndex = this.data.userRole === 'cashier' ? 1 : 4;
+      const tabIndex = this.data.userRole === 'cashier' ? 1 : 1;
       this.getTabBar().setData({ value: tabIndex });
     }
+
+    // 刷新数据，确保显示最新状态
+    this.loadOverview();
+    this.loadSettlements(true);
   },
 
   /**
@@ -331,5 +334,14 @@ Page({
     if (this.data.hasMore && !this.data.isLoading) {
       this.loadSettlements(false);
     }
+  },
+
+  /**
+   * 跳转到结算报表
+   */
+  goToReport() {
+    wx.navigateTo({
+      url: '/pages/finance/report/index'
+    });
   }
 });

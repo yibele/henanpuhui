@@ -13,6 +13,7 @@
     "pages/operations/acquisition-detail/index",
     "pages/finance/index/index",
     "pages/finance/detail/index",
+    "pages/finance/report/index",
     "pages/ai/index/index",
     "pages/stats/acquisition/index",
     "pages/stats/supplies/index",
@@ -60,12 +61,12 @@
         "text": "结算"
       },
       {
-        "pagePath": "pages/stats/acquisition/index",
-        "text": "收苗"
+        "pagePath": "pages/finance/report/index",
+        "text": "报表"
       },
       {
-        "pagePath": "pages/stats/supplies/index",
-        "text": "农资"
+        "pagePath": "pages/stats/acquisition/index",
+        "text": "收苗"
       },
       {
         "pagePath": "pages/stats/seeds/index",

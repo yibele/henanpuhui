@@ -134,10 +134,17 @@ Page({
           duration: 1500
         });
 
-        // 跳转到首页
+        // 根据角色跳转到对应首页
         setTimeout(() => {
+          let targetUrl = '/pages/index/index';
+
+          // 财务角色跳转到报表页
+          if (userData.role === 'finance_admin' || userData.role === 'cashier') {
+            targetUrl = '/pages/finance/report/index';
+          }
+
           wx.switchTab({
-            url: '/pages/index/index'
+            url: targetUrl
           });
         }, 1500);
       } else {

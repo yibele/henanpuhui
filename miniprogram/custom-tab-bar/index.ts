@@ -111,6 +111,7 @@ Component({
           'pages/operations/acquisition/index',
           'pages/stats/warehouse/index',
           'pages/finance/index/index',
+          'pages/finance/report/index',
           'pages/stats/acquisition/index',
           'pages/stats/supplies/index',
           'pages/stats/seeds/index',
