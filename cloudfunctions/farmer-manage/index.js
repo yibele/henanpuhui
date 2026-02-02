@@ -1023,7 +1023,7 @@ exports.main = async (event, context) => {
 
 /**
  * 获取农户的业务往来记录
- * 合并查询 business_records、acquisitions、settlements
+ * 只查 business_records 表（所有操作都已写入这张表）
  */
 async function getBusinessRecords(event) {
   const { farmerId, page = 1, pageSize = 50 } = event;
@@ -1036,11 +1036,9 @@ async function getBusinessRecords(event) {
   }
 
   try {
-    // 先获取农户信息，拿到 _id 和 farmerId（编号）两种格式
-    let farmerDocId = farmerId;
+    // 先获取农户信息，拿到 farmerId 编号
     let farmerCode = farmerId;
 
-    // 尝试通过 _id 或 farmerId 查询农户
     const farmerRes = await db.collection('farmers')
       .where(_.or([
         { _id: farmerId },
@@ -1050,140 +1048,28 @@ async function getBusinessRecords(event) {
       .get();
 
     if (farmerRes.data && farmerRes.data.length > 0) {
-      const farmer = farmerRes.data[0];
-      farmerDocId = farmer._id;
-      farmerCode = farmer.farmerId || farmer._id;
+      farmerCode = farmerRes.data[0].farmerId || farmerId;
     }
 
-    // 构建查询条件：同时匹配 _id 和 farmerId 编号
-    const farmerMatch = _.or([
-      { farmerId: farmerDocId },
-      { farmerId: farmerCode }
-    ]);
-
-    // 1. 查询 business_records 集合
-    const businessRes = await db.collection('business_records')
-      .where(farmerMatch)
-      .orderBy('createTime', 'desc')
-      .limit(100)
-      .get();
-
-    // 2. 查询 acquisitions 集合（收购记录）
-    const acquisitionRes = await db.collection('acquisitions')
-      .where(farmerMatch)
-      .orderBy('createTime', 'desc')
-      .limit(50)
-      .get();
-
-    // 3. 查询 settlements 集合（结算记录）
-    const settlementRes = await db.collection('settlements')
-      .where(farmerMatch)
-      .orderBy('createTime', 'desc')
-      .limit(50)
-      .get();
-
-    // 合并所有记录
-    let allRecords = [];
-
-    // 处理 business_records（排除 acquisition 和 settlement 类型，这些从专用表查）
-    if (businessRes.data && businessRes.data.length > 0) {
-      const filteredRecords = businessRes.data.filter(r =>
-        !['acquisition', 'settlement', 'settlement_audit', 'payment'].includes(r.type)
-      );
-      allRecords = allRecords.concat(filteredRecords.map(r => ({
-        ...r,
-        _source: 'business_records'
-      })));
-    }
-
-    // 处理 acquisitions（收购记录）
-    if (acquisitionRes.data && acquisitionRes.data.length > 0) {
-      const acquisitionRecords = acquisitionRes.data.map(r => ({
-        _id: r._id,
-        type: 'acquisition',
-        farmerId: r.farmerId,
-        farmerName: r.farmerName,
-        amount: r.totalAmount || 0,
-        weight: r.netWeight || r.totalWeight || 0,
-        desc: `净重${r.netWeight || 0}kg，单价¥${r.unitPrice || 0}/kg，货款¥${r.totalAmount || 0}`,
-        createTime: r.createTime,
-        createByName: r.operatorName || r.createByName || r.createBy || '仓管',
-        warehouseName: r.warehouseName,
-        _source: 'acquisitions'
-      }));
-      allRecords = allRecords.concat(acquisitionRecords);
-    }
-
-    // 处理 settlements（结算记录）- 每个阶段生成独立记录
-    if (settlementRes.data && settlementRes.data.length > 0) {
-      settlementRes.data.forEach(r => {
-        // 1. 结算创建记录（所有结算都有）
-        allRecords.push({
-          _id: r._id + '_create',
-          type: 'settlement',
-          farmerId: r.farmerId,
-          farmerName: r.farmerName,
-          amount: r.acquisitionAmount || 0,
-          desc: `待审核，货款¥${r.acquisitionAmount || 0}`,
-          status: 'pending',
-          createTime: r.createTime,
-          createByName: '系统',
-          _source: 'settlements'
-        });
-
-        // 2. 审核通过记录（状态为 approved 或 completed）
-        if (r.status === 'approved' || r.status === 'completed' || r.paymentStatus === 'paid') {
-          allRecords.push({
-            _id: r._id + '_audit',
-            type: 'settlement_audit',
-            farmerId: r.farmerId,
-            farmerName: r.farmerName,
-            amount: r.actualPayment || 0,
-            grossAmount: r.acquisitionAmount || 0,
-            deduction: r.totalDeduction || 0,
-            desc: `审核通过，货款¥${r.acquisitionAmount || 0}，扣款¥${r.totalDeduction || 0}，待付¥${r.actualPayment || 0}`,
-            status: 'approved',
-            createTime: r.auditTime || r.createTime,
-            createByName: r.auditorName || '会计',
-            _source: 'settlements'
-          });
-        }
-
-        // 3. 付款完成记录（状态为 completed）
-        if (r.status === 'completed' || r.paymentStatus === 'paid') {
-          allRecords.push({
-            _id: r._id + '_payment',
-            type: 'payment',
-            farmerId: r.farmerId,
-            farmerName: r.farmerName,
-            amount: r.actualPayment || 0,
-            desc: `已付款¥${r.actualPayment || 0}，${r.paymentMethodName || ''}`,
-            status: 'completed',
-            createTime: r.paymentTime || r.completeTime || r.auditTime,
-            createByName: r.cashierName || '出纳',
-            paymentMethod: r.paymentMethod,
-            _source: 'settlements'
-          });
-        }
-      });
-    }
-
-    // 按时间倒序排序
-    allRecords.sort((a, b) => {
-      const timeA = a.createTime ? new Date(a.createTime).getTime() : 0;
-      const timeB = b.createTime ? new Date(b.createTime).getTime() : 0;
-      return timeB - timeA;
-    });
-
-    // 分页
+    // 只查 business_records 表
     const skip = (page - 1) * pageSize;
-    const pagedRecords = allRecords.slice(skip, skip + pageSize);
+
+    const countRes = await db.collection('business_records')
+      .where({ farmerId: farmerCode })
+      .count();
+
+    const listRes = await db.collection('business_records')
+      .where({ farmerId: farmerCode })
+      .orderBy('createTime', 'desc')
+      .skip(skip)
+      .limit(pageSize)
+      .get();
 
     return {
       success: true,
       data: {
-        list: pagedRecords,
-        total: allRecords.length,
+        list: listRes.data || [],
+        total: countRes.total || 0,
         page,
         pageSize
       }
