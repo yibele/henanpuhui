@@ -131,33 +131,70 @@ Page({
 
         const statusConfig = STATUS_CONFIG[settlement.status] || STATUS_CONFIG.pending;
 
+        // 计算农户欠款明细
+        const seedDebtAmount = Math.max(0, (farmer?.stats?.totalSeedAmount || 0) - (farmer?.deposit || 0));
+        const agriculturalDebtAmount = farmer?.agriculturalDebt || 0;
+        const advancePaymentAmount = farmer?.advancePayment || 0;
+        const totalDebtAmount = seedDebtAmount + agriculturalDebtAmount + advancePaymentAmount;
+
+        // 收购货款
+        const acquisitionAmount = settlement.acquisitionAmount || 0;
+
+        // 计算扣款和待结算金额
+        // 如果是待审核状态（pending），需要预先计算给会计参考
+        // 如果已审核，使用数据库中保存的实际扣款值
+        let seedDeduction = settlement.seedDeduction || 0;
+        let agriculturalDeduction = settlement.agriculturalDeduction || 0;
+        let advanceDeduction = settlement.advanceDeduction || 0;
+        let totalDeduction = settlement.totalDeduction || 0;
+        let actualPayment = settlement.actualPayment || 0;
+
+        if (settlement.status === 'pending') {
+          // 待审核状态：预先计算扣款（按优先级：预支款 > 种苗欠款 > 农资欠款）
+          let remainingAmount = acquisitionAmount;
+
+          // 1. 先扣预支款
+          advanceDeduction = Math.min(remainingAmount, advancePaymentAmount);
+          remainingAmount -= advanceDeduction;
+
+          // 2. 再扣种苗欠款
+          seedDeduction = Math.min(remainingAmount, seedDebtAmount);
+          remainingAmount -= seedDeduction;
+
+          // 3. 最后扣农资欠款
+          agriculturalDeduction = Math.min(remainingAmount, agriculturalDebtAmount);
+          remainingAmount -= agriculturalDeduction;
+
+          // 扣款合计
+          totalDeduction = advanceDeduction + seedDeduction + agriculturalDeduction;
+
+          // 待结算金额 = 货款 - 扣款
+          actualPayment = acquisitionAmount - totalDeduction;
+        }
+
         // 格式化金额
         const formatted = {
-          acquisitionAmount: this.formatMoney(settlement.acquisitionAmount || 0),
-          advanceDeduction: this.formatMoney(settlement.advanceDeduction || 0),
-          seedDeduction: this.formatMoney(settlement.seedDeduction || 0),
-          agriculturalDeduction: this.formatMoney(settlement.agriculturalDeduction || 0),
-          totalDeduction: this.formatMoney(settlement.totalDeduction || 0),
-          actualPayment: this.formatMoney(settlement.actualPayment || 0),
+          acquisitionAmount: this.formatMoney(acquisitionAmount),
+          advanceDeduction: this.formatMoney(advanceDeduction),
+          seedDeduction: this.formatMoney(seedDeduction),
+          agriculturalDeduction: this.formatMoney(agriculturalDeduction),
+          totalDeduction: this.formatMoney(totalDeduction),
+          actualPayment: this.formatMoney(actualPayment),
           // 农户签约信息
           deposit: this.formatMoney(farmer?.deposit || 0),
           // 发苗统计（基于实际发苗计算）
           totalSeedDistributed: this.formatNumber(farmer?.stats?.totalSeedDistributed || 0),
           totalSeedAmount: this.formatMoney(farmer?.stats?.totalSeedAmount || 0),
-          // 种苗欠款 = 发苗金额 - 已交定金
-          seedDebt: this.formatMoney((farmer?.stats?.totalSeedAmount || 0) - (farmer?.deposit || 0)),
+          // 种苗欠款
+          seedDebt: this.formatMoney(seedDebtAmount),
           // 农资欠款
           fertilizerAmount: this.formatMoney(farmer?.fertilizerAmount || 0),
           pesticideAmount: this.formatMoney(farmer?.pesticideAmount || 0),
-          agriculturalDebt: this.formatMoney(farmer?.agriculturalDebt || 0),
+          agriculturalDebt: this.formatMoney(agriculturalDebtAmount),
           // 预支款
-          advancePayment: this.formatMoney(farmer?.advancePayment || 0),
-          // 欠款合计 = 种苗欠款 + 农资欠款 + 预支款
-          totalDebt: this.formatMoney(
-            Math.max(0, (farmer?.stats?.totalSeedAmount || 0) - (farmer?.deposit || 0)) +
-            (farmer?.agriculturalDebt || 0) +
-            (farmer?.advancePayment || 0)
-          )
+          advancePayment: this.formatMoney(advancePaymentAmount),
+          // 欠款合计
+          totalDebt: this.formatMoney(totalDebtAmount)
         };
 
         this.setData({

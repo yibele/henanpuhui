@@ -19,7 +19,7 @@ const WAREHOUSES = [
   { _id: 'w008', code: 'WH008', name: '九龙', address: '九龙镇', manager: '郑十', phone: '13800001008', status: 'active' }
 ];
 
-// 4个测试用户
+// 5个测试用户
 const TEST_USERS = [
   {
     _id: 'u001',
@@ -71,6 +71,20 @@ const TEST_USERS = [
     role: 'admin',
     avatar: '',
     nickName: '赵管理员',
+    warehouseId: '',
+    warehouseName: '',
+    status: 'active',
+    createTime: new Date(),
+    updateTime: new Date()
+  },
+  {
+    _id: 'u005',
+    name: '钱出纳',
+    phone: '13800005555',
+    password: '123456',
+    role: 'cashier',
+    avatar: '',
+    nickName: '钱出纳',
     warehouseId: '',
     warehouseName: '',
     status: 'active',
