@@ -105,9 +105,9 @@ Page({
       tabStatusMap = ['approved', 'completed'];
       roleLabel = '出纳';
     } else if (userRole === 'finance_admin') {
-      // 会计视图：只显示待审核
-      tabs = ['待审核'];
-      tabStatusMap = ['pending'];
+      // 会计视图：待审核、待付款、已完成
+      tabs = ['待审核', '待付款', '已完成'];
+      tabStatusMap = ['pending', 'approved', 'completed'];
       roleLabel = '会计';
     } else {
       // 管理员视图：待审核、待付款、已完成、全部

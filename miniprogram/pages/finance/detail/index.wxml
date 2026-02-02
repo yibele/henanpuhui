@@ -66,10 +66,10 @@
       </view>
     </view>
 
-    <!-- 农户欠款明细 -->
-    <view class="section" wx:if="{{farmer}}">
+    <!-- 农户欠款明细（仅会计可见） -->
+    <view class="section" wx:if="{{farmer && canAudit && settlement.status === 'pending'}}">
       <view class="section-title">农户欠款明细</view>
-      
+
       <!-- 签约信息 -->
       <view class="info-card">
         <view class="info-row-header">
@@ -111,7 +111,7 @@
           <text class="info-value info-value-red">¥{{formatted.seedDebt}}</text>
         </view>
         <view class="info-row-note">
-          <text class="info-note-text">种苗欠款 = 发苗金额 - 已交定金</text>
+          <text class="info-note-text">种苗欠款以农户欠款余额为准（系统记录）</text>
         </view>
       </view>
 
@@ -152,8 +152,8 @@
       </view>
     </view>
 
-    <!-- 待结算计算 -->
-    <view class="section" wx:if="{{farmer}}">
+    <!-- 待结算计算（仅会计待审核时显示） -->
+    <view class="section" wx:if="{{farmer && canAudit && settlement.status === 'pending'}}">
       <view class="section-title">待结算计算</view>
       <view class="settlement-calc-card">
         <!-- 本次收购货款 -->
@@ -192,41 +192,49 @@
         </view>
 
         <view class="calc-formula">
-          <text class="calc-formula-text">待结算金额 = 收购货款 - 扣款（不超过欠款总额）</text>
+          <text class="calc-formula-text">待结算金额 = 收购货款 - 扣款（按优先级抵扣）</text>
         </view>
       </view>
     </view>
 
-    <!-- 扣款明细（审核后显示） -->
-    <view class="section" wx:if="{{settlement.status !== 'pending'}}">
-      <view class="section-title">扣款明细</view>
-      <view class="calc-card">
-        <view class="calc-row calc-row-sub" wx:if="{{settlement.advanceDeduction > 0}}">
-          <text class="calc-label">预付款抵扣</text>
-          <text class="calc-value calc-value-red">-¥{{formatted.advanceDeduction}}</text>
+    <!-- 结算信息（已审核后显示扣款明细） -->
+    <view class="section" wx:if="{{settlement.status === 'approved' || settlement.status === 'completed'}}">
+      <view class="section-title">结算信息</view>
+      <view class="info-card">
+        <!-- 收购货款 -->
+        <view class="info-row">
+          <text class="info-label">收购货款</text>
+          <text class="info-value info-value-bold">¥{{formatted.acquisitionAmount}}</text>
         </view>
-        <view class="calc-row calc-row-sub" wx:if="{{settlement.seedDeduction > 0}}">
-          <text class="calc-label">种苗欠款抵扣</text>
-          <text class="calc-value calc-value-red">-¥{{formatted.seedDeduction}}</text>
+
+        <!-- 扣款明细 -->
+        <view class="info-row" wx:if="{{settlement.seedDeduction > 0}}">
+          <text class="info-label">种苗欠款抵扣</text>
+          <text class="info-value info-value-red">-¥{{formatted.seedDeduction}}</text>
         </view>
-        <view class="calc-row calc-row-sub" wx:if="{{settlement.agriculturalDeduction > 0}}">
-          <text class="calc-label">农资欠款抵扣</text>
-          <text class="calc-value calc-value-red">-¥{{formatted.agriculturalDeduction}}</text>
+        <view class="info-row" wx:if="{{settlement.agriculturalDeduction > 0}}">
+          <text class="info-label">农资欠款抵扣</text>
+          <text class="info-value info-value-red">-¥{{formatted.agriculturalDeduction}}</text>
         </view>
-        <view class="calc-divider"></view>
-        <view class="calc-row calc-row-total">
-          <text class="calc-label">扣款合计</text>
-          <text class="calc-value calc-value-red">-¥{{formatted.totalDeduction}}</text>
+        <view class="info-row" wx:if="{{settlement.advanceDeduction > 0}}">
+          <text class="info-label">预支款抵扣</text>
+          <text class="info-value info-value-red">-¥{{formatted.advanceDeduction}}</text>
         </view>
-        <view class="calc-row calc-row-final">
-          <text class="calc-label">实付金额</text>
-          <text class="calc-value calc-value-green">¥{{formatted.actualPayment}}</text>
+        <view class="info-row">
+          <text class="info-label">扣款合计</text>
+          <text class="info-value info-value-red">-¥{{formatted.totalDeduction}}</text>
+        </view>
+
+        <!-- 实付金额 -->
+        <view class="info-row info-row-highlight">
+          <text class="info-label">实付金额</text>
+          <text class="info-value info-value-bold" style="color: #059669; font-size: 36rpx;">¥{{formatted.actualPayment}}</text>
         </view>
       </view>
     </view>
 
     <!-- 待审核提示 -->
-    <view class="section" wx:if="{{settlement.status === 'pending'}}">
+    <view class="section" wx:if="{{settlement.status === 'pending' && !canAudit}}">
       <view class="section-title">结算说明</view>
       <view class="pending-tip-card">
         <t-icon name="info-circle-filled" size="40rpx" color="#f59e0b" />

@@ -425,6 +425,29 @@ async function createAcquisition(event, context) {
       }
     });
 
+    // 7. 写入业务往来记录
+    await db.collection('business_records').add({
+      data: {
+        farmerId: farmer.farmerId,
+        farmerName: farmer.name,
+        type: 'acquisition',
+        name: '收购入库',
+        date: acquisitionDate,
+        amount: Number(computedTotalAmount.toFixed(2)),
+        quantity: Number(computedNetWeight.toFixed(2)),
+        unit: 'kg',
+        unitPrice: unitPriceNum,
+        desc: `净重${computedNetWeight.toFixed(2)}kg，单价¥${unitPriceNum}/kg，货款¥${computedTotalAmount.toFixed(2)}`,
+        relatedId: acquisitionId,
+        relatedType: 'acquisition',
+        warehouseId: currentUser.warehouseId,
+        warehouseName: warehouse.name,
+        operator: currentUser.name,
+        operatorId: currentUser._id,
+        createTime: db.serverDate()
+      }
+    });
+
     return {
       success: true,
       data: {

@@ -64,11 +64,12 @@ Page({
   },
 
   onShow() {
-    // 只更新 TabBar 选中状态，不刷新数据
+    // 更新 TabBar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().initTabBar();
     }
-    // 用户需要刷新时下拉刷新即可
+    // 每次返回页面时刷新数据（录入农户后自动更新）
+    this.loadFarmerStatus(false);
   },
 
   /**

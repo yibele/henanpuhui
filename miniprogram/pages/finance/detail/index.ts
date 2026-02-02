@@ -131,48 +131,23 @@ Page({
 
         const statusConfig = STATUS_CONFIG[settlement.status] || STATUS_CONFIG.pending;
 
-        // 计算农户欠款明细
-        const seedDebtAmount = Math.max(0, (farmer?.stats?.totalSeedAmount || 0) - (farmer?.deposit || 0));
+        // 默认金额从 settlement 读取；待审核状态使用预览扣款覆盖显示
+        const acquisitionAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;
+        const seedDeduction = settlement.seedDeduction || 0;
+        const agriculturalDeduction = settlement.agriculturalDeduction || 0;
+        const advanceDeduction = settlement.advanceDeduction || 0;
+        const totalDeduction = settlement.totalDeduction || settlement.totalDeductions || 0;
+        const actualPayment = settlement.actualPayment || 0;
+
+        // 农户欠款余额（直接读取，仅用于待审核时展示参考）
+        const deposit = farmer?.deposit || 0;
+        const totalSeedAmount = farmer?.stats?.totalSeedAmount || 0;
+        const seedDebtAmount = farmer?.seedDebt || 0;
         const agriculturalDebtAmount = farmer?.agriculturalDebt || 0;
         const advancePaymentAmount = farmer?.advancePayment || 0;
         const totalDebtAmount = seedDebtAmount + agriculturalDebtAmount + advancePaymentAmount;
 
-        // 收购货款
-        const acquisitionAmount = settlement.acquisitionAmount || 0;
-
-        // 计算扣款和待结算金额
-        // 如果是待审核状态（pending），需要预先计算给会计参考
-        // 如果已审核，使用数据库中保存的实际扣款值
-        let seedDeduction = settlement.seedDeduction || 0;
-        let agriculturalDeduction = settlement.agriculturalDeduction || 0;
-        let advanceDeduction = settlement.advanceDeduction || 0;
-        let totalDeduction = settlement.totalDeduction || 0;
-        let actualPayment = settlement.actualPayment || 0;
-
-        if (settlement.status === 'pending') {
-          // 待审核状态：预先计算扣款（按优先级：预支款 > 种苗欠款 > 农资欠款）
-          let remainingAmount = acquisitionAmount;
-
-          // 1. 先扣预支款
-          advanceDeduction = Math.min(remainingAmount, advancePaymentAmount);
-          remainingAmount -= advanceDeduction;
-
-          // 2. 再扣种苗欠款
-          seedDeduction = Math.min(remainingAmount, seedDebtAmount);
-          remainingAmount -= seedDeduction;
-
-          // 3. 最后扣农资欠款
-          agriculturalDeduction = Math.min(remainingAmount, agriculturalDebtAmount);
-          remainingAmount -= agriculturalDeduction;
-
-          // 扣款合计
-          totalDeduction = advanceDeduction + seedDeduction + agriculturalDeduction;
-
-          // 待结算金额 = 货款 - 扣款
-          actualPayment = acquisitionAmount - totalDeduction;
-        }
-
-        // 格式化金额
+        // 格式化金额（默认使用结算单数据）
         const formatted = {
           acquisitionAmount: this.formatMoney(acquisitionAmount),
           advanceDeduction: this.formatMoney(advanceDeduction),
@@ -196,6 +171,31 @@ Page({
           // 欠款合计
           totalDebt: this.formatMoney(totalDebtAmount)
         };
+
+        // 待审核时，预览扣款计算，展示给会计参考
+        if (this.data.canAudit && settlement.status === 'pending') {
+          try {
+            const previewRes = await wx.cloud.callFunction({
+              name: 'settlement-manage',
+              data: {
+                action: 'previewDeduction',
+                settlementId: settlement.settlementId
+              }
+            });
+
+            const previewResult = previewRes.result as any;
+            if (previewResult?.success && previewResult?.data) {
+              const preview = previewResult.data;
+              formatted.advanceDeduction = this.formatMoney(preview.deductions?.advanceDeduction || 0);
+              formatted.seedDeduction = this.formatMoney(preview.deductions?.seedDeduction || 0);
+              formatted.agriculturalDeduction = this.formatMoney(preview.deductions?.agriculturalDeduction || 0);
+              formatted.totalDeduction = this.formatMoney(preview.deductions?.totalDeduction || 0);
+              formatted.actualPayment = this.formatMoney(preview.actualPayment || 0);
+            }
+          } catch (previewError) {
+            console.warn('预览扣款计算失败:', previewError);
+          }
+        }
 
         this.setData({
           settlement,
@@ -306,10 +306,12 @@ Page({
     this.setData({ isSubmitting: true });
 
     try {
+      const userInfo = financeDetailApp.globalData.userInfo;
       const res = await wx.cloud.callFunction({
         name: 'settlement-manage',
         data: {
           action: 'audit',
+          userId: userInfo?._id || '',
           settlementId: this.data.settlement.settlementId,
           approved,
           auditRemark: remark

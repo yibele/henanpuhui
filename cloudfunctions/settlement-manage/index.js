@@ -221,6 +221,7 @@ async function listSettlements(event, context) {
 async function auditSettlement(event, context) {
   const { OPENID } = cloud.getWXContext();
   const {
+    userId,
     settlementId,
     approved, // true: 通过, false: 驳回
     auditRemark
@@ -234,12 +235,24 @@ async function auditSettlement(event, context) {
   }
 
   try {
-    // 获取当前用户信息
-    const userRes = await db.collection('users')
-      .where({ _openid: OPENID })
-      .get();
+    // 获取当前用户信息（优先使用 userId，其次使用 OPENID）
+    let userRes;
+    if (userId) {
+      userRes = await db.collection('users').doc(userId).get();
+      if (userRes.data) {
+        userRes = { data: [userRes.data] };
+      } else {
+        userRes = { data: [] };
+      }
+    } else if (OPENID) {
+      userRes = await db.collection('users')
+        .where({ _openid: OPENID })
+        .get();
+    } else {
+      userRes = { data: [] };
+    }
 
-    if (userRes.data.length === 0) {
+    if (!userRes.data || userRes.data.length === 0) {
       return {
         success: false,
         errMsg: '用户不存在'
@@ -434,6 +447,24 @@ async function auditSettlement(event, context) {
             totalDeduction,
             actualPayment
           },
+          createTime: db.serverDate()
+        }
+      });
+
+      // 8. 写入业务往来记录 - 结算审核
+      await db.collection('business_records').add({
+        data: {
+          farmerId: settlement.farmerId,
+          farmerName: settlement.farmerName,
+          type: 'settlement_audit',
+          name: '结算审核',
+          date: new Date().toISOString().split('T')[0],
+          amount: Number(actualPayment.toFixed(2)),
+          desc: `货款¥${acquisitionAmount}，扣款¥${totalDeduction.toFixed(2)}，待付¥${actualPayment.toFixed(2)}`,
+          relatedId: settlementId,
+          relatedType: 'settlement',
+          operator: currentUser.name,
+          operatorId: currentUser._id,
           createTime: db.serverDate()
         }
       });
@@ -758,6 +789,24 @@ async function completePayment(event, context) {
         targetId: settlementId,
         targetName: settlement.farmerName,
         description: `确认付款：${settlement.farmerName}，金额￥${settlement.actualPayment}，方式：${methodNames[paymentMethod] || '现金'}`,
+        createTime: db.serverDate()
+      }
+    });
+
+    // 写入业务往来记录 - 付款完成
+    await db.collection('business_records').add({
+      data: {
+        farmerId: settlement.farmerId,
+        farmerName: settlement.farmerName,
+        type: 'payment',
+        name: '结算付款',
+        date: new Date().toISOString().split('T')[0],
+        amount: settlement.actualPayment || 0,
+        desc: `实付¥${settlement.actualPayment}，${methodNames[paymentMethod] || '现金'}`,
+        relatedId: settlementId,
+        relatedType: 'settlement',
+        operator: currentUser.name,
+        operatorId: currentUser._id,
         createTime: db.serverDate()
       }
     });
