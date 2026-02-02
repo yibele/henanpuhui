@@ -1114,43 +1114,58 @@ async function getBusinessRecords(event) {
       allRecords = allRecords.concat(acquisitionRecords);
     }
 
-    // 处理 settlements（结算记录）
+    // 处理 settlements（结算记录）- 每个阶段生成独立记录
     if (settlementRes.data && settlementRes.data.length > 0) {
-      const settlementRecords = settlementRes.data.map(r => {
-        let type = 'settlement';
-        let desc = `货款¥${r.acquisitionAmount || 0}`;
-        let operator = '系统';
-
-        if (r.status === 'completed' || r.paymentStatus === 'paid') {
-          type = 'payment';
-          desc = `实付¥${r.actualPayment || 0}（货款¥${r.acquisitionAmount || 0}，扣款¥${r.totalDeduction || 0}）`;
-          operator = r.cashierName || '出纳';
-        } else if (r.status === 'approved') {
-          type = 'settlement_audit';
-          desc = `审核通过，待付¥${r.actualPayment || 0}`;
-          operator = r.auditorName || '会计';
-        } else if (r.status === 'pending') {
-          type = 'settlement';
-          desc = `待审核，货款¥${r.acquisitionAmount || 0}`;
-          operator = '系统';
-        }
-
-        return {
-          _id: r._id,
-          type,
+      settlementRes.data.forEach(r => {
+        // 1. 结算创建记录（所有结算都有）
+        allRecords.push({
+          _id: r._id + '_create',
+          type: 'settlement',
           farmerId: r.farmerId,
           farmerName: r.farmerName,
-          amount: r.actualPayment || r.acquisitionAmount || 0,
-          grossAmount: r.acquisitionAmount || 0,
-          deduction: r.totalDeduction || 0,
-          desc,
-          status: r.status,
-          createTime: r.paymentTime || r.auditTime || r.createTime,
-          createByName: operator,
+          amount: r.acquisitionAmount || 0,
+          desc: `待审核，货款¥${r.acquisitionAmount || 0}`,
+          status: 'pending',
+          createTime: r.createTime,
+          createByName: '系统',
           _source: 'settlements'
-        };
+        });
+
+        // 2. 审核通过记录（状态为 approved 或 completed）
+        if (r.status === 'approved' || r.status === 'completed' || r.paymentStatus === 'paid') {
+          allRecords.push({
+            _id: r._id + '_audit',
+            type: 'settlement_audit',
+            farmerId: r.farmerId,
+            farmerName: r.farmerName,
+            amount: r.actualPayment || 0,
+            grossAmount: r.acquisitionAmount || 0,
+            deduction: r.totalDeduction || 0,
+            desc: `审核通过，货款¥${r.acquisitionAmount || 0}，扣款¥${r.totalDeduction || 0}，待付¥${r.actualPayment || 0}`,
+            status: 'approved',
+            createTime: r.auditTime || r.createTime,
+            createByName: r.auditorName || '会计',
+            _source: 'settlements'
+          });
+        }
+
+        // 3. 付款完成记录（状态为 completed）
+        if (r.status === 'completed' || r.paymentStatus === 'paid') {
+          allRecords.push({
+            _id: r._id + '_payment',
+            type: 'payment',
+            farmerId: r.farmerId,
+            farmerName: r.farmerName,
+            amount: r.actualPayment || 0,
+            desc: `已付款¥${r.actualPayment || 0}，${r.paymentMethodName || ''}`,
+            status: 'completed',
+            createTime: r.paymentTime || r.completeTime || r.auditTime,
+            createByName: r.cashierName || '出纳',
+            paymentMethod: r.paymentMethod,
+            _source: 'settlements'
+          });
+        }
       });
-      allRecords = allRecords.concat(settlementRecords);
     }
 
     // 按时间倒序排序
