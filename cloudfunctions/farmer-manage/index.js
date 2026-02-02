@@ -1036,23 +1036,48 @@ async function getBusinessRecords(event) {
   }
 
   try {
+    // 先获取农户信息，拿到 _id 和 farmerId（编号）两种格式
+    let farmerDocId = farmerId;
+    let farmerCode = farmerId;
+
+    // 尝试通过 _id 或 farmerId 查询农户
+    const farmerRes = await db.collection('farmers')
+      .where(_.or([
+        { _id: farmerId },
+        { farmerId: farmerId }
+      ]))
+      .limit(1)
+      .get();
+
+    if (farmerRes.data && farmerRes.data.length > 0) {
+      const farmer = farmerRes.data[0];
+      farmerDocId = farmer._id;
+      farmerCode = farmer.farmerId || farmer._id;
+    }
+
+    // 构建查询条件：同时匹配 _id 和 farmerId 编号
+    const farmerMatch = _.or([
+      { farmerId: farmerDocId },
+      { farmerId: farmerCode }
+    ]);
+
     // 1. 查询 business_records 集合
     const businessRes = await db.collection('business_records')
-      .where({ farmerId })
+      .where(farmerMatch)
       .orderBy('createTime', 'desc')
       .limit(100)
       .get();
 
     // 2. 查询 acquisitions 集合（收购记录）
     const acquisitionRes = await db.collection('acquisitions')
-      .where({ farmerId })
+      .where(farmerMatch)
       .orderBy('createTime', 'desc')
       .limit(50)
       .get();
 
     // 3. 查询 settlements 集合（结算记录）
     const settlementRes = await db.collection('settlements')
-      .where({ farmerId })
+      .where(farmerMatch)
       .orderBy('createTime', 'desc')
       .limit(50)
       .get();
