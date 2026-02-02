@@ -1104,10 +1104,10 @@ async function getBusinessRecords(event) {
         farmerId: r.farmerId,
         farmerName: r.farmerName,
         amount: r.totalAmount || 0,
-        weight: r.totalWeight || 0,
-        desc: `收购 ${r.totalWeight || 0}kg，¥${r.totalAmount || 0}`,
+        weight: r.netWeight || r.totalWeight || 0,
+        desc: `净重${r.netWeight || 0}kg，单价¥${r.unitPrice || 0}/kg，货款¥${r.totalAmount || 0}`,
         createTime: r.createTime,
-        createByName: r.operatorName || r.createByName || '仓管',
+        createByName: r.operatorName || r.createByName || r.createBy || '仓管',
         warehouseName: r.warehouseName,
         _source: 'acquisitions'
       }));
