@@ -872,6 +872,56 @@
   color: #1f2937;
 }
 
+.summary-value-bold {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.summary-value-green {
+  color: #059669;
+}
+
+.summary-value-red {
+  color: #ef4444;
+}
+
+.summary-divider {
+  height: 1rpx;
+  background-color: #e5e7eb;
+  margin: 12rpx 0;
+}
+
+.summary-row-highlight {
+  background-color: #f0fdf4;
+  margin: 0 -20rpx;
+  padding: 12rpx 20rpx;
+  border-radius: 8rpx;
+}
+
+.summary-row-total {
+  padding-top: 12rpx;
+  border-top: 1rpx dashed #fecaca;
+  margin-top: 8rpx;
+}
+
+.summary-row-final {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  margin: 16rpx -20rpx -20rpx -20rpx;
+  padding: 20rpx;
+  border-radius: 0 0 12rpx 12rpx;
+}
+
+.summary-label-final {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 28rpx !important;
+}
+
+.summary-value-final {
+  color: #ffffff !important;
+  font-size: 40rpx !important;
+  font-weight: 700 !important;
+}
+
 /* 付款汇总 */
 .payment-summary {
   text-align: center;

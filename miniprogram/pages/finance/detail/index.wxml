@@ -308,16 +308,75 @@
     
     <view class="dialog-body">
       <view class="audit-summary">
+        <!-- 农户信息 -->
         <view class="summary-row">
           <text class="summary-label">农户</text>
           <text class="summary-value">{{settlement.farmerName}}</text>
         </view>
-        <view class="summary-row">
+
+        <!-- 收购货款 -->
+        <view class="summary-row summary-row-highlight">
           <text class="summary-label">收购货款</text>
-          <text class="summary-value">¥{{formatted.acquisitionAmount}}</text>
+          <text class="summary-value summary-value-bold">¥{{formatted.acquisitionAmount}}</text>
+        </view>
+
+        <!-- 已交定金 -->
+        <view class="summary-row">
+          <text class="summary-label">已交定金</text>
+          <text class="summary-value summary-value-green">¥{{formatted.deposit}}</text>
+        </view>
+
+        <view class="summary-divider"></view>
+
+        <!-- 欠款明细 -->
+        <view class="summary-row" wx:if="{{farmer.stats.totalSeedAmount > 0}}">
+          <text class="summary-label">种苗欠款</text>
+          <text class="summary-value summary-value-red">¥{{formatted.seedDebt}}</text>
+        </view>
+        <view class="summary-row" wx:if="{{farmer.agriculturalDebt > 0}}">
+          <text class="summary-label">农资欠款</text>
+          <text class="summary-value summary-value-red">¥{{formatted.agriculturalDebt}}</text>
+        </view>
+        <view class="summary-row" wx:if="{{farmer.advancePayment > 0}}">
+          <text class="summary-label">预支款</text>
+          <text class="summary-value summary-value-red">¥{{formatted.advancePayment}}</text>
+        </view>
+
+        <!-- 欠款合计 -->
+        <view class="summary-row summary-row-total">
+          <text class="summary-label">欠款合计</text>
+          <text class="summary-value summary-value-red">¥{{formatted.totalDebt}}</text>
+        </view>
+
+        <view class="summary-divider"></view>
+
+        <!-- 扣款明细 -->
+        <view class="summary-row" wx:if="{{formatted.advanceDeduction !== '0.00'}}">
+          <text class="summary-label">预支款抵扣</text>
+          <text class="summary-value">-¥{{formatted.advanceDeduction}}</text>
+        </view>
+        <view class="summary-row" wx:if="{{formatted.seedDeduction !== '0.00'}}">
+          <text class="summary-label">种苗欠款抵扣</text>
+          <text class="summary-value">-¥{{formatted.seedDeduction}}</text>
+        </view>
+        <view class="summary-row" wx:if="{{formatted.agriculturalDeduction !== '0.00'}}">
+          <text class="summary-label">农资欠款抵扣</text>
+          <text class="summary-value">-¥{{formatted.agriculturalDeduction}}</text>
+        </view>
+        <view class="summary-row">
+          <text class="summary-label">扣款合计</text>
+          <text class="summary-value">-¥{{formatted.totalDeduction}}</text>
+        </view>
+
+        <view class="summary-divider"></view>
+
+        <!-- 待结算金额（重点） -->
+        <view class="summary-row summary-row-final">
+          <text class="summary-label summary-label-final">待结算金额</text>
+          <text class="summary-value summary-value-final">¥{{formatted.actualPayment}}</text>
         </view>
       </view>
-      
+
       <view class="form-item">
         <text class="form-label">审核备注（驳回时必填）</text>
         <textarea 
