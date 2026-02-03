@@ -9,6 +9,7 @@ import {
   ClockCircleOutlined,
   BankOutlined,
 } from '@ant-design/icons'
+import { Pie, Column } from '@ant-design/charts'
 import { dashboardApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
 
@@ -312,109 +313,199 @@ export default function Dashboard() {
         </Col>
       </Row>
 
-      {/* 结算统计 */}
-      <Card title="结算统计" style={{ marginBottom: 24 }}>
-        <Row gutter={[24, 24]}>
-          <Col xs={12} sm={8} lg={4}>
-            <Statistic
-              title="待审核"
-              value={data.settlement.pendingCount}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              suffix="笔"
+      {/* 结算统计 - 数据卡片 + 环形图 */}
+      <Row gutter={24} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={14}>
+          <Card title="结算统计">
+            <Row gutter={[24, 24]}>
+              <Col xs={12} sm={8}>
+                <Statistic
+                  title="待审核"
+                  value={data.settlement.pendingCount}
+                  prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
+                  suffix="笔"
+                />
+                <div style={{ color: '#faad14', fontSize: 14 }}>¥{data.settlement.pendingAmount.toLocaleString()}</div>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Statistic
+                  title="待付款"
+                  value={data.settlement.approvedCount}
+                  prefix={<AccountBookOutlined style={{ color: '#1890ff' }} />}
+                  suffix="笔"
+                />
+                <div style={{ color: '#1890ff', fontSize: 14 }}>¥{data.settlement.approvedAmount.toLocaleString()}</div>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Statistic
+                  title="已完成"
+                  value={data.settlement.completedCount}
+                  prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                  suffix="笔"
+                />
+                <div style={{ color: '#52c41a', fontSize: 14 }}>¥{data.settlement.completedAmount.toLocaleString()}</div>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Statistic
+                  title="累计扣款"
+                  value={data.settlement.totalDeduction}
+                  precision={2}
+                  prefix="¥"
+                  valueStyle={{ color: '#f5222d' }}
+                />
+              </Col>
+              <Col xs={12} sm={8}>
+                <Statistic
+                  title="结算总数"
+                  value={data.settlement.totalCount}
+                  suffix="笔"
+                />
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+        <Col xs={24} lg={10}>
+          <Card title="结算状态分布">
+            <Pie
+              data={[
+                { type: '待审核', value: data.settlement.pendingCount },
+                { type: '待付款', value: data.settlement.approvedCount },
+                { type: '已完成', value: data.settlement.completedCount },
+              ].filter(item => item.value > 0)}
+              angleField="value"
+              colorField="type"
+              radius={0.8}
+              innerRadius={0.6}
+              height={200}
+              color={['#faad14', '#1890ff', '#52c41a']}
+              label={{
+                text: 'value',
+                position: 'outside',
+              }}
+              legend={{
+                position: 'bottom',
+              }}
+              tooltip={{
+                title: 'type',
+                items: [{ channel: 'y', valueFormatter: (v: number) => `${v} 笔` }],
+              }}
             />
-            <div style={{ color: '#faad14', fontSize: 14 }}>¥{data.settlement.pendingAmount.toLocaleString()}</div>
-          </Col>
-          <Col xs={12} sm={8} lg={4}>
-            <Statistic
-              title="待付款"
-              value={data.settlement.approvedCount}
-              prefix={<AccountBookOutlined style={{ color: '#1890ff' }} />}
-              suffix="笔"
-            />
-            <div style={{ color: '#1890ff', fontSize: 14 }}>¥{data.settlement.approvedAmount.toLocaleString()}</div>
-          </Col>
-          <Col xs={12} sm={8} lg={4}>
-            <Statistic
-              title="已完成"
-              value={data.settlement.completedCount}
-              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
-              suffix="笔"
-            />
-            <div style={{ color: '#52c41a', fontSize: 14 }}>¥{data.settlement.completedAmount.toLocaleString()}</div>
-          </Col>
-          <Col xs={12} sm={8} lg={4}>
-            <Statistic
-              title="累计扣款"
-              value={data.settlement.totalDeduction}
-              precision={2}
-              prefix="¥"
-              valueStyle={{ color: '#f5222d' }}
-            />
-          </Col>
-          <Col xs={12} sm={8} lg={4}>
-            <Statistic
-              title="结算总数"
-              value={data.settlement.totalCount}
-              suffix="笔"
-            />
-          </Col>
-        </Row>
-      </Card>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 付款方式统计 */}
-      <Card title="付款方式统计" style={{ marginBottom: 24 }}>
-        <Row gutter={[24, 24]}>
-          <Col xs={12} sm={6}>
-            <Statistic
-              title="微信"
-              value={data.paymentMethod.wechat.amount}
-              precision={2}
-              prefix="¥"
-              valueStyle={{ color: '#07c160' }}
+      {/* 付款方式统计 - 数据卡片 + 饼图 */}
+      <Row gutter={24} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={10}>
+          <Card title="付款方式分布">
+            <Pie
+              data={[
+                { type: '微信', value: data.paymentMethod.wechat.amount },
+                { type: '支付宝', value: data.paymentMethod.alipay.amount },
+                { type: '银行转账', value: data.paymentMethod.bank.amount },
+                { type: '现金', value: data.paymentMethod.cash.amount },
+              ].filter(item => item.value > 0)}
+              angleField="value"
+              colorField="type"
+              radius={0.8}
+              height={200}
+              color={['#07c160', '#1677ff', '#722ed1', '#fa8c16']}
+              label={{
+                text: 'type',
+                position: 'outside',
+              }}
+              legend={{
+                position: 'bottom',
+              }}
+              tooltip={{
+                title: 'type',
+                items: [{ channel: 'y', valueFormatter: (v: number) => `¥${v.toLocaleString()}` }],
+              }}
             />
-            <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.wechat.count} 笔</div>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Statistic
-              title="支付宝"
-              value={data.paymentMethod.alipay.amount}
-              precision={2}
-              prefix="¥"
-              valueStyle={{ color: '#1677ff' }}
-            />
-            <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.alipay.count} 笔</div>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Statistic
-              title="银行转账"
-              value={data.paymentMethod.bank.amount}
-              precision={2}
-              prefix={<BankOutlined />}
-            />
-            <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.bank.count} 笔</div>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Statistic
-              title="现金"
-              value={data.paymentMethod.cash.amount}
-              precision={2}
-              prefix="¥"
-            />
-            <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.cash.count} 笔</div>
-          </Col>
-        </Row>
-      </Card>
+          </Card>
+        </Col>
+        <Col xs={24} lg={14}>
+          <Card title="付款方式明细">
+            <Row gutter={[24, 24]}>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="微信"
+                  value={data.paymentMethod.wechat.amount}
+                  precision={2}
+                  prefix="¥"
+                  valueStyle={{ color: '#07c160' }}
+                />
+                <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.wechat.count} 笔</div>
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="支付宝"
+                  value={data.paymentMethod.alipay.amount}
+                  precision={2}
+                  prefix="¥"
+                  valueStyle={{ color: '#1677ff' }}
+                />
+                <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.alipay.count} 笔</div>
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="银行转账"
+                  value={data.paymentMethod.bank.amount}
+                  precision={2}
+                  prefix={<BankOutlined />}
+                />
+                <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.bank.count} 笔</div>
+              </Col>
+              <Col xs={12} sm={6}>
+                <Statistic
+                  title="现金"
+                  value={data.paymentMethod.cash.amount}
+                  precision={2}
+                  prefix="¥"
+                />
+                <div style={{ color: '#999', fontSize: 12 }}>{data.paymentMethod.cash.count} 笔</div>
+              </Col>
+            </Row>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 仓库统计 */}
-      <Card title="仓库统计">
-        <Table
-          rowKey="_id"
-          columns={warehouseColumns}
-          dataSource={data.warehouses}
-          pagination={false}
-          size="small"
-        />
-      </Card>
+      {/* 仓库统计 - 表格 + 柱状图 */}
+      <Row gutter={24}>
+        <Col xs={24} lg={12}>
+          <Card title="仓库数据">
+            <Table
+              rowKey="_id"
+              columns={warehouseColumns}
+              dataSource={data.warehouses}
+              pagination={false}
+              size="small"
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="仓库收购对比">
+            <Column
+              data={data.warehouses.map(w => ({
+                name: w.name,
+                value: w.totalWeight,
+                type: '收购重量(kg)',
+              }))}
+              xField="name"
+              yField="value"
+              height={220}
+              color="#1890ff"
+              label={{
+                position: 'top',
+                formatter: (datum: { value: number }) => `${datum.value.toLocaleString()}`,
+              }}
+              tooltip={{
+                items: [{ channel: 'y', valueFormatter: (v: number) => `${v.toLocaleString()} kg` }],
+              }}
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   )
 }
