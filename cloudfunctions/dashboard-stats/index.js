@@ -77,6 +77,9 @@ exports.main = async (event, context) => {
       case 'getFinanceStats':
         return await getFinanceStats(currentUser);
 
+      case 'getAdminDashboard':
+        return await getAdminDashboard(currentUser);
+
       default:
         return {
           success: false,
@@ -364,6 +367,269 @@ async function getFinanceStats(user) {
     };
   } catch (error) {
     console.error('获取财务统计数据失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 获取管理员仪表盘数据（全面统计）
+ * 包含：签约、发苗、收购、农资、预支款、结算、付款
+ */
+async function getAdminDashboard(user) {
+  try {
+    // 权限检查：只有管理员和财务可以访问
+    if (!['admin', 'finance_admin'].includes(user.role)) {
+      return {
+        success: false,
+        code: 'NO_PERMISSION',
+        message: '无权限访问管理员仪表盘'
+      };
+    }
+
+    // ========== 1. 签约统计 ==========
+    const allFarmers = await queryAll('farmers', { isDeleted: false }, {
+      fields: { acreage: true, deposit: true, seedTotal: true, receivableAmount: true, seedDebt: true, agriculturalDebt: true, advancePayment: true }
+    });
+
+    let farmerStats = {
+      count: allFarmers.length,
+      totalAcreage: 0,
+      totalDeposit: 0,
+      totalSeedTotal: 0,
+      totalReceivable: 0,
+      totalSeedDebt: 0,
+      totalAgriculturalDebt: 0,
+      totalAdvancePayment: 0
+    };
+
+    allFarmers.forEach(f => {
+      farmerStats.totalAcreage += f.acreage || 0;
+      farmerStats.totalDeposit += f.deposit || 0;
+      farmerStats.totalSeedTotal += f.seedTotal || 0;
+      farmerStats.totalReceivable += f.receivableAmount || 0;
+      farmerStats.totalSeedDebt += f.seedDebt || 0;
+      farmerStats.totalAgriculturalDebt += f.agriculturalDebt || 0;
+      farmerStats.totalAdvancePayment += f.advancePayment || 0;
+    });
+
+    // ========== 2. 发苗统计 ==========
+    const allSeedRecords = await queryAll('seed_records', {}, {
+      fields: { quantity: true, amount: true }
+    });
+
+    let seedStats = {
+      count: allSeedRecords.length,
+      totalQuantity: 0,
+      totalAmount: 0
+    };
+
+    allSeedRecords.forEach(r => {
+      seedStats.totalQuantity += r.quantity || 0;
+      seedStats.totalAmount += r.amount || 0;
+    });
+
+    // ========== 3. 收购统计 ==========
+    const allAcquisitions = await queryAll('acquisitions', { status: _.neq('deleted') }, {
+      fields: { netWeight: true, weight: true, totalAmount: true, amount: true }
+    });
+
+    let acquisitionStats = {
+      count: allAcquisitions.length,
+      totalWeight: 0,
+      totalAmount: 0
+    };
+
+    allAcquisitions.forEach(a => {
+      acquisitionStats.totalWeight += a.netWeight || a.weight || 0;
+      acquisitionStats.totalAmount += a.totalAmount || a.amount || 0;
+    });
+
+    // ========== 4. 农资统计（化肥+农药） ==========
+    const fertilizerRecords = await queryAll('business_records', { type: 'fertilizer' }, {
+      fields: { totalAmount: true }
+    });
+    const pesticideRecords = await queryAll('business_records', { type: 'pesticide' }, {
+      fields: { totalAmount: true }
+    });
+
+    let agriculturalStats = {
+      fertilizerCount: fertilizerRecords.length,
+      fertilizerAmount: 0,
+      pesticideCount: pesticideRecords.length,
+      pesticideAmount: 0,
+      totalAmount: 0
+    };
+
+    fertilizerRecords.forEach(r => {
+      agriculturalStats.fertilizerAmount += r.totalAmount || 0;
+    });
+    pesticideRecords.forEach(r => {
+      agriculturalStats.pesticideAmount += r.totalAmount || 0;
+    });
+    agriculturalStats.totalAmount = agriculturalStats.fertilizerAmount + agriculturalStats.pesticideAmount;
+
+    // ========== 5. 预支款统计 ==========
+    const advanceRecords = await queryAll('business_records', { type: 'advance' }, {
+      fields: { amount: true, totalAmount: true }
+    });
+
+    let advanceStats = {
+      count: advanceRecords.length,
+      totalAmount: 0
+    };
+
+    advanceRecords.forEach(r => {
+      advanceStats.totalAmount += r.totalAmount || r.amount || 0;
+    });
+
+    // ========== 6. 结算统计 ==========
+    const allSettlements = await queryAll('settlements', {}, {
+      fields: { status: true, acquisitionAmount: true, totalDeduction: true, actualPayment: true, paymentMethod: true }
+    });
+
+    let settlementStats = {
+      totalCount: allSettlements.length,
+      pendingCount: 0,
+      pendingAmount: 0,
+      approvedCount: 0,
+      approvedAmount: 0,
+      completedCount: 0,
+      completedAmount: 0,
+      rejectedCount: 0,
+      totalAcquisitionAmount: 0,
+      totalDeduction: 0,
+      totalActualPayment: 0
+    };
+
+    // 付款方式统计
+    let paymentMethodStats = {
+      wechat: { count: 0, amount: 0 },
+      alipay: { count: 0, amount: 0 },
+      bank: { count: 0, amount: 0 },
+      cash: { count: 0, amount: 0 }
+    };
+
+    allSettlements.forEach(s => {
+      const amount = s.actualPayment || 0;
+      settlementStats.totalAcquisitionAmount += s.acquisitionAmount || 0;
+      settlementStats.totalDeduction += s.totalDeduction || 0;
+      settlementStats.totalActualPayment += amount;
+
+      switch (s.status) {
+        case 'pending':
+          settlementStats.pendingCount++;
+          settlementStats.pendingAmount += amount;
+          break;
+        case 'approved':
+          settlementStats.approvedCount++;
+          settlementStats.approvedAmount += amount;
+          break;
+        case 'completed':
+          settlementStats.completedCount++;
+          settlementStats.completedAmount += amount;
+          // 付款方式统计
+          const method = s.paymentMethod || 'cash';
+          if (paymentMethodStats[method]) {
+            paymentMethodStats[method].count++;
+            paymentMethodStats[method].amount += amount;
+          }
+          break;
+        case 'rejected':
+          settlementStats.rejectedCount++;
+          break;
+      }
+    });
+
+    // ========== 7. 仓库统计 ==========
+    const warehousesRes = await db.collection('warehouses').where({ status: 'active' }).get();
+    const warehouses = warehousesRes.data;
+
+    const warehouseStats = [];
+    for (const warehouse of warehouses) {
+      const warehouseAcquisitions = await queryAll('acquisitions',
+        { warehouseId: warehouse._id, status: _.neq('deleted') },
+        { fields: { netWeight: true, weight: true, totalAmount: true, amount: true } }
+      );
+
+      let totalWeight = 0;
+      let totalAmount = 0;
+      warehouseAcquisitions.forEach(a => {
+        totalWeight += a.netWeight || a.weight || 0;
+        totalAmount += a.totalAmount || a.amount || 0;
+      });
+
+      warehouseStats.push({
+        _id: warehouse._id,
+        name: warehouse.name,
+        code: warehouse.code,
+        acquisitionCount: warehouseAcquisitions.length,
+        totalWeight: Number(totalWeight.toFixed(2)),
+        totalAmount: Number(totalAmount.toFixed(2))
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        // 签约
+        farmer: {
+          count: farmerStats.count,
+          totalAcreage: Number(farmerStats.totalAcreage.toFixed(2)),
+          totalDeposit: Number(farmerStats.totalDeposit.toFixed(2)),
+          totalSeedTotal: Number(farmerStats.totalSeedTotal.toFixed(2)),
+          totalSeedDebt: Number(farmerStats.totalSeedDebt.toFixed(2)),
+          totalAgriculturalDebt: Number(farmerStats.totalAgriculturalDebt.toFixed(2)),
+          totalAdvancePayment: Number(farmerStats.totalAdvancePayment.toFixed(2))
+        },
+        // 发苗
+        seed: {
+          count: seedStats.count,
+          totalQuantity: Number(seedStats.totalQuantity.toFixed(2)),
+          totalAmount: Number(seedStats.totalAmount.toFixed(2))
+        },
+        // 收购
+        acquisition: {
+          count: acquisitionStats.count,
+          totalWeight: Number(acquisitionStats.totalWeight.toFixed(2)),
+          totalAmount: Number(acquisitionStats.totalAmount.toFixed(2))
+        },
+        // 农资
+        agricultural: {
+          fertilizerCount: agriculturalStats.fertilizerCount,
+          fertilizerAmount: Number(agriculturalStats.fertilizerAmount.toFixed(2)),
+          pesticideCount: agriculturalStats.pesticideCount,
+          pesticideAmount: Number(agriculturalStats.pesticideAmount.toFixed(2)),
+          totalAmount: Number(agriculturalStats.totalAmount.toFixed(2))
+        },
+        // 预支款
+        advance: {
+          count: advanceStats.count,
+          totalAmount: Number(advanceStats.totalAmount.toFixed(2))
+        },
+        // 结算
+        settlement: {
+          totalCount: settlementStats.totalCount,
+          pendingCount: settlementStats.pendingCount,
+          pendingAmount: Number(settlementStats.pendingAmount.toFixed(2)),
+          approvedCount: settlementStats.approvedCount,
+          approvedAmount: Number(settlementStats.approvedAmount.toFixed(2)),
+          completedCount: settlementStats.completedCount,
+          completedAmount: Number(settlementStats.completedAmount.toFixed(2)),
+          totalDeduction: Number(settlementStats.totalDeduction.toFixed(2))
+        },
+        // 付款方式
+        paymentMethod: {
+          wechat: { count: paymentMethodStats.wechat.count, amount: Number(paymentMethodStats.wechat.amount.toFixed(2)) },
+          alipay: { count: paymentMethodStats.alipay.count, amount: Number(paymentMethodStats.alipay.amount.toFixed(2)) },
+          bank: { count: paymentMethodStats.bank.count, amount: Number(paymentMethodStats.bank.amount.toFixed(2)) },
+          cash: { count: paymentMethodStats.cash.count, amount: Number(paymentMethodStats.cash.amount.toFixed(2)) }
+        },
+        // 仓库
+        warehouses: warehouseStats
+      }
+    };
+  } catch (error) {
+    console.error('获取管理员仪表盘数据失败:', error);
     throw error;
   }
 }
