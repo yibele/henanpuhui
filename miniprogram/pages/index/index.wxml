@@ -265,7 +265,7 @@
       <view class="admin-kpi-row">
         <view class="admin-kpi-card">
           <view class="kpi-icon-wrapper kpi-icon-orange">
-            <t-icon name="money-circle" size="40rpx" color="#ffffff" />
+            <t-icon name="money" size="40rpx" color="#ffffff" />
           </view>
           <view class="kpi-info">
             <text class="kpi-value">{{adminStats.deposit}}</text>
