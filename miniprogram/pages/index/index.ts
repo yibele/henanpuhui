@@ -306,7 +306,7 @@ Page({
         depositFormat: formatAmount(data.totalDeposit || 0),
         seedCount: data.seedRecordCount || 0,  // 发苗次数
         seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（万株）
-        seedQuantityFormat: (data.seedTotalQuantity || 0).toFixed(1),  // 发苗数量（万株）格式化
+        seedQuantityFormat: (data.seedTotalQuantity || 0).toFixed(1).replace(/\.0$/, ''),  // 发苗数量（万株）格式化
         seedAmount: data.totalDistributedAmount || 0,
         seedAmountFormat: formatAmount(data.totalDistributedAmount || 0)
       };
