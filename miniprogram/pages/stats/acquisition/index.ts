@@ -1,7 +1,12 @@
 /**
  * 收苗统计页面
- * @description 管理层查看收苗数据汇总
+ * @description 管理层查看收苗数据汇总，使用云函数真实数据
  */
+
+import { getCache, setCache } from '../../../utils/cache';
+
+// 获取应用实例
+const app = getApp();
 
 // 格式化重量
 function formatWeight(weight: number): string {
@@ -21,10 +26,7 @@ function formatAmount(amount: number): string {
   return '¥' + amount;
 }
 
-// 仓库容量配置（与仓库详情页保持一致）
-// 大仓库：一号、二号、三号（容量200吨）
-// 中仓库：四号、五号、六号（容量150吨）
-// 小仓库：七号、八号、九号、十号（容量100吨）
+// 仓库容量配置
 const WAREHOUSE_CAPACITY: Record<string, { type: string; capacity: number }> = {
   'wh1': { type: '大', capacity: 200000 },
   'wh2': { type: '大', capacity: 200000 },
@@ -37,57 +39,6 @@ const WAREHOUSE_CAPACITY: Record<string, { type: string; capacity: number }> = {
   'wh9': { type: '小', capacity: 100000 },
   'wh10': { type: '小', capacity: 100000 }
 };
-
-// Mock 数据 - 今日收苗
-const MOCK_TODAY = {
-  totalWeight: 15800,      // 15.8吨
-  totalAmount: 110600,     // 11.06万
-  avgPrice: 7,             // 7元/kg
-  farmerCount: 0,          // 今日不显示
-  warehouses: [
-    { warehouseId: 'wh1', warehouseName: '一号仓库', weight: 2100, amount: 14700, avgPrice: 7, currentStock: 142000 },
-    { warehouseId: 'wh2', warehouseName: '二号仓库', weight: 1850, amount: 12950, avgPrice: 7, currentStock: 128000 },
-    { warehouseId: 'wh3', warehouseName: '三号仓库', weight: 1720, amount: 12040, avgPrice: 7, currentStock: 118000 },
-    { warehouseId: 'wh4', warehouseName: '四号仓库', weight: 1580, amount: 11060, avgPrice: 7, currentStock: 108000 },
-    { warehouseId: 'wh5', warehouseName: '五号仓库', weight: 1450, amount: 10150, avgPrice: 7, currentStock: 98000 },
-    { warehouseId: 'wh6', warehouseName: '六号仓库', weight: 1380, amount: 9660, avgPrice: 7, currentStock: 92000 },
-    { warehouseId: 'wh7', warehouseName: '七号仓库', weight: 1250, amount: 8750, avgPrice: 7, currentStock: 88000 },
-    { warehouseId: 'wh8', warehouseName: '八号仓库', weight: 1170, amount: 8190, avgPrice: 7, currentStock: 82000 },
-    { warehouseId: 'wh9', warehouseName: '九号仓库', weight: 1680, amount: 11760, avgPrice: 7, currentStock: 78000 },
-    { warehouseId: 'wh10', warehouseName: '十号仓库', weight: 1620, amount: 11340, avgPrice: 7, currentStock: 76000 }
-  ]
-};
-
-// Mock 数据 - 累计收苗
-const MOCK_TOTAL = {
-  totalWeight: 1010000,    // 1010吨
-  totalAmount: 7070000,    // 707万
-  avgPrice: 7,             // 7元/kg
-  farmerCount: 5680,       // 5680户农户
-  warehouses: [
-    { warehouseId: 'wh1', warehouseName: '一号仓库', weight: 142000, amount: 994000, avgPrice: 7, currentStock: 142000 },
-    { warehouseId: 'wh2', warehouseName: '二号仓库', weight: 128000, amount: 896000, avgPrice: 7, currentStock: 128000 },
-    { warehouseId: 'wh3', warehouseName: '三号仓库', weight: 118000, amount: 826000, avgPrice: 7, currentStock: 118000 },
-    { warehouseId: 'wh4', warehouseName: '四号仓库', weight: 108000, amount: 756000, avgPrice: 7, currentStock: 108000 },
-    { warehouseId: 'wh5', warehouseName: '五号仓库', weight: 98000, amount: 686000, avgPrice: 7, currentStock: 98000 },
-    { warehouseId: 'wh6', warehouseName: '六号仓库', weight: 92000, amount: 644000, avgPrice: 7, currentStock: 92000 },
-    { warehouseId: 'wh7', warehouseName: '七号仓库', weight: 88000, amount: 616000, avgPrice: 7, currentStock: 88000 },
-    { warehouseId: 'wh8', warehouseName: '八号仓库', weight: 82000, amount: 574000, avgPrice: 7, currentStock: 82000 },
-    { warehouseId: 'wh9', warehouseName: '九号仓库', weight: 78000, amount: 546000, avgPrice: 7, currentStock: 78000 },
-    { warehouseId: 'wh10', warehouseName: '十号仓库', weight: 76000, amount: 532000, avgPrice: 7, currentStock: 76000 }
-  ]
-};
-
-// Mock 趋势数据
-const MOCK_TREND = [
-  { date: '12-04', value: 10.2 },
-  { date: '12-05', value: 11.5 },
-  { date: '12-06', value: 9.8 },
-  { date: '12-07', value: 13.2 },
-  { date: '12-08', value: 12.1 },
-  { date: '12-09', value: 11.8 },
-  { date: '12-10', value: 12.5 }
-];
 
 Page({
   data: {
@@ -105,12 +56,20 @@ Page({
     // 仓库统计列表
     warehouseStats: [] as any[],
     // 趋势数据
-    trendData: [] as any[]
+    trendData: [] as any[],
+    // 全部收购记录
+    allRecords: [] as any[],
+    // 仓库信息
+    warehouseList: [] as any[],
+    // 页面加载中
+    pageLoading: true,
+    // 是否来自缓存
+    fromCache: false
   },
 
   onLoad() {
     this.setUpdateTime();
-    this.loadData();
+    this.loadData(false);
   },
 
   onShow() {
@@ -118,6 +77,10 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().initTabBar();
     }
+  },
+
+  onPullDownRefresh() {
+    this.loadData(true);
   },
 
   // 设置更新时间
@@ -131,66 +94,271 @@ Page({
   switchTab(e: any) {
     const tab = parseInt(e.currentTarget.dataset.tab);
     this.setData({ currentTab: tab });
-    this.loadData();
+    this.calculateStats();
   },
 
-  // 加载数据
-  loadData() {
-    const { currentTab } = this.data;
-    const rawData = currentTab === 0 ? MOCK_TODAY : MOCK_TOTAL;
+  /**
+   * 加载数据
+   * @param forceRefresh 是否强制刷新
+   */
+  async loadData(forceRefresh: boolean = false) {
+    const cacheKey = 'cache_acquisition_stats_all';
 
-    // 格式化核心指标（甲方要求重量显示公斤）
-    const currentStats = {
-      totalWeight: rawData.totalWeight + 'kg',           // 总重量（公斤）
-      totalAmount: formatAmount(rawData.totalAmount),    // 总金额
-      avgPrice: rawData.avgPrice + '元/kg',              // 单价 = 总金额/总重量
-      farmerCount: rawData.farmerCount + '户'            // 农户数
-    };
-
-    // 计算总重量用于百分比
-    const totalWeight = rawData.warehouses.reduce((sum, w) => sum + w.weight, 0);
-
-    // 格式化仓库数据（含容量信息）
-    const warehouseStats = rawData.warehouses.map(w => {
-      const capacityConfig = WAREHOUSE_CAPACITY[w.warehouseId];
-      const usagePercent = Math.round((w.currentStock / capacityConfig.capacity) * 100);
-      // 判断容量状态：>=80% 预警，>=95% 满仓
-      let capacityStatus = 'normal';
-      if (usagePercent >= 95) {
-        capacityStatus = 'full';
-      } else if (usagePercent >= 80) {
-        capacityStatus = 'warning';
+    // 先尝试从缓存加载
+    if (!forceRefresh) {
+      const cached = getCache<any>(cacheKey);
+      if (cached) {
+        console.log('[acquisition-stats] 从缓存加载数据');
+        this.setData({
+          allRecords: cached.records,
+          warehouseList: cached.warehouses,
+          fromCache: true,
+          pageLoading: false
+        });
+        this.calculateStats();
+        return;
       }
-      
-      return {
-        ...w,
-        weightKg: w.weight,                              // 公斤数（甲方要求显示公斤）
-        formatWeight: formatWeight(w.weight),            // 格式化重量（吨/kg）
-        formatAmount: formatAmount(w.amount),            // 格式化金额
-        percent: Math.round((w.weight / totalWeight) * 100),
-        // 容量相关字段
-        warehouseType: capacityConfig.type,
-        capacity: capacityConfig.capacity,
-        formatCapacity: formatWeight(capacityConfig.capacity),
-        formatCurrentStock: formatWeight(w.currentStock),
-        usagePercent,
-        capacityStatus
-      };
+    }
+
+    // 从服务器加载
+    this.setData({ pageLoading: true, fromCache: false });
+
+    try {
+      const globalData = (app.globalData as any) || {};
+      const userInfo = globalData.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+
+      console.log('[acquisition-stats] 从服务器加载数据');
+
+      // 并行获取收购记录和仓库信息
+      const [acquisitionRes, warehouseRes] = await Promise.all([
+        wx.cloud.callFunction({
+          name: 'acquisition-manage',
+          data: {
+            action: 'list',
+            userId,
+            page: 1,
+            pageSize: 1000
+          }
+        }),
+        wx.cloud.callFunction({
+          name: 'warehouse-manage',
+          data: {
+            action: 'getWarehouseList',
+            userId
+          }
+        })
+      ]);
+
+      const acquisitionResult = acquisitionRes.result as any;
+      const warehouseResult = warehouseRes.result as any;
+
+      let records: any[] = [];
+      let warehouses: any[] = [];
+
+      if (acquisitionResult.success && acquisitionResult.data) {
+        records = acquisitionResult.data.list || [];
+      }
+
+      if (warehouseResult.success && warehouseResult.data) {
+        warehouses = warehouseResult.data || [];
+      }
+
+      // 保存到缓存
+      setCache(cacheKey, { records, warehouses });
+
+      this.setData({
+        allRecords: records,
+        warehouseList: warehouses,
+        pageLoading: false,
+        fromCache: false
+      });
+
+      this.calculateStats();
+
+      if (forceRefresh) {
+        wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+      }
+    } catch (error) {
+      console.error('加载收购数据失败:', error);
+
+      // 请求失败时尝试使用缓存
+      const staleCache = getCache<any>(cacheKey);
+      if (staleCache) {
+        console.log('[acquisition-stats] 请求失败，使用缓存');
+        this.setData({
+          allRecords: staleCache.records,
+          warehouseList: staleCache.warehouses,
+          fromCache: true,
+          pageLoading: false
+        });
+        this.calculateStats();
+        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+      } else {
+        this.setData({
+          allRecords: [],
+          warehouseList: [],
+          warehouseStats: [],
+          pageLoading: false
+        });
+      }
+    }
+
+    wx.stopPullDownRefresh();
+  },
+
+  /**
+   * 计算统计数据
+   */
+  calculateStats() {
+    const { allRecords, warehouseList, currentTab } = this.data;
+
+    // 筛选数据（今日 or 全部）
+    let records = [...allRecords];
+    if (currentTab === 0) {
+      const today = new Date().toLocaleDateString('zh-CN');
+      records = records.filter(r => {
+        const recordDate = r.acquisitionDate || (r.createTime ? new Date(r.createTime).toLocaleDateString('zh-CN') : '');
+        return recordDate === today;
+      });
+    }
+
+    // 计算总量
+    const totalWeight = records.reduce((sum, r) => sum + (r.weight || r.quantity || 0), 0);
+    const totalAmount = records.reduce((sum, r) => sum + (r.amount || 0), 0);
+    const avgPrice = totalWeight > 0 ? (totalAmount / totalWeight).toFixed(2) : '0';
+
+    // 农户数（去重）
+    const farmerIds = new Set(records.map(r => r.farmerId));
+    const farmerCount = farmerIds.size;
+
+    // 按仓库分组统计
+    const warehouseMap = new Map<string, any>();
+
+    // 初始化仓库数据
+    warehouseList.forEach((w: any) => {
+      const warehouseId = w._id || w.id || w.warehouseId;
+      warehouseMap.set(warehouseId, {
+        warehouseId,
+        warehouseName: w.name || w.warehouseName,
+        weight: 0,
+        amount: 0,
+        currentStock: w.currentStock || 0
+      });
     });
 
-    // 格式化趋势数据
-    const maxValue = Math.max(...MOCK_TREND.map(t => t.value));
-    const trendData = MOCK_TREND.map(t => ({
-      ...t,
-      label: t.date.split('-')[1] + '日',
-      heightPercent: Math.round((t.value / maxValue) * 100)
-    }));
+    // 累计每个仓库的数据
+    records.forEach(r => {
+      const warehouseId = r.warehouseId;
+      if (warehouseMap.has(warehouseId)) {
+        const wData = warehouseMap.get(warehouseId);
+        wData.weight += (r.weight || r.quantity || 0);
+        wData.amount += (r.amount || 0);
+      } else {
+        // 如果仓库不在列表中，创建一个
+        warehouseMap.set(warehouseId, {
+          warehouseId,
+          warehouseName: r.warehouseName || '未知仓库',
+          weight: r.weight || r.quantity || 0,
+          amount: r.amount || 0,
+          currentStock: 0
+        });
+      }
+    });
+
+    // 格式化仓库统计数据
+    const warehouseStats = Array.from(warehouseMap.values())
+      .filter(w => w.weight > 0 || w.currentStock > 0)
+      .map(w => {
+        const capacityConfig = WAREHOUSE_CAPACITY[w.warehouseId] || { type: '中', capacity: 150000 };
+        const usagePercent = Math.round((w.currentStock / capacityConfig.capacity) * 100);
+
+        let capacityStatus = 'normal';
+        if (usagePercent >= 95) {
+          capacityStatus = 'full';
+        } else if (usagePercent >= 80) {
+          capacityStatus = 'warning';
+        }
+
+        const avgPrice = w.weight > 0 ? (w.amount / w.weight).toFixed(2) : '0';
+
+        return {
+          ...w,
+          weightKg: w.weight,
+          formatWeight: formatWeight(w.weight),
+          formatAmount: formatAmount(w.amount),
+          avgPrice,
+          percent: totalWeight > 0 ? Math.round((w.weight / totalWeight) * 100) : 0,
+          warehouseType: capacityConfig.type,
+          capacity: capacityConfig.capacity,
+          formatCapacity: formatWeight(capacityConfig.capacity),
+          formatCurrentStock: formatWeight(w.currentStock),
+          usagePercent,
+          capacityStatus
+        };
+      })
+      .sort((a, b) => b.weight - a.weight);
+
+    // 计算趋势数据（最近7天）
+    const trendData = this.calculateTrendData(allRecords);
 
     this.setData({
-      currentStats,
+      currentStats: {
+        totalWeight: totalWeight + 'kg',
+        totalAmount: formatAmount(totalAmount),
+        avgPrice: avgPrice + '元/kg',
+        farmerCount: farmerCount + '户'
+      },
       warehouseStats,
       trendData
     });
+  },
+
+  /**
+   * 计算趋势数据（最近7天）
+   */
+  calculateTrendData(allRecords: any[]) {
+    const days = 7;
+    const trendMap = new Map<string, number>();
+
+    // 初始化最近7天
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = `${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')}`;
+      trendMap.set(dateStr, 0);
+    }
+
+    // 统计每天的收购量
+    allRecords.forEach(r => {
+      let recordDate: Date;
+      if (r.acquisitionDate) {
+        recordDate = new Date(r.acquisitionDate);
+      } else if (r.createTime) {
+        recordDate = new Date(r.createTime);
+      } else {
+        return;
+      }
+
+      const dateStr = `${recordDate.getMonth() + 1}-${String(recordDate.getDate()).padStart(2, '0')}`;
+      if (trendMap.has(dateStr)) {
+        const weight = r.weight || r.quantity || 0;
+        trendMap.set(dateStr, (trendMap.get(dateStr) || 0) + weight);
+      }
+    });
+
+    // 转换为数组并计算高度
+    const trendArray = Array.from(trendMap.entries()).map(([date, value]) => ({
+      date,
+      value: value / 1000, // 转为吨
+      label: date.split('-')[1] + '日'
+    }));
+
+    const maxValue = Math.max(...trendArray.map(t => t.value), 1);
+    return trendArray.map(t => ({
+      ...t,
+      heightPercent: Math.round((t.value / maxValue) * 100)
+    }));
   },
 
   // 跳转到仓库详情页
@@ -201,4 +369,3 @@ Page({
     });
   }
 });
-

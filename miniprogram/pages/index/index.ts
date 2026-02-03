@@ -111,7 +111,28 @@ Page({
     todayDate: '',
 
     // 当前时间问候语
-    greeting: '下午好'
+    greeting: '下午好',
+
+    // ========== 管理员仪表盘数据 ==========
+    adminDashboard: null as any,
+    adminStats: {
+      farmerCount: 0,
+      acreage: '0亩',
+      deposit: '0',
+      seedQuantity: '0',
+      seedAmount: '0',
+      acquisitionWeight: '0',
+      acquisitionAmount: '0',
+      pendingCount: 0,
+      pendingAmount: '0',
+      approvedCount: 0,
+      approvedAmount: '0',
+      completedAmount: '0',
+      totalDebt: '0',
+      seedDebt: '0',
+      agriculturalDebt: '0',
+      advancePayment: '0'
+    }
   },
 
   onLoad() {
@@ -403,58 +424,171 @@ Page({
   },
 
   /**
-   * 加载管理层数据
+   * 加载管理层数据（从云函数获取真实数据）
    */
-  loadManagerData() {
-    const farmers = MOCK_FARMERS;
-    const acquisitions = MOCK_ACQUISITIONS;
-    const settlements = MOCK_SETTLEMENTS;
+  async loadManagerData() {
+    try {
+      wx.showLoading({ title: '加载中...' });
 
-    const stats = {
-      totalFarmers: farmers.length,
-      activeContracts: farmers.filter(f => f.status === 'active').length,
-      totalAcquisitions: acquisitions.reduce((sum, a) => sum + a.quantity, 0),
-      pendingSettlements: settlements
-        .filter(s => s.status === 'unpaid')
-        .reduce((sum, s) => sum + s.finalPayment, 0)
-    };
+      // 获取当前用户ID
+      const currentUser = app.globalData.currentUser;
+      if (!currentUser || !currentUser.id) {
+        throw new Error('用户信息不存在，请重新登录');
+      }
 
-    // 格式化昨日发苗数据
-    const seedYesterdayFormat = {
-      quantity: this.formatQuantity(MOCK_SEED_YESTERDAY.totalQuantity),
-      amount: this.formatAmount(MOCK_SEED_YESTERDAY.totalAmount),
-      paid: this.formatAmount(MOCK_SEED_YESTERDAY.paidAmount),
-      unpaid: this.formatAmount(MOCK_SEED_YESTERDAY.unpaidAmount)
-    };
+      // 调用云函数获取管理员仪表盘数据
+      const res = await wx.cloud.callFunction({
+        name: 'dashboard-stats',
+        data: {
+          action: 'getAdminDashboard',
+          userId: currentUser.id
+        }
+      });
 
-    // 格式化年度发苗数据
-    const seedYearFormat = {
-      quantity: this.formatQuantity(MOCK_SEED_YEAR_TOTAL.totalQuantity),
-      amount: this.formatAmount(MOCK_SEED_YEAR_TOTAL.totalAmount),
-      paid: this.formatAmount(MOCK_SEED_YEAR_TOTAL.paidAmount),
-      unpaid: this.formatAmount(MOCK_SEED_YEAR_TOTAL.unpaidAmount)
-    };
+      wx.hideLoading();
 
-    // 处理负责人统计数据
-    const salesmanStats = this.getCurrentSalesmanStats(this.data.salesmanTab);
-    const displaySalesmanList = salesmanStats.slice(0, 5);
+      if (!res.result || !(res.result as any).success) {
+        throw new Error((res.result as any)?.message || '获取数据失败');
+      }
 
-    // 计算当前核心指标
-    const currentOverview = this.getOverviewData(this.data.overviewTab);
-    const farmerSummary = this.getCurrentFarmerSummary(this.data.overviewTab);
+      const data = (res.result as any).data;
 
-    this.setData({
-      stats,
-      farmerSummary,
-      seedYesterday: MOCK_SEED_YESTERDAY,
-      seedYearTotal: MOCK_SEED_YEAR_TOTAL,
-      seedYesterdayFormat,
-      seedYearFormat,
-      salesmanStats,
-      displaySalesmanList,
-      salesmanExpanded: false,
-      currentOverview
-    });
+      // 设置管理员仪表盘数据
+      this.setData({
+        adminDashboard: {
+          // 签约统计
+          farmer: {
+            count: data.farmer?.count || 0,
+            totalAcreage: data.farmer?.totalAcreage || 0,
+            totalDeposit: data.farmer?.totalDeposit || 0,
+            totalSeedDebt: data.farmer?.totalSeedDebt || 0,
+            totalAgriculturalDebt: data.farmer?.totalAgriculturalDebt || 0,
+            totalAdvancePayment: data.farmer?.totalAdvancePayment || 0
+          },
+          // 发苗统计
+          seed: {
+            count: data.seed?.count || 0,
+            totalQuantity: data.seed?.totalQuantity || 0,
+            totalAmount: data.seed?.totalAmount || 0
+          },
+          // 收购统计
+          acquisition: {
+            count: data.acquisition?.count || 0,
+            totalWeight: data.acquisition?.totalWeight || 0,
+            totalAmount: data.acquisition?.totalAmount || 0
+          },
+          // 农资统计
+          agricultural: {
+            fertilizerCount: data.agricultural?.fertilizerCount || 0,
+            fertilizerAmount: data.agricultural?.fertilizerAmount || 0,
+            pesticideCount: data.agricultural?.pesticideCount || 0,
+            pesticideAmount: data.agricultural?.pesticideAmount || 0,
+            totalAmount: data.agricultural?.totalAmount || 0
+          },
+          // 预支款统计
+          advance: {
+            count: data.advance?.count || 0,
+            totalAmount: data.advance?.totalAmount || 0
+          },
+          // 结算统计
+          settlement: {
+            totalCount: data.settlement?.totalCount || 0,
+            pendingCount: data.settlement?.pendingCount || 0,
+            pendingAmount: data.settlement?.pendingAmount || 0,
+            approvedCount: data.settlement?.approvedCount || 0,
+            approvedAmount: data.settlement?.approvedAmount || 0,
+            completedCount: data.settlement?.completedCount || 0,
+            completedAmount: data.settlement?.completedAmount || 0,
+            totalDeduction: data.settlement?.totalDeduction || 0
+          },
+          // 仓库统计（预格式化）
+          warehouses: (data.warehouses || []).map((w: any) => ({
+            ...w,
+            weightFormat: w.totalWeight >= 1000
+              ? (w.totalWeight / 1000).toFixed(1) + '吨'
+              : (w.totalWeight || 0) + 'kg',
+            amountFormat: w.totalAmount >= 10000
+              ? (w.totalAmount / 10000).toFixed(1) + '万'
+              : (w.totalAmount || 0)
+          }))
+        },
+        // 格式化后的显示数据
+        adminStats: {
+          farmerCount: data.farmer?.count || 0,
+          acreage: this.formatAcreage(data.farmer?.totalAcreage || 0),
+          deposit: this.formatAmount(data.farmer?.totalDeposit || 0),
+          seedQuantity: this.formatSeedQuantity(data.seed?.totalQuantity || 0),
+          seedAmount: this.formatAmount(data.seed?.totalAmount || 0),
+          acquisitionWeight: this.formatWeight(data.acquisition?.totalWeight || 0),
+          acquisitionAmount: this.formatAmount(data.acquisition?.totalAmount || 0),
+          pendingCount: data.settlement?.pendingCount || 0,
+          pendingAmount: this.formatAmount(data.settlement?.pendingAmount || 0),
+          approvedCount: data.settlement?.approvedCount || 0,
+          approvedAmount: this.formatAmount(data.settlement?.approvedAmount || 0),
+          completedAmount: this.formatAmount(data.settlement?.completedAmount || 0),
+          // 应收账款
+          totalDebt: this.formatAmount(
+            (data.farmer?.totalSeedDebt || 0) +
+            (data.farmer?.totalAgriculturalDebt || 0) +
+            (data.farmer?.totalAdvancePayment || 0)
+          ),
+          seedDebt: this.formatAmount(data.farmer?.totalSeedDebt || 0),
+          agriculturalDebt: this.formatAmount(data.farmer?.totalAgriculturalDebt || 0),
+          advancePayment: this.formatAmount(data.farmer?.totalAdvancePayment || 0)
+        }
+      });
+
+    } catch (error: any) {
+      console.error('加载管理员数据失败:', error);
+      wx.hideLoading();
+      wx.showToast({
+        title: error.message || '加载数据失败',
+        icon: 'none'
+      });
+
+      // 失败时显示空数据
+      this.setData({
+        adminDashboard: null,
+        adminStats: {
+          farmerCount: 0,
+          acreage: '0亩',
+          deposit: '0',
+          seedQuantity: '0',
+          seedAmount: '0',
+          acquisitionWeight: '0',
+          acquisitionAmount: '0',
+          pendingCount: 0,
+          pendingAmount: '0',
+          approvedCount: 0,
+          approvedAmount: '0',
+          completedAmount: '0',
+          totalDebt: '0',
+          seedDebt: '0',
+          agriculturalDebt: '0',
+          advancePayment: '0'
+        }
+      });
+    }
+  },
+
+  /**
+   * 格式化种苗数量（万株）
+   */
+  formatSeedQuantity(quantity: number): string {
+    if (quantity >= 10000) {
+      return (quantity / 10000).toFixed(1).replace(/\.0$/, '') + '万株';
+    }
+    return quantity + '株';
+  },
+
+  /**
+   * 格式化重量（吨/kg）
+   */
+  formatWeight(weight: number): string {
+    if (weight >= 1000) {
+      return (weight / 1000).toFixed(2).replace(/\.?0+$/, '') + '吨';
+    }
+    return weight.toFixed(1) + 'kg';
   },
 
   /**

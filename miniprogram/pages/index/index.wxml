@@ -210,7 +210,7 @@
 
   </block>
 
-  <!-- ==================== 管理层视图 ==================== -->
+  <!-- ==================== 管理层视图（新版 - 真实数据） ==================== -->
   <block wx:if="{{currentRoleKey === 'finance'}}">
     <!-- 欢迎横幅 -->
     <view class="welcome-banner">
@@ -219,233 +219,156 @@
           <view class="banner-subtitle">数据总览</view>
           <view class="banner-title">{{greeting}}，{{userName}}</view>
         </view>
-        <view class="banner-right" bindtap="onScanTap">
-          <t-icon name="qrcode" size="48rpx" color="#ffffff" />
+        <view class="banner-right" bindtap="onLogout">
+          <t-icon name="poweroff" size="40rpx" color="#ffffff" />
         </view>
       </view>
     </view>
 
-    <!-- 核心指标卡片 -->
-    <view class="overview-cards" wx:if="{{farmerSummary}}">
-      <view class="overview-tab-bar">
-        <view class="overview-tab {{overviewTab === 0 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="0">
-          <text>昨日新增</text>
-        </view>
-        <view class="overview-tab {{overviewTab === 1 ? 'active' : ''}}" bindtap="switchOverviewTab" data-tab="1">
-          <text>全年度累计</text>
-        </view>
-      </view>
-
-      <view class="overview-row overview-row-3">
-        <view class="overview-card" data-type="farmers" bindtap="onStatTap">
-          <view class="overview-bg-icon">
-            <t-icon name="user" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
+    <!-- 核心KPI卡片 -->
+    <view class="admin-kpi-cards">
+      <view class="admin-kpi-row">
+        <view class="admin-kpi-card" bindtap="onStatTap" data-type="farmers">
+          <view class="kpi-icon-wrapper kpi-icon-green">
+            <t-icon name="user" size="40rpx" color="#ffffff" />
           </view>
-          <view class="overview-info">
-            <text class="overview-value">{{currentOverview.farmers}}</text>
-            <text class="overview-label">签约农户(户)</text>
+          <view class="kpi-info">
+            <text class="kpi-value">{{adminStats.farmerCount}}</text>
+            <text class="kpi-label">签约农户(户)</text>
           </view>
         </view>
-        <view class="overview-card">
-          <view class="overview-bg-icon">
-            <t-icon name="location" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
+        <view class="admin-kpi-card">
+          <view class="kpi-icon-wrapper kpi-icon-blue">
+            <t-icon name="location" size="40rpx" color="#ffffff" />
           </view>
-          <view class="overview-info">
-            <text class="overview-value">{{currentOverview.acreage}}</text>
-            <text class="overview-label">种植面积(亩)</text>
-          </view>
-        </view>
-        <view class="overview-card">
-          <view class="overview-bg-icon">
-            <t-icon name="money-circle" size="80rpx" color="rgba(5, 150, 105, 0.1)" />
-          </view>
-          <view class="overview-info">
-            <text class="overview-value">{{currentOverview.deposit}}</text>
-            <text class="overview-label">定金总额(元)</text>
+          <view class="kpi-info">
+            <text class="kpi-value">{{adminStats.acreage}}</text>
+            <text class="kpi-label">种植面积</text>
           </view>
         </view>
       </view>
-
-      <!-- 等级分布 -->
-      <view class="grade-chart-card">
-        <view class="grade-row">
-          <view class="grade-row-left">
-            <view class="grade-dot grade-dot-gold"></view>
-            <text class="grade-name">金牌</text>
+      <view class="admin-kpi-row">
+        <view class="admin-kpi-card">
+          <view class="kpi-icon-wrapper kpi-icon-orange">
+            <t-icon name="money-circle" size="40rpx" color="#ffffff" />
           </view>
-          <view class="grade-row-center">
-            <view class="grade-bar-bg">
-              <view class="grade-bar-fill grade-fill-gold" style="width: {{farmerSummary.gradeDistribution.goldPercent}}%;">
-                <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.goldPercent}}%</text>
-              </view>
-            </view>
+          <view class="kpi-info">
+            <text class="kpi-value">{{adminStats.deposit}}</text>
+            <text class="kpi-label">定金总额(元)</text>
           </view>
-          <text class="grade-count">{{farmerSummary.gradeDistribution.gold}}户</text>
         </view>
-        <view class="grade-row">
-          <view class="grade-row-left">
-            <view class="grade-dot grade-dot-silver"></view>
-            <text class="grade-name">银牌</text>
+        <view class="admin-kpi-card">
+          <view class="kpi-icon-wrapper kpi-icon-purple">
+            <t-icon name="cart" size="40rpx" color="#ffffff" />
           </view>
-          <view class="grade-row-center">
-            <view class="grade-bar-bg">
-              <view class="grade-bar-fill grade-fill-silver" style="width: {{farmerSummary.gradeDistribution.silverPercent}}%;">
-                <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.silverPercent}}%</text>
-              </view>
-            </view>
+          <view class="kpi-info">
+            <text class="kpi-value">{{adminStats.acquisitionWeight}}</text>
+            <text class="kpi-label">收购总量</text>
           </view>
-          <text class="grade-count">{{farmerSummary.gradeDistribution.silver}}户</text>
-        </view>
-        <view class="grade-row">
-          <view class="grade-row-left">
-            <view class="grade-dot grade-dot-bronze"></view>
-            <text class="grade-name">铜牌</text>
-          </view>
-          <view class="grade-row-center">
-            <view class="grade-bar-bg">
-              <view class="grade-bar-fill grade-fill-bronze" style="width: {{farmerSummary.gradeDistribution.bronzePercent}}%;">
-                <text class="grade-bar-percent">{{farmerSummary.gradeDistribution.bronzePercent}}%</text>
-              </view>
-            </view>
-          </view>
-          <text class="grade-count">{{farmerSummary.gradeDistribution.bronze}}户</text>
         </view>
       </view>
     </view>
 
-    <!-- 负责人统计 -->
-    <view class="section">
-      <view class="section-header-row">
-        <text class="section-title">负责人签约统计</text>
-        <view class="section-detail-btn" bindtap="goSalesmanDetail">
-          <text>详情</text>
-          <t-icon name="chevron-right" size="32rpx" color="#059669" />
+    <!-- 资金流向卡片 -->
+    <view class="admin-fund-card">
+      <view class="fund-card-header">
+        <text class="fund-card-title">资金概览</text>
+      </view>
+      <view class="fund-flow">
+        <view class="fund-flow-item">
+          <text class="fund-flow-label">收购货款</text>
+          <text class="fund-flow-value">{{adminStats.acquisitionAmount}}</text>
+        </view>
+        <view class="fund-flow-arrow">
+          <t-icon name="chevron-right" size="32rpx" color="#9ca3af" />
+        </view>
+        <view class="fund-flow-item">
+          <text class="fund-flow-label">待审核</text>
+          <text class="fund-flow-value fund-pending">{{adminStats.pendingCount}}笔</text>
+        </view>
+        <view class="fund-flow-arrow">
+          <t-icon name="chevron-right" size="32rpx" color="#9ca3af" />
+        </view>
+        <view class="fund-flow-item">
+          <text class="fund-flow-label">已付款</text>
+          <text class="fund-flow-value fund-completed">{{adminStats.completedAmount}}</text>
         </view>
       </view>
-      
-      <view class="salesman-tab-bar">
-        <view class="salesman-tab {{salesmanTab === 0 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="0">
-          <text>昨日新增</text>
+      <!-- 待办提醒 -->
+      <view class="fund-pending-row">
+        <view class="pending-item" bindtap="goSettlementPage">
+          <view class="pending-badge pending-badge-warning">{{adminStats.pendingCount}}</view>
+          <text class="pending-text">待审核 ¥{{adminStats.pendingAmount}}</text>
         </view>
-        <view class="salesman-tab {{salesmanTab === 1 ? 'active' : ''}}" bindtap="switchSalesmanTab" data-tab="1">
-          <text>全年度</text>
-        </view>
-      </view>
-      
-      <view class="card salesman-card">
-        <block wx:if="{{displaySalesmanList.length > 0}}">
-          <view class="salesman-table-header">
-            <text class="col-rank">#</text>
-            <text class="col-name">负责人</text>
-            <text class="col-count">农户</text>
-            <text class="col-acreage">面积</text>
-            <text class="col-deposit">定金</text>
-          </view>
-          
-          <view class="salesman-list">
-            <view class="salesman-item" wx:for="{{displaySalesmanList}}" wx:key="salesmanId">
-              <text class="col-rank item-rank">{{item.rank}}</text>
-              <text class="col-name item-name">{{item.salesmanName}}</text>
-              <text class="col-count item-count">{{item.farmerCount}}</text>
-              <text class="col-acreage item-acreage">{{item.formatAcreage}}</text>
-              <text class="col-deposit item-deposit">{{item.formatDeposit}}</text>
-            </view>
-          </view>
-          
-          <view class="salesman-expand" bindtap="toggleSalesmanExpand" wx:if="{{salesmanStats.length > 5}}">
-            <text>{{salesmanExpanded ? '收起' : '查看更多'}}</text>
-            <t-icon name="{{salesmanExpanded ? 'chevron-up' : 'chevron-down'}}" size="32rpx" color="#059669" />
-          </view>
-        </block>
-        
-        <view class="salesman-empty" wx:else>
-          <t-icon name="info-circle" size="64rpx" color="#d1d5db" />
-          <text class="empty-text">昨日暂无新增签约</text>
+        <view class="pending-item" bindtap="goSettlementPage">
+          <view class="pending-badge pending-badge-info">{{adminStats.approvedCount}}</view>
+          <text class="pending-text">待付款 ¥{{adminStats.approvedAmount}}</text>
         </view>
       </view>
     </view>
 
-    <!-- 发苗统计 -->
-    <view class="section" wx:if="{{seedYesterday && seedYearTotal}}">
-      <view class="section-header-row">
-        <text class="section-title">发苗统计</text>
-        <view class="section-detail-btn" bindtap="goSeedDetail">
-          <text>详情</text>
-          <t-icon name="chevron-right" size="32rpx" color="#059669" />
+    <!-- 应收账款卡片 -->
+    <view class="admin-debt-card">
+      <view class="debt-card-header">
+        <text class="debt-card-title">应收账款</text>
+        <text class="debt-card-total">合计 ¥{{adminStats.totalDebt}}</text>
+      </view>
+      <view class="debt-list">
+        <view class="debt-item">
+          <text class="debt-item-label">种苗欠款</text>
+          <text class="debt-item-value">¥{{adminStats.seedDebt}}</text>
+        </view>
+        <view class="debt-item">
+          <text class="debt-item-label">农资欠款</text>
+          <text class="debt-item-value">¥{{adminStats.agriculturalDebt}}</text>
+        </view>
+        <view class="debt-item">
+          <text class="debt-item-label">预支款项</text>
+          <text class="debt-item-value">¥{{adminStats.advancePayment}}</text>
         </view>
       </view>
-      
-      <view class="card seed-stats-card" bindtap="goSeedDetail">
-        <view class="seed-stats-header">
-          <view class="seed-stats-title">
-            <text>甜叶菊</text>
-            <t-icon name="chevron-right" size="28rpx" color="#9ca3af" />
+    </view>
+
+    <!-- 仓库收购排行 -->
+    <view class="admin-warehouse-card" wx:if="{{adminDashboard && adminDashboard.warehouses.length > 0}}">
+      <view class="warehouse-card-header">
+        <text class="warehouse-card-title">仓库收购排行</text>
+      </view>
+      <view class="warehouse-rank-list">
+        <view class="warehouse-rank-item" wx:for="{{adminDashboard.warehouses}}" wx:key="_id">
+          <view class="rank-left">
+            <text class="rank-num">{{index + 1}}</text>
+            <text class="rank-name">{{item.name}}</text>
           </view>
-          <view class="seed-stats-tabs">
-            <view class="seed-tab {{seedStatsTab === 0 ? 'seed-tab-active' : ''}}" catchtap="onSeedStatsTabChange" data-value="{{0}}">昨日</view>
-            <view class="seed-tab {{seedStatsTab === 1 ? 'seed-tab-active' : ''}}" catchtap="onSeedStatsTabChange" data-value="{{1}}">年度累计</view>
+          <view class="rank-right">
+            <text class="rank-weight">{{item.weightFormat}}</text>
+            <text class="rank-amount">¥{{item.amountFormat}}</text>
           </view>
         </view>
+      </view>
+    </view>
 
-        <view class="seed-overview">
-          <view class="seed-overview-progress">
-            <view class="seed-overview-info">
-              <text class="seed-overview-label">发苗进度</text>
-              <text class="seed-overview-value">{{seedYearTotal.distributedFarmerCount}}/{{seedYearTotal.totalFarmerCount}}户</text>
-            </view>
-            <view class="seed-overview-percent">{{seedYearTotal.distributionPercent}}%</view>
-          </view>
-          <view class="seed-overview-bar">
-            <view class="seed-overview-fill" style="width: {{seedYearTotal.distributionPercent}}%;"></view>
-          </view>
+    <!-- 业务统计概览 -->
+    <view class="admin-stats-card">
+      <view class="stats-card-header">
+        <text class="stats-card-title">业务统计</text>
+      </view>
+      <view class="stats-grid">
+        <view class="stats-grid-item" bindtap="goSeedDetail">
+          <text class="stats-grid-value">{{adminStats.seedQuantity}}</text>
+          <text class="stats-grid-label">发苗总量</text>
         </view>
-
-        <view class="seed-stats-content" wx:if="{{seedStatsTab === 0}}">
-          <view class="seed-core-stats">
-            <view class="seed-core-item">
-              <text class="seed-core-value">{{seedYesterdayFormat.quantity}}</text>
-              <text class="seed-core-label">发放</text>
-            </view>
-            <view class="seed-core-divider"></view>
-            <view class="seed-core-item">
-              <text class="seed-core-value">{{seedYesterdayFormat.amount}}</text>
-              <text class="seed-core-label">金额</text>
-            </view>
-            <view class="seed-core-divider"></view>
-            <view class="seed-core-item">
-              <text class="seed-core-value seed-value-green">{{seedYesterdayFormat.paid}}</text>
-              <text class="seed-core-label">已收</text>
-            </view>
-            <view class="seed-core-divider"></view>
-            <view class="seed-core-item">
-              <text class="seed-core-value seed-value-orange">{{seedYesterdayFormat.unpaid}}</text>
-              <text class="seed-core-label">欠款</text>
-            </view>
-          </view>
+        <view class="stats-grid-item">
+          <text class="stats-grid-value">{{adminStats.seedAmount}}</text>
+          <text class="stats-grid-label">苗款金额</text>
         </view>
-
-        <view class="seed-stats-content" wx:if="{{seedStatsTab === 1}}">
-          <view class="seed-core-stats">
-            <view class="seed-core-item">
-              <text class="seed-core-value">{{seedYearFormat.quantity}}</text>
-              <text class="seed-core-label">发放</text>
-            </view>
-            <view class="seed-core-divider"></view>
-            <view class="seed-core-item">
-              <text class="seed-core-value">{{seedYearFormat.amount}}</text>
-              <text class="seed-core-label">金额</text>
-            </view>
-            <view class="seed-core-divider"></view>
-            <view class="seed-core-item">
-              <text class="seed-core-value seed-value-green">{{seedYearFormat.paid}}</text>
-              <text class="seed-core-label">已收</text>
-            </view>
-            <view class="seed-core-divider"></view>
-            <view class="seed-core-item">
-              <text class="seed-core-value seed-value-orange">{{seedYearFormat.unpaid}}</text>
-              <text class="seed-core-label">欠款</text>
-            </view>
-          </view>
+        <view class="stats-grid-item">
+          <text class="stats-grid-value">{{adminDashboard.acquisition.count || 0}}</text>
+          <text class="stats-grid-label">收购笔数</text>
+        </view>
+        <view class="stats-grid-item">
+          <text class="stats-grid-value">{{adminStats.acquisitionAmount}}</text>
+          <text class="stats-grid-label">收购金额</text>
         </view>
       </view>
     </view>
