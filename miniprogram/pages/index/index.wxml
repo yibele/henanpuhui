@@ -51,6 +51,21 @@
           <text class="my-stat-label">苗款金额(元)</text>
         </view>
       </view>
+      <!-- 第三行：发苗状态统计 -->
+      <view class="my-stats-row my-stats-row-status">
+        <view class="my-stat-box">
+          <text class="my-stat-value my-stat-green">{{myStats.seedCompleted}}</text>
+          <text class="my-stat-label">发苗完成(户)</text>
+        </view>
+        <view class="my-stat-box">
+          <text class="my-stat-value my-stat-blue">{{myStats.seedInProgress}}</text>
+          <text class="my-stat-label">发苗中(户)</text>
+        </view>
+        <view class="my-stat-box">
+          <text class="my-stat-value">{{myStats.seedDistributedArea}}</text>
+          <text class="my-stat-label">已发面积(亩)</text>
+        </view>
+      </view>
     </view>
 
     <!-- 快捷操作 -->

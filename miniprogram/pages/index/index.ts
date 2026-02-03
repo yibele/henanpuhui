@@ -50,7 +50,11 @@ Page({
       seedQuantity: 0,      // 发苗总数量(万株)
       seedQuantityFormat: '0',  // 发苗数量格式化
       seedAmount: 0,        // 苗款总金额
-      seedAmountFormat: '0' // 苗款格式化
+      seedAmountFormat: '0', // 苗款格式化
+      // 发苗状态统计
+      seedCompleted: 0,     // 发苗完成农户数
+      seedInProgress: 0,    // 发苗中农户数
+      seedDistributedArea: 0 // 已发面积(亩)
     },
     // 最近签约的农户（显示3条）
     recentFarmers: [] as any[],
@@ -312,7 +316,11 @@ Page({
         seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（万株）
         seedQuantityFormat: (data.seedTotalQuantity || 0).toFixed(1).replace(/\.0$/, ''),  // 发苗数量（万株）格式化
         seedAmount: data.totalDistributedAmount || 0,
-        seedAmountFormat: formatAmount(data.totalDistributedAmount || 0)
+        seedAmountFormat: formatAmount(data.totalDistributedAmount || 0),
+        // 发苗状态统计
+        seedCompleted: data.seedCompletedCount || 0,     // 发苗完成农户数
+        seedInProgress: data.seedInProgressCount || 0,   // 发苗中农户数
+        seedDistributedArea: data.seedDistributedArea || 0 // 已发面积(亩)
       };
 
       // 最近签约的农户（显示前3条）
@@ -367,7 +375,10 @@ Page({
           seedQuantity: 0,
           seedQuantityFormat: '0',
           seedAmount: 0,
-          seedAmountFormat: '0'
+          seedAmountFormat: '0',
+          seedCompleted: 0,
+          seedInProgress: 0,
+          seedDistributedArea: 0
         },
         recentFarmers: []
       });

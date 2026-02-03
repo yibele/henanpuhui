@@ -124,11 +124,21 @@ async function getAssistantStats(user) {
     let totalDebt = 0;
     let totalDeposit = 0;
 
+    // 发苗状态统计
+    let seedCompletedCount = 0;   // 发苗完成农户数
+    let seedInProgressCount = 0;  // 发苗中农户数
+    const farmerIdsWithSeed = new Set(); // 有发苗记录的农户ID
+
     farmers.forEach(farmer => {
       totalAcreage += farmer.acreage || 0;
       totalReceivable += farmer.receivableAmount || 0;
       totalDebt += farmer.seedDebt || 0;
       totalDeposit += farmer.deposit || 0;
+
+      // 统计发苗完成的农户
+      if (farmer.seedDistributionComplete) {
+        seedCompletedCount++;
+      }
     });
 
     // 获取发苗记录统计
@@ -138,9 +148,23 @@ async function getAssistantStats(user) {
 
     let totalDistributedAmount = 0;
     let totalDistributedQuantity = 0;
+    let seedDistributedArea = 0;  // 已发面积
+
     seedRecordsRes.data.forEach(record => {
       totalDistributedAmount += record.amount || 0;
       totalDistributedQuantity += record.quantity || 0;
+      seedDistributedArea += record.distributedArea || 0;
+      // 记录有发苗记录的农户ID
+      if (record.farmerId) {
+        farmerIdsWithSeed.add(record.farmerId);
+      }
+    });
+
+    // 计算发苗中农户数（有发苗记录但未标记完成）
+    farmers.forEach(farmer => {
+      if (!farmer.seedDistributionComplete && farmerIdsWithSeed.has(farmer._id)) {
+        seedInProgressCount++;
+      }
     });
 
     return {
@@ -154,6 +178,10 @@ async function getAssistantStats(user) {
         totalDistributedAmount: totalDistributedAmount,
         seedRecordCount: seedRecordsRes.data.length,  // 发苗次数
         seedTotalQuantity: totalDistributedQuantity,   // 发苗总数量（株）
+        // 发苗状态统计
+        seedCompletedCount: seedCompletedCount,       // 发苗完成农户数
+        seedInProgressCount: seedInProgressCount,     // 发苗中农户数
+        seedDistributedArea: seedDistributedArea,     // 已发面积(亩)
         farmers: farmers.slice(0, 10) // 返回最近10个农户
       }
     };
