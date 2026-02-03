@@ -4,29 +4,10 @@
  */
 
 import { getCache, setCache } from '../../../utils/cache';
+import { formatAmount, formatSeedCount } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
-
-// 格式化金额
-function formatAmount(amount: number): string {
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(2) + '万';
-  } else if (amount >= 1000) {
-    return (amount / 1000).toFixed(2) + '千';
-  }
-  return '¥' + amount.toFixed(2);
-}
-
-// 格式化数量
-function formatQuantity(quantity: number): string {
-  if (quantity >= 10000) {
-    return (quantity / 10000).toFixed(2) + '万株';
-  } else if (quantity >= 1000) {
-    return (quantity / 1000).toFixed(2) + '千株';
-  }
-  return quantity + '株';
-}
 
 Page({
   data: {
@@ -146,7 +127,7 @@ Page({
         const farmerIds = new Set(records.map((r: any) => r.farmerId));
 
         const summary = {
-          totalQuantity: formatQuantity(totalQuantity),
+          totalQuantity: formatSeedCount(totalQuantity),
           totalAmount: formatAmount(totalAmount),
           farmerCount: farmerIds.size + '户',
           recordCount: records.length,

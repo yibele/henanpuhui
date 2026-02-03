@@ -3,6 +3,8 @@
  * 仓库管理员查看和管理收购记录
  */
 
+import { formatAmount, formatWeight } from '../../../utils/format';
+
 const app = getApp<IAppOption>();
 
 type TabKey = 'today' | 'all';
@@ -17,22 +19,6 @@ function formatYmd(ts: any): string {
   } catch {
     return '';
   }
-}
-
-// 格式化金额显示
-function formatAmountDisplay(amount: number): string {
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(2) + '万';
-  }
-  return amount.toFixed(0);
-}
-
-// 格式化重量（去掉多余小数）
-function formatWeight(weight: number): string {
-  if (weight >= 1000) {
-    return weight.toFixed(0);
-  }
-  return weight.toFixed(1);
 }
 
 Page({
@@ -140,7 +126,7 @@ Page({
         return {
           ...item,
           netWeight: formatWeight(netWeight),
-          amountDisplay: formatAmountDisplay(amount),
+          amountDisplay: formatAmount(amount),
           amountRaw: amount,
           subTitle
         };

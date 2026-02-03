@@ -187,6 +187,22 @@ export function formatCount(count: number, unit: string = ''): string {
 }
 
 /**
+ * 格式化金额为万元（用于仓库统计等精确显示）
+ * @param amount 金额（元）
+ * @param precision 小数位数，默认4位
+ * @returns 格式化后的字符串
+ * @example
+ * formatAmountToWan(15000) => "1.5000"
+ * formatAmountToWan(123456, 2) => "12.35"
+ */
+export function formatAmountToWan(amount: number, precision: number = 4): string {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return '0.' + '0'.repeat(precision);
+  }
+  return (amount / 10000).toFixed(precision);
+}
+
+/**
  * 格式化单价
  * @param price 单价（元/kg 或 元/株）
  * @param unit 单位

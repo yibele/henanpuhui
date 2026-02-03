@@ -4,27 +4,10 @@
  */
 
 import { getCache, setCache } from '../../../utils/cache';
+import { formatWeight, formatAmount } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
-
-// 格式化重量
-function formatWeight(weight: number): string {
-  if (weight >= 1000) {
-    return (weight / 1000).toFixed(2).replace(/\.?0+$/, '') + '吨';
-  }
-  return weight + 'kg';
-}
-
-// 格式化金额
-function formatAmount(amount: number): string {
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(2).replace(/\.?0+$/, '') + '万';
-  } else if (amount >= 1000) {
-    return (amount / 1000).toFixed(2).replace(/\.?0+$/, '') + '千';
-  }
-  return '¥' + amount;
-}
 
 // 仓库容量配置
 const WAREHOUSE_CAPACITY: Record<string, { type: string; capacity: number }> = {

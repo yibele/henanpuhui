@@ -3,6 +3,8 @@
  * 仓库管理员查看收购记录详情
  */
 
+import { formatAmount } from '../../../utils/format';
+
 const app = getApp<IAppOption>();
 
 // 格式化日期
@@ -18,14 +20,6 @@ function formatDateTime(ts: any): string {
     } catch {
         return '';
     }
-}
-
-// 格式化金额
-function formatAmount(amount: number): string {
-    if (amount >= 10000) {
-        return (amount / 10000).toFixed(2) + '万';
-    }
-    return amount.toFixed(2);
 }
 
 Page({

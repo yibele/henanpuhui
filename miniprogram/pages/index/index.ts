@@ -23,7 +23,7 @@ import {
 import { UserRole, UserRoleNames } from '../../models/types';
 import type { SeedDistributionStats, FarmerSummaryStats, SalesmanFarmerStats } from '../../models/types';
 import { getCache, setCache } from '../../utils/cache';
-import { formatAmount, formatWeight, formatSeedQuantity, formatAcreage } from '../../utils/format';
+import { formatAmount, formatWeight, formatSeedQuantity, formatAcreage, formatAmountToWan, formatSeedCount } from '../../utils/format';
 
 // 缓存键
 const CACHE_KEY_DASHBOARD = 'cache_dashboard_data';
@@ -303,12 +303,12 @@ Page({
         farmerCount: data.farmerCount || 0,
         acreage: data.totalAcreage || 0,
         deposit: data.totalDeposit || 0,
-        depositFormat: this.formatMoney(data.totalDeposit || 0),
+        depositFormat: formatAmount(data.totalDeposit || 0),
         seedCount: data.seedRecordCount || 0,  // 发苗次数
         seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（万株）
         seedQuantityFormat: (data.seedTotalQuantity || 0).toFixed(1),  // 发苗数量（万株）格式化
         seedAmount: data.totalDistributedAmount || 0,
-        seedAmountFormat: this.formatMoney(data.totalDistributedAmount || 0)
+        seedAmountFormat: formatAmount(data.totalDistributedAmount || 0)
       };
 
       // 最近签约的农户（显示前3条）
@@ -368,16 +368,6 @@ Page({
         recentFarmers: []
       });
     }
-  },
-
-  /**
-   * 格式化金额（简化版）
-   */
-  formatMoney(amount: number): string {
-    if (amount >= 10000) {
-      return (amount / 10000).toFixed(1).replace(/\.0$/, '') + '万';
-    }
-    return amount.toString();
   },
 
   /**
@@ -474,7 +464,7 @@ Page({
           farmerCount: data.farmer?.count || 0,
           acreage: formatAcreage(data.farmer?.totalAcreage || 0),
           deposit: formatAmount(data.farmer?.totalDeposit || 0),
-          seedQuantity: this.formatSeedQuantity(data.seed?.totalQuantity || 0),
+          seedQuantity: formatSeedCount(data.seed?.totalQuantity || 0),
           seedAmount: formatAmount(data.seed?.totalAmount || 0),
           acquisitionWeight: formatWeight(data.acquisition?.totalWeight || 0),
           acquisitionAmount: formatAmount(data.acquisition?.totalAmount || 0),
@@ -526,26 +516,6 @@ Page({
         }
       });
     }
-  },
-
-  /**
-   * 格式化种苗数量（万株）
-   */
-  formatSeedQuantity(quantity: number): string {
-    if (quantity >= 10000) {
-      return (quantity / 10000).toFixed(1).replace(/\.0$/, '') + '万株';
-    }
-    return quantity + '株';
-  },
-
-  /**
-   * 格式化重量（吨/kg）
-   */
-  formatWeight(weight: number): string {
-    if (weight >= 1000) {
-      return (weight / 1000).toFixed(2).replace(/\.?0+$/, '') + '吨';
-    }
-    return weight.toFixed(1) + 'kg';
   },
 
   /**
@@ -918,13 +888,6 @@ Page({
   },
 
   /**
-   * 格式化金额为万元（保留4位小数）
-   */
-  formatAmountToWan(amount: number): string {
-    return (amount / 10000).toFixed(4);
-  },
-
-  /**
    * 跳转收购登记
    */
   goAcquisitionAdd() {
@@ -1025,10 +988,10 @@ Page({
         cashierStats: {
           pendingCount: data.pendingCount || 0,             // 待付款笔数
           pendingAmount: data.pendingAmount || 0,           // 待付款总金额
-          pendingAmountFormat: this.formatMoney(data.pendingAmount || 0),
+          pendingAmountFormat: formatAmount(data.pendingAmount || 0),
           todayPaidCount: data.todayPaidCount || 0,         // 今日已付笔数
           todayPaidAmount: data.todayPaidAmount || 0,       // 今日已付金额
-          todayPaidAmountFormat: this.formatMoney(data.todayPaidAmount || 0),
+          todayPaidAmountFormat: formatAmount(data.todayPaidAmount || 0),
           totalPaidCount: data.totalPaidCount || 0,         // 累计已付笔数
           totalPaidAmount: data.totalPaidAmount || 0        // 累计已付金额
         }

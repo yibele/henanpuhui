@@ -3,15 +3,7 @@
  * @description 管理层查看公司农资使用数据
  */
 
-// 格式化金额
-function formatAmount(amount: number): string {
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(2).replace(/\.?0+$/, '') + '万';
-  } else if (amount >= 1000) {
-    return (amount / 1000).toFixed(2).replace(/\.?0+$/, '') + '千';
-  }
-  return '¥' + amount;
-}
+import { formatAmount } from '../../../utils/format';
 
 // Mock 数据 - 总览
 const MOCK_OVERVIEW = {

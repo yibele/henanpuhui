@@ -4,29 +4,10 @@
  */
 
 import { getCache, setCache } from '../../../utils/cache';
+import { formatAmount, formatAcreage } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
-
-// 格式化金额
-function formatAmount(amount: number): string {
-  if (amount >= 10000) {
-    return (amount / 10000).toFixed(2).replace(/\.?0+$/, '') + '万';
-  } else if (amount >= 1000) {
-    return (amount / 1000).toFixed(2).replace(/\.?0+$/, '') + '千';
-  }
-  return '¥' + amount;
-}
-
-// 格式化面积
-function formatAcreage(acreage: number): string {
-  if (acreage >= 10000) {
-    return (acreage / 10000).toFixed(2).replace(/\.?0+$/, '') + '万亩';
-  } else if (acreage >= 1000) {
-    return (acreage / 1000).toFixed(2).replace(/\.?0+$/, '') + '千亩';
-  }
-  return acreage + '亩';
-}
 
 // 等级文本映射
 const GRADE_TEXT: Record<string, string> = {
