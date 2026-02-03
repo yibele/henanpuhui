@@ -23,6 +23,7 @@ import {
 import { UserRole, UserRoleNames } from '../../models/types';
 import type { SeedDistributionStats, FarmerSummaryStats, SalesmanFarmerStats } from '../../models/types';
 import { getCache, setCache } from '../../utils/cache';
+import { formatAmount, formatWeight, formatSeedQuantity, formatAcreage } from '../../utils/format';
 
 // 缓存键
 const CACHE_KEY_DASHBOARD = 'cache_dashboard_data';
@@ -222,50 +223,6 @@ Page({
       greeting = '夜深了';
     }
     this.setData({ greeting });
-  },
-
-  /**
-   * 格式化金额显示
-   * @param amount 金额（元）
-   * @param withSymbol 是否带¥符号
-   * @returns 格式化后的字符串，如 2856.00万（精确到百分位）
-   */
-  formatAmount(amount: number, withSymbol: boolean = false): string {
-    let result = '';
-    if (amount >= 100000000) {
-      result = (amount / 100000000).toFixed(2) + '亿';
-    } else if (amount >= 10000) {
-      result = (amount / 10000).toFixed(2) + '万';
-    } else if (amount >= 1000) {
-      result = (amount / 1000).toFixed(2) + '千';
-    } else {
-      result = amount.toFixed(2);
-    }
-    return withSymbol ? '¥' + result : result;
-  },
-
-  /**
-   * 格式化数量显示（kg/吨）
-   * @param quantity 数量（kg）
-   * @returns 格式化后的字符串
-   */
-  formatQuantity(quantity: number): string {
-    if (quantity >= 10000) {
-      return (quantity / 1000).toFixed(1).replace(/\.?0+$/, '') + '吨';
-    } else if (quantity >= 1000) {
-      return (quantity / 1000).toFixed(2).replace(/\.?0+$/, '') + '吨';
-    }
-    return quantity + 'kg';
-  },
-
-  /**
-   * 格式化面积显示（亩）
-   * @param acreage 面积（亩）
-   * @returns 格式化后的字符串，直接显示亩数
-   */
-  formatAcreage(acreage: number): string {
-    // 直接显示亩数，不转换为万
-    return acreage.toString() + '亩';
   },
 
   /**
@@ -515,26 +472,26 @@ Page({
         // 格式化后的显示数据
         adminStats: {
           farmerCount: data.farmer?.count || 0,
-          acreage: this.formatAcreage(data.farmer?.totalAcreage || 0),
-          deposit: this.formatAmount(data.farmer?.totalDeposit || 0),
+          acreage: formatAcreage(data.farmer?.totalAcreage || 0),
+          deposit: formatAmount(data.farmer?.totalDeposit || 0),
           seedQuantity: this.formatSeedQuantity(data.seed?.totalQuantity || 0),
-          seedAmount: this.formatAmount(data.seed?.totalAmount || 0),
-          acquisitionWeight: this.formatWeight(data.acquisition?.totalWeight || 0),
-          acquisitionAmount: this.formatAmount(data.acquisition?.totalAmount || 0),
+          seedAmount: formatAmount(data.seed?.totalAmount || 0),
+          acquisitionWeight: formatWeight(data.acquisition?.totalWeight || 0),
+          acquisitionAmount: formatAmount(data.acquisition?.totalAmount || 0),
           pendingCount: data.settlement?.pendingCount || 0,
-          pendingAmount: this.formatAmount(data.settlement?.pendingAmount || 0),
+          pendingAmount: formatAmount(data.settlement?.pendingAmount || 0),
           approvedCount: data.settlement?.approvedCount || 0,
-          approvedAmount: this.formatAmount(data.settlement?.approvedAmount || 0),
-          completedAmount: this.formatAmount(data.settlement?.completedAmount || 0),
+          approvedAmount: formatAmount(data.settlement?.approvedAmount || 0),
+          completedAmount: formatAmount(data.settlement?.completedAmount || 0),
           // 应收账款
-          totalDebt: this.formatAmount(
+          totalDebt: formatAmount(
             (data.farmer?.totalSeedDebt || 0) +
             (data.farmer?.totalAgriculturalDebt || 0) +
             (data.farmer?.totalAdvancePayment || 0)
           ),
-          seedDebt: this.formatAmount(data.farmer?.totalSeedDebt || 0),
-          agriculturalDebt: this.formatAmount(data.farmer?.totalAgriculturalDebt || 0),
-          advancePayment: this.formatAmount(data.farmer?.totalAdvancePayment || 0)
+          seedDebt: formatAmount(data.farmer?.totalSeedDebt || 0),
+          agriculturalDebt: formatAmount(data.farmer?.totalAgriculturalDebt || 0),
+          advancePayment: formatAmount(data.farmer?.totalAdvancePayment || 0)
         }
       });
 
@@ -599,8 +556,8 @@ Page({
     const summary = tab === 0 ? MOCK_FARMER_SUMMARY_YESTERDAY : MOCK_FARMER_SUMMARY;
     return {
       farmers: summary.totalFarmers.toString(),
-      acreage: this.formatAcreage(summary.totalAcreage),
-      deposit: this.formatAmount(summary.totalDeposit)
+      acreage: formatAcreage(summary.totalAcreage),
+      deposit: formatAmount(summary.totalDeposit)
     };
   },
 
@@ -665,8 +622,8 @@ Page({
     return sorted.map((item, index) => ({
       ...item,
       rank: index + 1,
-      formatAcreage: this.formatAcreage(item.totalAcreage),
-      formatDeposit: this.formatAmount(item.totalDeposit)
+      formatAcreage: formatAcreage(item.totalAcreage),
+      formatDeposit: formatAmount(item.totalDeposit)
     }));
   },
 
@@ -914,11 +871,11 @@ Page({
         warehouseStats: {
           todayQuantity: data.today?.weight || 0,
           todayAmount: data.today?.amount || 0,
-          todayAmountWan: this.formatAmountToWan(data.today?.amount || 0),
+          todayAmountWan: formatAmountToWan(data.today?.amount || 0),
           todayFarmerCount: data.today?.farmerCount || 0,
           totalQuantity: data.total?.weight || 0,
           totalAmount: data.total?.amount || 0,
-          totalAmountWan: this.formatAmountToWan(data.total?.amount || 0),
+          totalAmountWan: formatAmountToWan(data.total?.amount || 0),
           totalFarmerCount: data.total?.farmerCount || 0,
           currentStock: data.inventory?.stockWeight ?? data.inventory?.count ?? 0,
           outStock: data.inventory?.totalOutWeight ?? 0
