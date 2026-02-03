@@ -158,8 +158,12 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().setData({ value: 0 });
     }
-    // 不再每次进入页面都刷新数据
-    // 用户需要刷新时可以下拉刷新
+
+    // 检查是否需要刷新数据（从添加农户页面返回时）
+    if (app.globalData.needRefreshDashboard) {
+      app.globalData.needRefreshDashboard = false;
+      this.loadDashboardData(true);  // 强制刷新
+    }
   },
 
   /**

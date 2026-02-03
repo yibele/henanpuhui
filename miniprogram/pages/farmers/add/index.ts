@@ -411,6 +411,9 @@ Page({
         duration: 1500
       });
 
+      // 标记首页需要刷新数据
+      app.globalData.needRefreshDashboard = true;
+
       // 延迟返回上一页
       setTimeout(() => {
         wx.navigateBack();
