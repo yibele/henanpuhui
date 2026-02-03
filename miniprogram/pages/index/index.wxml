@@ -36,22 +36,7 @@
           <text class="my-stat-label">定金(元)</text>
         </view>
       </view>
-      <!-- 第二行：发苗数据 -->
-      <view class="my-stats-row my-stats-row-seed">
-        <view class="my-stat-box">
-          <text class="my-stat-value my-stat-orange">{{myStats.seedCount}}</text>
-          <text class="my-stat-label">发苗次数</text>
-        </view>
-        <view class="my-stat-box">
-          <text class="my-stat-value">{{myStats.seedQuantityFormat}}</text>
-          <text class="my-stat-label">发苗数量(万株)</text>
-        </view>
-        <view class="my-stat-box">
-          <text class="my-stat-value my-stat-blue">{{myStats.seedAmountFormat}}</text>
-          <text class="my-stat-label">苗款金额(元)</text>
-        </view>
-      </view>
-      <!-- 第三行：发苗状态统计 -->
+      <!-- 第二行：发苗状态统计 -->
       <view class="my-stats-row my-stats-row-status">
         <view class="my-stat-box">
           <text class="my-stat-value my-stat-green">{{myStats.seedCompleted}}</text>
@@ -64,6 +49,21 @@
         <view class="my-stat-box">
           <text class="my-stat-value">{{myStats.seedDistributedArea}}</text>
           <text class="my-stat-label">已发面积(亩)</text>
+        </view>
+      </view>
+      <!-- 第三行：发苗数据 -->
+      <view class="my-stats-row my-stats-row-seed">
+        <view class="my-stat-box">
+          <text class="my-stat-value my-stat-orange">{{myStats.seedCount}}</text>
+          <text class="my-stat-label">发苗次数</text>
+        </view>
+        <view class="my-stat-box">
+          <text class="my-stat-value">{{myStats.seedQuantityFormat}}</text>
+          <text class="my-stat-label">发苗数量(万株)</text>
+        </view>
+        <view class="my-stat-box">
+          <text class="my-stat-value my-stat-blue">{{myStats.seedAmountFormat}}</text>
+          <text class="my-stat-label">苗款金额(元)</text>
         </view>
       </view>
     </view>
