@@ -59,8 +59,11 @@ export default function AcquisitionList() {
   }
 
   const handleSearch = () => {
-    setPage(1)
-    loadData()
+    if (page === 1) {
+      loadData()
+    } else {
+      setPage(1)
+    }
   }
 
   const handleDateChange = (dates: any) => {
@@ -172,7 +175,9 @@ export default function AcquisitionList() {
             onPressEnter={handleSearch}
             style={{ width: 220 }}
             allowClear
+            onClear={() => { setKeyword(''); setTimeout(() => loadData(), 0) }}
           />
+          <Button type="primary" onClick={handleSearch}>搜索</Button>
           <RangePicker
             onChange={handleDateChange}
             placeholder={['开始日期', '结束日期']}

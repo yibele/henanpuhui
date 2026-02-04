@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Table, Button, Spin, Tag, message, Popconfirm, Space, Dropdown } from 'antd'
+import { Card, Descriptions, Table, Button, Spin, Tag, message, Popconfirm, Space, Dropdown, Row, Col, Statistic } from 'antd'
 import { ArrowLeftOutlined, PhoneOutlined, EditOutlined, DeleteOutlined, ExperimentOutlined, CheckCircleOutlined, DollarOutlined, ShopOutlined, PlusCircleOutlined, DownOutlined } from '@ant-design/icons'
 import { farmerApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
@@ -311,16 +311,20 @@ export default function FarmerDetail() {
       </Card>
 
       <Card title="签约信息" style={{ marginBottom: 24 }}>
-        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
-          <Descriptions.Item label="签约面积">{farmer.acreage || 0} 亩</Descriptions.Item>
-          <Descriptions.Item label="已交定金">
-            <span style={{ color: '#52c41a', fontWeight: 500 }}>¥{farmer.deposit || 0}</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="种苗合计">{farmer.seedTotal || 0} 万株</Descriptions.Item>
-          <Descriptions.Item label="签约金额">
-            <span style={{ color: '#fa8c16', fontWeight: 500 }}>¥{farmer.receivableAmount || 0}</span>
-          </Descriptions.Item>
-        </Descriptions>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic title="签约面积" value={farmer.acreage || 0} suffix="亩" />
+          </Col>
+          <Col span={6}>
+            <Statistic title="已交定金" value={farmer.deposit || 0} prefix="¥" valueStyle={{ color: '#52c41a' }} />
+          </Col>
+          <Col span={6}>
+            <Statistic title="种苗合计" value={farmer.seedTotal || 0} suffix="万株" />
+          </Col>
+          <Col span={6}>
+            <Statistic title="签约金额" value={farmer.receivableAmount || 0} prefix="¥" valueStyle={{ color: '#fa8c16' }} />
+          </Col>
+        </Row>
       </Card>
 
       <Card
@@ -334,43 +338,60 @@ export default function FarmerDetail() {
         }
         style={{ marginBottom: 24 }}
       >
-        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
-          <Descriptions.Item label="发苗次数">{seedStats.recordCount} 次</Descriptions.Item>
-          <Descriptions.Item label="发苗数量">{seedStats.totalQuantity} 万株</Descriptions.Item>
-          <Descriptions.Item label="发放面积">{seedStats.totalArea} 亩</Descriptions.Item>
-          <Descriptions.Item label="苗款金额">
-            <span style={{ color: '#fa8c16', fontWeight: 500 }}>¥{seedStats.totalAmount || 0}</span>
-          </Descriptions.Item>
-        </Descriptions>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic title="发苗次数" value={seedStats.recordCount} suffix="次" />
+          </Col>
+          <Col span={6}>
+            <Statistic title="发苗数量" value={seedStats.totalQuantity} suffix="万株" valueStyle={{ color: '#1890ff' }} />
+          </Col>
+          <Col span={6}>
+            <Statistic title="发放面积" value={seedStats.totalArea} suffix="亩" />
+          </Col>
+          <Col span={6}>
+            <Statistic title="苗款金额" value={seedStats.totalAmount || 0} prefix="¥" valueStyle={{ color: '#fa8c16' }} />
+          </Col>
+        </Row>
       </Card>
 
       <Card title="农资发放" style={{ marginBottom: 24 }}>
-        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
-          <Descriptions.Item label="化肥金额">
-            <span style={{ color: '#13c2c2', fontWeight: 500 }}>¥{farmer.fertilizerAmount || 0}</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="农药金额">
-            <span style={{ color: '#eb2f96', fontWeight: 500 }}>¥{farmer.pesticideAmount || 0}</span>
-          </Descriptions.Item>
-        </Descriptions>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic title="化肥金额" value={farmer.fertilizerAmount || 0} prefix="¥" valueStyle={{ color: '#13c2c2' }} />
+          </Col>
+          <Col span={6}>
+            <Statistic title="农药金额" value={farmer.pesticideAmount || 0} prefix="¥" valueStyle={{ color: '#eb2f96' }} />
+          </Col>
+        </Row>
       </Card>
 
       <Card title="欠款汇总" style={{ marginBottom: 24 }}>
-        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
-          <Descriptions.Item label="种苗欠款">
-            <span style={{ color: farmer.seedDebt > 0 ? '#f5222d' : 'inherit', fontWeight: 500 }}>
-              ¥{seedStats.recordCount > 0 ? (farmer.seedDebt || 0) : 0}
-            </span>
-          </Descriptions.Item>
-          <Descriptions.Item label="农资欠款">
-            <span style={{ color: farmer.agriculturalDebt > 0 ? '#f5222d' : 'inherit', fontWeight: 500 }}>
-              ¥{farmer.agriculturalDebt || 0}
-            </span>
-          </Descriptions.Item>
-          <Descriptions.Item label="预支款">
-            <span style={{ color: '#fa8c16', fontWeight: 500 }}>¥{farmer.advancePayment || 0}</span>
-          </Descriptions.Item>
-        </Descriptions>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Statistic
+              title="种苗欠款"
+              value={seedStats.recordCount > 0 ? (farmer.seedDebt || 0) : 0}
+              prefix="¥"
+              valueStyle={{ color: farmer.seedDebt > 0 ? '#f5222d' : undefined }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="农资欠款"
+              value={farmer.agriculturalDebt || 0}
+              prefix="¥"
+              valueStyle={{ color: farmer.agriculturalDebt > 0 ? '#f5222d' : undefined }}
+            />
+          </Col>
+          <Col span={6}>
+            <Statistic
+              title="预支款"
+              value={farmer.advancePayment || 0}
+              prefix="¥"
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Col>
+        </Row>
       </Card>
 
       <Card title="业务记录">

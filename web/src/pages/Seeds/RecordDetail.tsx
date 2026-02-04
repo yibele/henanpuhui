@@ -62,7 +62,7 @@ export default function SeedDetailPage() {
       const result = await seedApi.delete(id, userInfo.id) as any
       if (result.success) {
         message.success('删除成功')
-        navigate('/seeds')
+        navigate('/seeds/records')
       } else {
         message.error(result.message || '删除失败')
       }
@@ -91,7 +91,7 @@ export default function SeedDetailPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Button
           icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/seeds')}
+          onClick={() => navigate('/seeds/records')}
         >
           返回列表
         </Button>

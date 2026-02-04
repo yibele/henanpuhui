@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Input, Card, Tag, Space, Button, Tooltip } from 'antd'
+import { Table, Input, Card, Tag, Space, Button, Tooltip, Row, Col, Statistic } from 'antd'
 import { SearchOutlined, PlusOutlined, ExperimentOutlined } from '@ant-design/icons'
 import { farmerApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
@@ -41,10 +41,37 @@ export default function FarmerList() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [keyword, setKeyword] = useState('')
+  const [stats, setStats] = useState({
+    totalFarmers: 0,
+    totalAcreage: 0,
+    totalSeedTotal: 0,
+    totalSeedDistributed: 0,
+  })
 
   useEffect(() => {
     loadData()
-  }, [page, pageSize])
+  }, [page, pageSize, userInfo?.id])
+
+  useEffect(() => {
+    loadStats()
+  }, [])
+
+  const loadStats = async () => {
+    if (!userInfo?.id) return
+    try {
+      const result = await farmerApi.getStatusStats(userInfo.id) as any
+      if (result.success && result.data) {
+        setStats({
+          totalFarmers: result.data.all || 0,
+          totalAcreage: result.data.totalAcreage || 0,
+          totalSeedTotal: result.data.totalSeedTotal || 0,
+          totalSeedDistributed: result.data.totalSeedDistributed || 0,
+        })
+      }
+    } catch (error) {
+      console.error('加载统计失败:', error)
+    }
+  }
 
   const loadData = async () => {
     setLoading(true)
@@ -68,8 +95,11 @@ export default function FarmerList() {
   }
 
   const handleSearch = () => {
-    setPage(1)
-    loadData()
+    if (page === 1) {
+      loadData()
+    } else {
+      setPage(1)
+    }
   }
 
   const columns: ColumnsType<Farmer> = [
@@ -165,21 +195,26 @@ export default function FarmerList() {
       title: '操作',
       width: 100,
       align: 'center',
-      render: (_: any, record: Farmer) => (
-        <Tooltip title="发苗">
-          <Button
-            type="primary"
-            size="small"
-            icon={<ExperimentOutlined />}
-            onClick={(e) => {
-              e.stopPropagation()
-              navigate(`/seeds/new?farmerId=${record._id}&farmerName=${encodeURIComponent(record.name)}`)
-            }}
-          >
-            发苗
-          </Button>
-        </Tooltip>
-      ),
+      render: (_: any, record: Farmer) => {
+        if (record.seedDistributionComplete) {
+          return <Tag color="success">已完成</Tag>
+        }
+        return (
+          <Tooltip title="发苗">
+            <Button
+              type="primary"
+              size="small"
+              icon={<ExperimentOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/seeds/new?farmerId=${record._id}&farmerName=${encodeURIComponent(record.name)}`)
+              }}
+            >
+              发苗
+            </Button>
+          </Tooltip>
+        )
+      },
     },
   ]
 
@@ -191,6 +226,36 @@ export default function FarmerList() {
           新增农户
         </Button>
       </div>
+
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic title="农户总数" value={stats.totalFarmers} suffix="户" />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic title="总签约面积" value={stats.totalAcreage} suffix="亩" precision={1} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic title="签约种苗" value={stats.totalSeedTotal} suffix="万株" precision={1} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card size="small">
+            <Statistic
+              title="已发种苗"
+              value={stats.totalSeedDistributed}
+              suffix="万株"
+              precision={1}
+              valueStyle={{ color: '#1890ff' }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       <Card>
         <Space style={{ marginBottom: 16 }}>
           <Input
@@ -201,7 +266,9 @@ export default function FarmerList() {
             onPressEnter={handleSearch}
             style={{ width: 250 }}
             allowClear
+            onClear={() => { setKeyword(''); setTimeout(() => loadData(), 0) }}
           />
+          <Button type="primary" onClick={handleSearch}>搜索</Button>
         </Space>
         <Table
           rowKey="_id"

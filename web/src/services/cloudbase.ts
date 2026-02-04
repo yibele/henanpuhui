@@ -89,6 +89,10 @@ export const farmerApi = {
   getSeedStats: (farmerId: string) =>
     callFunction('seed-manage', { action: 'getByFarmer', farmerId }),
 
+  // 获取农户发苗状态统计
+  getStatusStats: (userId: string) =>
+    callFunction('farmer-manage', { action: 'getStatusStats', userId }),
+
   // 创建农户
   create: (userId: string, data: Record<string, any>) =>
     callFunction('farmer-manage', { action: 'create', userId, data }),
@@ -140,12 +144,16 @@ export const farmerApi = {
  */
 export const seedApi = {
   // 获取发苗记录列表
-  list: (params: { page?: number; pageSize?: number; userId: string; startDate?: string; endDate?: string }) =>
+  list: (params: { page?: number; pageSize?: number; userId: string; startDate?: string; endDate?: string; keyword?: string }) =>
     callFunction('seed-manage', { action: 'list', ...params }),
 
   // 获取发苗详情
   get: (recordId: string, userId: string) =>
     callFunction('seed-manage', { action: 'getDetail', recordId, userId }),
+
+  // 获取农户的发苗记录
+  getByFarmer: (params: { farmerId: string; userId: string; page?: number; pageSize?: number }) =>
+    callFunction('seed-manage', { action: 'getByFarmer', ...params }),
 
   // 发放种苗
   distribute: (userId: string, userName: string, farmerId: string, data: Record<string, any>) =>

@@ -14,9 +14,11 @@ import SettlementDetail from './pages/Settlements/Detail'
 import Reports from './pages/Reports'
 import UserList from './pages/Users/List'
 import UserForm from './pages/Users/Form'
-import SeedList from './pages/Seeds/List'
+import SeedManagement from './pages/Seeds/index'
+import FarmerSeedDetail from './pages/Seeds/FarmerDetail'
+import SeedRecordList from './pages/Seeds/RecordList'
+import SeedRecordDetail from './pages/Seeds/RecordDetail'
 import SeedForm from './pages/Seeds/Form'
-import SeedDetail from './pages/Seeds/Detail'
 
 // 角色权限配置：每个角色可访问的路由路径前缀
 const ROLE_PERMISSIONS: Record<string, string[]> = {
@@ -79,9 +81,11 @@ export default function AppRouter() {
         <Route path="farmers/new" element={<FarmerForm />} />
         <Route path="farmers/:id" element={<FarmerDetail />} />
         <Route path="farmers/:id/edit" element={<FarmerForm />} />
-        <Route path="seeds" element={<SeedList />} />
+        <Route path="seeds" element={<SeedManagement />} />
+        <Route path="seeds/farmer/:farmerId" element={<FarmerSeedDetail />} />
         <Route path="seeds/new" element={<SeedForm />} />
-        <Route path="seeds/:id" element={<SeedDetail />} />
+        <Route path="seeds/records" element={<SeedRecordList />} />
+        <Route path="seeds/records/:id" element={<SeedRecordDetail />} />
         <Route path="acquisitions" element={<AcquisitionList />} />
         <Route path="acquisitions/new" element={<AcquisitionForm />} />
         <Route path="acquisitions/:id" element={<AcquisitionDetail />} />

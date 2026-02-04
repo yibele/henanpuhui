@@ -304,7 +304,7 @@ async function getSeedRecordsByFarmer(event) {
  * 权限：助理只能查看自己的记录，管理员和财务可以查看所有记录
  */
 async function listSeedRecords(event) {
-    const { userId, page = 1, pageSize = 20, startDate, endDate } = event;
+    const { userId, page = 1, pageSize = 20, startDate, endDate, keyword } = event;
 
     try {
         // ==================== 权限检查开始 ====================
@@ -329,6 +329,19 @@ async function listSeedRecords(event) {
         }
         // 管理员和财务不限制，可以查看所有记录
         // 仓库管理员和出纳不应该调用此接口，但如果不小心调用了，返回空列表
+
+        // 关键字搜索（农户姓名或手机号）
+        if (keyword && keyword.trim()) {
+            const kw = keyword.trim();
+            // 使用正则匹配农户姓名或手机号
+            whereCondition = _.and([
+                whereCondition,
+                _.or([
+                    { farmerName: db.RegExp({ regexp: kw, options: 'i' }) },
+                    { farmerPhone: db.RegExp({ regexp: kw, options: 'i' }) }
+                ])
+            ]);
+        }
 
         if (startDate && endDate) {
             whereCondition.createTime = _.gte(new Date(startDate)).and(_.lte(new Date(endDate)));

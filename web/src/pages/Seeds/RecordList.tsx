@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Table, Card, Button, DatePicker, Space, Tag, message } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Table, Card, Button, DatePicker, Space, Input, message } from 'antd'
+import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons'
 import { seedApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
 import type { ColumnsType } from 'antd/es/table'
@@ -23,11 +23,11 @@ interface SeedRecord {
   createByName: string
   createTime: string
   remark?: string
-  distributionStatus?: 'distributed' | 'inProgress' | 'completed'
 }
 
-export default function SeedList() {
+export default function SeedRecordList() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { userInfo } = useAuth()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<SeedRecord[]>([])
@@ -35,10 +35,21 @@ export default function SeedList() {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null)
+  const [keyword, setKeyword] = useState(searchParams.get('phone') || '')
 
   useEffect(() => {
-    loadData()
-  }, [page, pageSize])
+    if (userInfo?.id) {
+      loadData()
+    }
+  }, [page, pageSize, userInfo?.id])
+
+  // 从URL参数初始化搜索并加载
+  useEffect(() => {
+    const phone = searchParams.get('phone')
+    if (phone) {
+      setKeyword(phone)
+    }
+  }, [searchParams])
 
   const loadData = async () => {
     if (!userInfo?.id) return
@@ -49,12 +60,14 @@ export default function SeedList() {
         pageSize,
         userId: userInfo.id,
       }
+      if (keyword.trim()) {
+        params.keyword = keyword.trim()
+      }
       if (dateRange && dateRange[0] && dateRange[1]) {
         params.startDate = dateRange[0].format('YYYY-MM-DD')
         params.endDate = dateRange[1].format('YYYY-MM-DD')
       }
       const result = await seedApi.list(params) as any
-      console.log('发苗列表API返回:', result)
       if (result.success) {
         setData(result.data.list || [])
         setTotal(result.data.total || 0)
@@ -70,8 +83,17 @@ export default function SeedList() {
   }
 
   const handleSearch = () => {
-    setPage(1)
-    loadData()
+    if (page === 1) {
+      loadData()
+    } else {
+      setPage(1)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
   }
 
   const columns: ColumnsType<SeedRecord> = [
@@ -122,33 +144,30 @@ export default function SeedList() {
       dataIndex: 'createByName',
       width: 100,
     },
-    {
-      title: '状态',
-      dataIndex: 'distributionStatus',
-      width: 80,
-      align: 'center',
-      render: (status: string) => {
-        if (status === 'completed') {
-          return <Tag color="success">已完成</Tag>
-        } else if (status === 'inProgress') {
-          return <Tag color="processing">发苗中</Tag>
-        } else {
-          return <Tag color="default">已发放</Tag>
-        }
-      },
-    },
   ]
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0 }}>发苗管理</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/seeds/new')}>
-          新增发苗
-        </Button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/seeds')}>
+            返回
+          </Button>
+          <h2 style={{ margin: 0 }}>发苗记录</h2>
+        </div>
       </div>
       <Card>
         <Space style={{ marginBottom: 16 }}>
+          <Input
+            placeholder="搜索手机号/农户姓名"
+            prefix={<SearchOutlined />}
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={handleKeyDown}
+            style={{ width: 200 }}
+            allowClear
+            onClear={() => { setKeyword(''); setTimeout(() => loadData(), 0) }}
+          />
           <RangePicker
             value={dateRange}
             onChange={(dates) => setDateRange(dates)}
@@ -175,7 +194,7 @@ export default function SeedList() {
             },
           }}
           onRow={(record) => ({
-            onClick: () => navigate(`/seeds/${record._id}`),
+            onClick: () => navigate(`/seeds/records/${record._id}`),
             style: { cursor: 'pointer' },
           })}
         />

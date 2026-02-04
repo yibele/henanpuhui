@@ -63,7 +63,6 @@ export default function SeedForm() {
           farmerName: f.name,
           unitPrice: f.seedUnitPrice || 0,
           receiverName: f.name,
-          managerName: userInfo?.name || '',
         })
       }
     } catch (error) {
@@ -108,7 +107,6 @@ export default function SeedForm() {
     form.setFieldsValue({
       unitPrice: option.farmer.seedUnitPrice || 0,
       receiverName: option.farmer.name,
-      managerName: userInfo?.name || '',
     })
     calculateAmount()
   }
@@ -170,13 +168,13 @@ export default function SeedForm() {
     )
   }
 
-  // 计算已发和剩余
-  const distributed = selectedFarmer?.stats?.totalSeedDistributed || 0
-  const distributedArea = selectedFarmer?.stats?.totalSeedArea || 0
-  const totalSeed = selectedFarmer?.seedTotal || 0
-  const totalAcreage = selectedFarmer?.acreage || 0
-  const remaining = Math.max(0, totalSeed - distributed)
-  const remainingArea = Math.max(0, totalAcreage - distributedArea)
+  // 计算已发和剩余（处理浮点数精度问题）
+  const distributed = Number((selectedFarmer?.stats?.totalSeedDistributed || 0).toFixed(2))
+  const distributedArea = Number((selectedFarmer?.stats?.totalSeedArea || 0).toFixed(2))
+  const totalSeed = Number((selectedFarmer?.seedTotal || 0).toFixed(2))
+  const totalAcreage = Number((selectedFarmer?.acreage || 0).toFixed(2))
+  const remaining = Number(Math.max(0, totalSeed - distributed).toFixed(2))
+  const remainingArea = Number(Math.max(0, totalAcreage - distributedArea).toFixed(2))
 
   return (
     <div>
