@@ -2,6 +2,10 @@
   min-height: 100vh;
 }
 
+.main-layout .ant-layout {
+  background: #f0f2f5;
+}
+
 .logo {
   height: 64px;
   display: flex;
@@ -11,6 +15,7 @@
   font-weight: bold;
   color: #1890ff;
   border-bottom: 1px solid #f0f0f0;
+  background: #fff;
 }
 
 .main-header {
@@ -20,6 +25,7 @@
   align-items: center;
   justify-content: space-between;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  z-index: 1;
 }
 
 .collapse-btn {
@@ -57,8 +63,5 @@
 
 .main-content {
   margin: 24px;
-  padding: 24px;
-  background: #fff;
-  border-radius: 8px;
   min-height: calc(100vh - 64px - 48px);
 }

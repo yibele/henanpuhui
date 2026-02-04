@@ -269,12 +269,7 @@ async function createAcquisition(event, context) {
       updateTime: db.serverDate()
     };
 
-    // 1. 插入收购记录
-    const acquisitionResult = await db.collection('acquisitions').add({
-      data: acquisitionData
-    });
-
-    // 2. 生成结算单（初始状态为 pending，等待会计审核）
+    // 生成结算单数据
     const settlementId = generateSettlementId();
     const settlementData = {
       settlementId,
@@ -334,27 +329,18 @@ async function createAcquisition(event, context) {
       completeTime: null
     };
 
-    await db.collection('settlements').add({
-      data: settlementData
-    });
-
-    // 3. 更新农户统计数据
+    // 农户统计更新数据
     const isFirstAcquisition = farmer.stats.totalAcquisitionCount === 0;
+    const farmerUpdateData = {
+      'stats.totalAcquisitionCount': _.inc(1),
+      'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
+      'stats.totalAcquisitionAmount': _.inc(Number(computedTotalAmount.toFixed(2))),
+      lastAcquisitionTime: db.serverDate(),
+      firstAcquisitionTime: isFirstAcquisition ? db.serverDate() : farmer.firstAcquisitionTime,
+      updateTime: db.serverDate()
+    };
 
-    await db.collection('farmers')
-      .where({ farmerId: farmer.farmerId })
-      .update({
-        data: {
-          'stats.totalAcquisitionCount': _.inc(1),
-          'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
-          'stats.totalAcquisitionAmount': _.inc(Number(computedTotalAmount.toFixed(2))),
-          lastAcquisitionTime: db.serverDate(),
-          firstAcquisitionTime: isFirstAcquisition ? db.serverDate() : farmer.firstAcquisitionTime,
-          updateTime: db.serverDate()
-        }
-      });
-
-    // 4. 更新仓库统计数据
+    // 仓库统计更新数据
     const warehouseUpdates = {
       'stats.totalAcquisitionCount': _.inc(1),
       'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
@@ -363,90 +349,100 @@ async function createAcquisition(event, context) {
       statsUpdateTime: db.serverDate(),
       updateTime: db.serverDate()
     };
-    // 只有业务日期=今天时，才更新“今日”统计
+    // 只有业务日期=今天时，才更新"今日"统计
     if (acquisitionDate === todayStr) {
       warehouseUpdates['stats.todayAcquisitionCount'] = _.inc(1);
       warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(Number(computedNetWeight.toFixed(2)));
       warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(Number(computedTotalAmount.toFixed(2)));
     }
-    await db.collection('warehouses')
-      .where({ _id: currentUser.warehouseId })
-      .update({ data: warehouseUpdates });
 
-    // 5. 发送通知给财务（查询所有财务角色用户）
-    const financeUsers = await db.collection('users')
-      .where({ role: 'finance_admin', status: 'active' })
-      .get();
+    // ==================== 事务操作开始 ====================
+    // 核心的4个表操作必须在事务内，保证原子性
+    const transaction = await db.startTransaction();
+    let acquisitionResult;
 
-    for (const financeUser of financeUsers.data) {
-      await db.collection('notifications').add({
+    try {
+      // 1. 插入收购记录
+      acquisitionResult = await transaction.collection('acquisitions').add({
+        data: acquisitionData
+      });
+
+      // 2. 生成结算单
+      await transaction.collection('settlements').add({
+        data: settlementData
+      });
+
+      // 3. 更新农户统计数据
+      await transaction.collection('farmers')
+        .where({ farmerId: farmer.farmerId })
+        .update({
+          data: farmerUpdateData
+        });
+
+      // 4. 更新仓库统计数据
+      await transaction.collection('warehouses')
+        .where({ _id: currentUser.warehouseId })
+        .update({ data: warehouseUpdates });
+
+      // 提交事务
+      await transaction.commit();
+    } catch (transactionError) {
+      // 事务失败，回滚
+      await transaction.rollback();
+      console.error('收购事务失败:', transactionError);
+      return {
+        success: false,
+        message: '收购记录创建失败，请重试'
+      };
+    }
+    // ==================== 事务操作结束 ====================
+
+    // 以下为非核心操作，事务成功后执行，失败不影响主流程
+    try {
+      // 5. 记录操作日志
+      await db.collection('operation_logs').add({
         data: {
-          userId: financeUser._id,
-          userRole: 'finance',
-          type: 'settlement_created',
-          title: '新收购待结算',
-          content: `${warehouse.name}仓库收购农户${farmer.name}的甜叶菊，净重${computedNetWeight.toFixed(2)}kg，应付金额${(computedTotalAmount / 10000).toFixed(4)}万元，请审核。`,
-          data: {
-            settlementId,
-            acquisitionId,
-            farmerName: farmer.name,
-            warehouseName: warehouse.name,
-            netWeight: Number(computedNetWeight.toFixed(2)),
-            totalAmount: Number(computedTotalAmount.toFixed(2)),
-            actualPayment: settlementData.actualPayment
-          },
-          page: '/pages/finance/settlement-detail/index',
-          params: {
-            id: settlementId
-          },
-          isRead: false,
-          readTime: null,
-          priority: isAbnormal ? 'high' : 'normal',
+          userId: currentUser._id,
+          userName: currentUser.name,
+          userRole: currentUser.role,
+          action: 'create_acquisition',
+          module: 'acquisition',
+          targetId: acquisitionId,
+          targetName: `${farmer.name} - ${computedNetWeight.toFixed(2)}kg`,
+          description: `创建收购记录：${farmer.name}，净重${computedNetWeight.toFixed(2)}kg`,
+          before: {},
+          after: acquisitionData,
+          changes: [],
           createTime: db.serverDate()
         }
       });
+
+      // 6. 写入业务往来记录
+      await db.collection('business_records').add({
+        data: {
+          farmerId: farmer.farmerId,
+          farmerName: farmer.name,
+          type: 'acquisition',
+          name: '收购入库',
+          date: acquisitionDate,
+          amount: Number(computedTotalAmount.toFixed(2)),
+          quantity: Number(computedNetWeight.toFixed(2)),
+          unit: 'kg',
+          unitPrice: unitPriceNum,
+          desc: `净重${computedNetWeight.toFixed(2)}kg，单价¥${unitPriceNum}/kg，货款¥${computedTotalAmount.toFixed(2)}`,
+          relatedId: acquisitionId,
+          relatedType: 'acquisition',
+          warehouseId: currentUser.warehouseId,
+          warehouseName: warehouse.name,
+          operator: currentUser.name,
+          operatorId: currentUser._id,
+          createTime: db.serverDate()
+        }
+      });
+    } catch (nonCriticalError) {
+      // 非核心操作失败，只记录日志，不影响主流程
+      console.error('非核心操作失败（不影响收购记录）:', nonCriticalError);
     }
-
-    // 6. 记录操作日志
-    await db.collection('operation_logs').add({
-      data: {
-        userId: currentUser._id,
-        userName: currentUser.name,
-        userRole: currentUser.role,
-        action: 'create_acquisition',
-        module: 'acquisition',
-        targetId: acquisitionId,
-        targetName: `${farmer.name} - ${computedNetWeight.toFixed(2)}kg`,
-        description: `创建收购记录：${farmer.name}，净重${computedNetWeight.toFixed(2)}kg`,
-        before: {},
-        after: acquisitionData,
-        changes: [],
-        createTime: db.serverDate()
-      }
-    });
-
-    // 7. 写入业务往来记录
-    await db.collection('business_records').add({
-      data: {
-        farmerId: farmer.farmerId,
-        farmerName: farmer.name,
-        type: 'acquisition',
-        name: '收购入库',
-        date: acquisitionDate,
-        amount: Number(computedTotalAmount.toFixed(2)),
-        quantity: Number(computedNetWeight.toFixed(2)),
-        unit: 'kg',
-        unitPrice: unitPriceNum,
-        desc: `净重${computedNetWeight.toFixed(2)}kg，单价¥${unitPriceNum}/kg，货款¥${computedTotalAmount.toFixed(2)}`,
-        relatedId: acquisitionId,
-        relatedType: 'acquisition',
-        warehouseId: currentUser.warehouseId,
-        warehouseName: warehouse.name,
-        operator: currentUser.name,
-        operatorId: currentUser._id,
-        createTime: db.serverDate()
-      }
-    });
 
     return {
       success: true,

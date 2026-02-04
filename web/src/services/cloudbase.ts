@@ -85,6 +85,10 @@ export const farmerApi = {
   getBusinessRecords: (farmerId: string, page = 1, pageSize = 50) =>
     callFunction('farmer-manage', { action: 'getBusinessRecords', farmerId, page, pageSize }),
 
+  // 获取发苗统计
+  getSeedStats: (farmerId: string) =>
+    callFunction('seed-manage', { action: 'getByFarmer', farmerId }),
+
   // 创建农户
   create: (userId: string, data: Record<string, any>) =>
     callFunction('farmer-manage', { action: 'create', userId, data }),
@@ -96,6 +100,60 @@ export const farmerApi = {
   // 删除农户
   delete: (userId: string, farmerId: string) =>
     callFunction('farmer-manage', { action: 'delete', userId, farmerId }),
+
+  // 标记发苗完成
+  markSeedComplete: (userId: string, farmerId: string, complete: boolean) =>
+    callFunction('farmer-manage', { action: 'update', userId, farmerId, data: { seedDistributionComplete: complete } }),
+
+  // 预支款登记
+  addAdvancePayment: (userId: string, userName: string, farmerId: string, data: { amount: number; remark?: string; paymentDate?: string }) =>
+    callFunction('farmer-manage', { action: 'advancePayment', userId, userName, farmerId, data }),
+
+  // 农资发放（化肥/农药）
+  addAgriculturalSupply: (userId: string, userName: string, farmerId: string, data: {
+    type: 'fertilizer' | 'pesticide';
+    name: string;
+    category?: string;
+    quantity: number;
+    unit?: string;
+    unitPrice: number;
+    amount?: number;
+    supplyDate?: string;
+    remark?: string;
+  }) =>
+    callFunction('farmer-manage', { action: 'addAgriculturalSupply', userId, userName, farmerId, data }),
+
+  // 追加签约
+  addAddendum: (userId: string, userName: string, farmerId: string, data: {
+    addedAcreage: number;
+    addedSeedTotal?: number;
+    addedSeedUnitPrice?: number;
+    addedReceivable?: number;
+    addedDeposit?: number;
+    remark?: string;
+  }) =>
+    callFunction('farmer-manage', { action: 'addendum', userId, userName, farmerId, data }),
+}
+
+/**
+ * 发苗相关 API
+ */
+export const seedApi = {
+  // 获取发苗记录列表
+  list: (params: { page?: number; pageSize?: number; userId: string; startDate?: string; endDate?: string }) =>
+    callFunction('seed-manage', { action: 'list', ...params }),
+
+  // 获取发苗详情
+  get: (recordId: string, userId: string) =>
+    callFunction('seed-manage', { action: 'getDetail', recordId, userId }),
+
+  // 发放种苗
+  distribute: (userId: string, userName: string, farmerId: string, data: Record<string, any>) =>
+    callFunction('seed-manage', { action: 'distribute', userId, userName, farmerId, data }),
+
+  // 删除发苗记录
+  delete: (recordId: string, userId: string) =>
+    callFunction('seed-manage', { action: 'delete', recordId, userId }),
 }
 
 /**
@@ -177,6 +235,7 @@ export const acquisitionApi = {
     netWeight: number
     unitPrice: number
     amount: number
+    warehouseId?: string
     remark?: string
   }) =>
     callFunction('acquisition-manage', { action: 'create', ...params }),

@@ -1,14 +1,19 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Form, Input, Button, InputNumber, message, AutoComplete } from 'antd'
+import { Card, Form, Input, Button, InputNumber, message, AutoComplete, Select } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons'
-import { farmerApi, acquisitionApi } from '../../services/cloudbase'
+import { farmerApi, acquisitionApi, warehouseApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
 
 interface FarmerOption {
   value: string
   label: string
   farmer: any
+}
+
+interface Warehouse {
+  _id: string
+  name: string
 }
 
 export default function AcquisitionForm() {
@@ -19,6 +24,32 @@ export default function AcquisitionForm() {
   const [farmerOptions, setFarmerOptions] = useState<FarmerOption[]>([])
   const [selectedFarmer, setSelectedFarmer] = useState<any>(null)
   const [, setSearchLoading] = useState(false)
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
+  const [warehouseLoading, setWarehouseLoading] = useState(false)
+
+  // 加载仓库列表
+  useEffect(() => {
+    loadWarehouses()
+  }, [userInfo])
+
+  const loadWarehouses = async () => {
+    if (!userInfo?.id) return
+    setWarehouseLoading(true)
+    try {
+      const result = await warehouseApi.list(userInfo.id) as any
+      if (result.success && result.data) {
+        setWarehouses(result.data.list || result.data || [])
+        // 如果用户已绑定仓库，自动选择
+        if (userInfo.warehouseId) {
+          form.setFieldsValue({ warehouseId: userInfo.warehouseId })
+        }
+      }
+    } catch (error) {
+      console.error('加载仓库列表失败:', error)
+    } finally {
+      setWarehouseLoading(false)
+    }
+  }
 
   // 搜索农户
   const handleFarmerSearch = async (value: string) => {
@@ -102,6 +133,7 @@ export default function AcquisitionForm() {
       const result = await acquisitionApi.create({
         userId: userInfo.id,
         userName: userInfo.name,
+        warehouseId: values.warehouseId,
         ...data,
       }) as any
 
@@ -146,6 +178,19 @@ export default function AcquisitionForm() {
               onSelect={handleFarmerSelect}
               placeholder="输入农户姓名或手机号搜索"
               style={{ width: '100%' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="warehouseId"
+            label="入库仓库"
+            rules={[{ required: true, message: '请选择仓库' }]}
+          >
+            <Select
+              placeholder="请选择仓库"
+              loading={warehouseLoading}
+              options={warehouses.map(w => ({ value: w._id, label: w.name }))}
+              disabled={!!userInfo?.warehouseId}
             />
           </Form.Item>
 

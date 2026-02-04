@@ -35,7 +35,7 @@ export default function FarmerForm() {
           township: data.address?.township || '',
           village: data.address?.village || '',
           acreage: data.acreage,
-          grade: data.grade || 'C',
+          grade: data.grade || 'bronze',
           deposit: data.deposit || 0,
           firstManager: data.firstManager || '',
           secondManager: data.secondManager || '',
@@ -124,7 +124,7 @@ export default function FarmerForm() {
           layout="vertical"
           onFinish={handleSubmit}
           style={{ maxWidth: 800 }}
-          initialValues={{ grade: 'C' }}
+          initialValues={{ grade: 'bronze' }}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Form.Item
@@ -164,9 +164,9 @@ export default function FarmerForm() {
             >
               <Select
                 options={[
-                  { value: 'A', label: 'A级' },
-                  { value: 'B', label: 'B级' },
-                  { value: 'C', label: 'C级' },
+                  { value: 'gold', label: '金牌农户' },
+                  { value: 'silver', label: '银牌农户' },
+                  { value: 'bronze', label: '铜牌农户' },
                 ]}
               />
             </Form.Item>

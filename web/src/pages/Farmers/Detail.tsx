@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Table, Button, Spin, Tag, message, Popconfirm } from 'antd'
-import { ArrowLeftOutlined, PhoneOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Table, Button, Spin, Tag, message, Popconfirm, Space, Dropdown } from 'antd'
+import { ArrowLeftOutlined, PhoneOutlined, EditOutlined, DeleteOutlined, ExperimentOutlined, CheckCircleOutlined, DollarOutlined, ShopOutlined, PlusCircleOutlined, DownOutlined } from '@ant-design/icons'
 import { farmerApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
+import { AdvancePaymentModal, AgriculturalSupplyModal, AddendumModal } from '../../components/BusinessModals'
 
 interface FarmerDetail {
   _id: string
@@ -22,6 +23,19 @@ interface FarmerDetail {
   status: string
   createTime: string
   createByName: string
+  // 新增字段 - 与小程序对齐
+  receivableAmount: number      // 签约金额/应收款
+  fertilizerAmount: number      // 化肥金额
+  pesticideAmount: number       // 农药金额
+  firstManager: string          // 负责人
+  seedDistributionComplete: boolean  // 发苗完成状态
+}
+
+interface SeedStats {
+  recordCount: number           // 发苗次数
+  totalQuantity: number         // 发苗数量(万株)
+  totalArea: number             // 发放面积(亩)
+  totalAmount: number           // 苗款金额
 }
 
 interface BusinessRecord {
@@ -50,8 +64,20 @@ export default function FarmerDetail() {
   const { userInfo } = useAuth()
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
+  const [markingComplete, setMarkingComplete] = useState(false)
   const [farmer, setFarmer] = useState<FarmerDetail | null>(null)
   const [records, setRecords] = useState<BusinessRecord[]>([])
+  const [seedStats, setSeedStats] = useState<SeedStats>({
+    recordCount: 0,
+    totalQuantity: 0,
+    totalArea: 0,
+    totalAmount: 0
+  })
+
+  // 业务操作弹窗状态
+  const [advanceModalVisible, setAdvanceModalVisible] = useState(false)
+  const [agriModalVisible, setAgriModalVisible] = useState(false)
+  const [addendumModalVisible, setAddendumModalVisible] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -62,9 +88,10 @@ export default function FarmerDetail() {
   const loadDetail = async (farmerId: string) => {
     setLoading(true)
     try {
-      const [detailRes, recordsRes] = await Promise.all([
+      const [detailRes, recordsRes, seedRes] = await Promise.all([
         farmerApi.get(farmerId),
         farmerApi.getBusinessRecords(farmerId),
+        farmerApi.getSeedStats(farmerId),
       ]) as any[]
 
       if (detailRes.success) {
@@ -72,6 +99,14 @@ export default function FarmerDetail() {
       }
       if (recordsRes.success) {
         setRecords(recordsRes.data.list || [])
+      }
+      if (seedRes?.success && seedRes.data) {
+        setSeedStats({
+          recordCount: seedRes.data.recordCount || 0,
+          totalQuantity: seedRes.data.totalQuantity || 0,
+          totalArea: seedRes.data.totalArea || 0,
+          totalAmount: seedRes.data.totalAmount || 0,
+        })
       }
     } catch (error) {
       console.error('加载农户详情失败:', error)
@@ -97,6 +132,25 @@ export default function FarmerDetail() {
       message.error('删除失败')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handleMarkSeedComplete = async (complete: boolean) => {
+    if (!id || !userInfo) return
+    setMarkingComplete(true)
+    try {
+      const result = await farmerApi.markSeedComplete(userInfo.id, id, complete) as any
+      if (result.success) {
+        message.success(complete ? '已标记发苗完成' : '已取消发苗完成标记')
+        loadDetail(id)
+      } else {
+        message.error(result.message || '操作失败')
+      }
+    } catch (error) {
+      console.error('标记发苗完成失败:', error)
+      message.error('操作失败')
+    } finally {
+      setMarkingComplete(false)
     }
   }
 
@@ -153,25 +207,86 @@ export default function FarmerDetail() {
         >
           返回列表
         </Button>
-        <Button
-          type="primary"
-          icon={<EditOutlined />}
-          onClick={() => navigate(`/farmers/${id}/edit`)}
-        >
-          编辑农户
-        </Button>
-        <Popconfirm
-          title="确认删除"
-          description="删除后无法恢复，确定要删除该农户吗？"
-          onConfirm={handleDelete}
-          okText="确认删除"
-          cancelText="取消"
-          okButtonProps={{ danger: true, loading: deleting }}
-        >
-          <Button danger icon={<DeleteOutlined />} loading={deleting}>
-            删除农户
+        <Space>
+          <Button
+            type="primary"
+            icon={<ExperimentOutlined />}
+            onClick={() => navigate(`/seeds/new?farmerId=${id}&farmerName=${encodeURIComponent(farmer.name)}`)}
+          >
+            发苗
           </Button>
-        </Popconfirm>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'advance',
+                  icon: <DollarOutlined />,
+                  label: '预支款登记',
+                  onClick: () => setAdvanceModalVisible(true),
+                },
+                {
+                  key: 'agricultural',
+                  icon: <ShopOutlined />,
+                  label: '农资发放',
+                  onClick: () => setAgriModalVisible(true),
+                },
+                {
+                  key: 'addendum',
+                  icon: <PlusCircleOutlined />,
+                  label: '追加签约',
+                  onClick: () => setAddendumModalVisible(true),
+                },
+              ],
+            }}
+          >
+            <Button>
+              业务操作 <DownOutlined />
+            </Button>
+          </Dropdown>
+          {farmer.seedDistributionComplete ? (
+            <Popconfirm
+              title="取消发苗完成"
+              description="确定要取消发苗完成标记吗？"
+              onConfirm={() => handleMarkSeedComplete(false)}
+              okText="确认"
+              cancelText="取消"
+            >
+              <Button icon={<CheckCircleOutlined />} loading={markingComplete}>
+                取消完成
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Popconfirm
+              title="标记发苗完成"
+              description="确定该农户的发苗已全部完成吗？"
+              onConfirm={() => handleMarkSeedComplete(true)}
+              okText="确认"
+              cancelText="取消"
+            >
+              <Button type="primary" ghost icon={<CheckCircleOutlined />} loading={markingComplete}>
+                标记发苗完成
+              </Button>
+            </Popconfirm>
+          )}
+          <Button
+            icon={<EditOutlined />}
+            onClick={() => navigate(`/farmers/${id}/edit`)}
+          >
+            编辑农户
+          </Button>
+          <Popconfirm
+            title="确认删除"
+            description="删除后无法恢复，确定要删除该农户吗？"
+            onConfirm={handleDelete}
+            okText="确认删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true, loading: deleting }}
+          >
+            <Button danger icon={<DeleteOutlined />} loading={deleting}>
+              删除农户
+            </Button>
+          </Popconfirm>
+        </Space>
       </div>
 
       <Card title="基本信息" style={{ marginBottom: 24 }}>
@@ -185,31 +300,76 @@ export default function FarmerDetail() {
           </Descriptions.Item>
           <Descriptions.Item label="身份证号">{farmer.idCard}</Descriptions.Item>
           <Descriptions.Item label="种植地址" span={2}>{farmer.addressText}</Descriptions.Item>
-          <Descriptions.Item label="种植面积">{farmer.acreage} 亩</Descriptions.Item>
           <Descriptions.Item label="等级">
-            <Tag color={farmer.grade === 'A' ? 'gold' : farmer.grade === 'B' ? 'blue' : 'default'}>
-              {farmer.grade}
+            <Tag color={farmer.grade === 'gold' ? 'gold' : farmer.grade === 'silver' ? 'blue' : 'default'}>
+              {farmer.grade === 'gold' ? '金牌农户' : farmer.grade === 'silver' ? '银牌农户' : '铜牌农户'}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="登记人">{farmer.createByName}</Descriptions.Item>
+          <Descriptions.Item label="负责人">{farmer.firstManager || farmer.createByName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="登记时间">{farmer.createTime ? new Date(farmer.createTime).toLocaleDateString('zh-CN') : '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
 
-      <Card title="财务信息" style={{ marginBottom: 24 }}>
+      <Card title="签约信息" style={{ marginBottom: 24 }}>
         <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
-          <Descriptions.Item label="定金">¥{farmer.deposit || 0}</Descriptions.Item>
+          <Descriptions.Item label="签约面积">{farmer.acreage || 0} 亩</Descriptions.Item>
+          <Descriptions.Item label="已交定金">
+            <span style={{ color: '#52c41a', fontWeight: 500 }}>¥{farmer.deposit || 0}</span>
+          </Descriptions.Item>
           <Descriptions.Item label="种苗合计">{farmer.seedTotal || 0} 万株</Descriptions.Item>
+          <Descriptions.Item label="签约金额">
+            <span style={{ color: '#fa8c16', fontWeight: 500 }}>¥{farmer.receivableAmount || 0}</span>
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Card
+        title={
+          <span>
+            种苗发放
+            {farmer.seedDistributionComplete && (
+              <Tag color="success" style={{ marginLeft: 12 }}>已完成</Tag>
+            )}
+          </span>
+        }
+        style={{ marginBottom: 24 }}
+      >
+        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
+          <Descriptions.Item label="发苗次数">{seedStats.recordCount} 次</Descriptions.Item>
+          <Descriptions.Item label="发苗数量">{seedStats.totalQuantity} 万株</Descriptions.Item>
+          <Descriptions.Item label="发放面积">{seedStats.totalArea} 亩</Descriptions.Item>
+          <Descriptions.Item label="苗款金额">
+            <span style={{ color: '#fa8c16', fontWeight: 500 }}>¥{seedStats.totalAmount || 0}</span>
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Card title="农资发放" style={{ marginBottom: 24 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
+          <Descriptions.Item label="化肥金额">
+            <span style={{ color: '#13c2c2', fontWeight: 500 }}>¥{farmer.fertilizerAmount || 0}</span>
+          </Descriptions.Item>
+          <Descriptions.Item label="农药金额">
+            <span style={{ color: '#eb2f96', fontWeight: 500 }}>¥{farmer.pesticideAmount || 0}</span>
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      <Card title="欠款汇总" style={{ marginBottom: 24 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 4 }}>
           <Descriptions.Item label="种苗欠款">
-            <span style={{ color: farmer.seedDebt > 0 ? '#f5222d' : 'inherit' }}>
-              ¥{farmer.seedDebt || 0}
+            <span style={{ color: farmer.seedDebt > 0 ? '#f5222d' : 'inherit', fontWeight: 500 }}>
+              ¥{seedStats.recordCount > 0 ? (farmer.seedDebt || 0) : 0}
             </span>
           </Descriptions.Item>
           <Descriptions.Item label="农资欠款">
-            <span style={{ color: farmer.agriculturalDebt > 0 ? '#f5222d' : 'inherit' }}>
+            <span style={{ color: farmer.agriculturalDebt > 0 ? '#f5222d' : 'inherit', fontWeight: 500 }}>
               ¥{farmer.agriculturalDebt || 0}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="预支款">¥{farmer.advancePayment || 0}</Descriptions.Item>
+          <Descriptions.Item label="预支款">
+            <span style={{ color: '#fa8c16', fontWeight: 500 }}>¥{farmer.advancePayment || 0}</span>
+          </Descriptions.Item>
         </Descriptions>
       </Card>
 
@@ -221,6 +381,35 @@ export default function FarmerDetail() {
           pagination={{ pageSize: 10 }}
         />
       </Card>
+
+      {/* 业务操作弹窗 */}
+      <AdvancePaymentModal
+        visible={advanceModalVisible}
+        farmerId={id || ''}
+        farmerName={farmer.name}
+        userId={userInfo?.id || ''}
+        userName={userInfo?.name || ''}
+        onClose={() => setAdvanceModalVisible(false)}
+        onSuccess={() => loadDetail(id!)}
+      />
+      <AgriculturalSupplyModal
+        visible={agriModalVisible}
+        farmerId={id || ''}
+        farmerName={farmer.name}
+        userId={userInfo?.id || ''}
+        userName={userInfo?.name || ''}
+        onClose={() => setAgriModalVisible(false)}
+        onSuccess={() => loadDetail(id!)}
+      />
+      <AddendumModal
+        visible={addendumModalVisible}
+        farmerId={id || ''}
+        farmerName={farmer.name}
+        userId={userInfo?.id || ''}
+        userName={userInfo?.name || ''}
+        onClose={() => setAddendumModalVisible(false)}
+        onSuccess={() => loadDetail(id!)}
+      />
     </div>
   )
 }

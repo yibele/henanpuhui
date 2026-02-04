@@ -11,6 +11,7 @@ import {
   ShoppingCartOutlined,
   BarChartOutlined,
   TeamOutlined,
+  ExperimentOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '../../stores/AuthContext'
 import './MainLayout.css'
@@ -28,10 +29,10 @@ const ROLE_NAMES: Record<string, string> = {
 
 // 角色权限配置：每个角色可访问的菜单路径
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  admin: ['/dashboard', '/farmers', '/acquisitions', '/settlements', '/reports', '/users'],
-  finance_admin: ['/dashboard', '/farmers', '/settlements', '/reports'],
+  admin: ['/dashboard', '/farmers', '/seeds', '/acquisitions', '/settlements', '/reports', '/users'],
+  finance_admin: ['/dashboard', '/farmers', '/seeds', '/settlements', '/reports'],
   cashier: ['/dashboard', '/settlements', '/reports'],
-  assistant: ['/dashboard', '/farmers', '/acquisitions'],
+  assistant: ['/dashboard', '/farmers', '/seeds', '/acquisitions'],
   warehouse_manager: ['/dashboard', '/acquisitions'],
 }
 
@@ -46,6 +47,11 @@ const ALL_MENU_ITEMS = [
     key: '/farmers',
     icon: <UserOutlined />,
     label: '农户管理',
+  },
+  {
+    key: '/seeds',
+    icon: <ExperimentOutlined />,
+    label: '发苗管理',
   },
   {
     key: '/acquisitions',

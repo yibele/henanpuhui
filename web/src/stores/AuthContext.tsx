@@ -7,6 +7,8 @@ interface UserInfo {
   phone: string
   role: string
   avatar?: string
+  warehouseId?: string
+  warehouseName?: string
 }
 
 interface AuthContextType {
@@ -52,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: userData.phone,
           role: userData.role,
           avatar: userData.avatar,
+          warehouseId: userData.warehouseId,
+          warehouseName: userData.warehouseName,
         }
 
         setUserInfo(user)

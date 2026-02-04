@@ -309,7 +309,7 @@ Page({
       // 计算我的业绩统计
       const myStats = {
         farmerCount: data.farmerCount || 0,
-        acreage: data.totalAcreage || 0,
+        acreage: parseFloat((data.totalAcreage || 0).toFixed(1)),  // 修复浮点数精度问题
         deposit: data.totalDeposit || 0,
         depositFormat: formatAmount(data.totalDeposit || 0),
         seedCount: data.seedRecordCount || 0,  // 发苗次数
@@ -320,7 +320,7 @@ Page({
         // 发苗状态统计
         seedCompleted: data.seedCompletedCount || 0,     // 发苗完成农户数
         seedInProgress: data.seedInProgressCount || 0,   // 发苗中农户数
-        seedDistributedArea: data.seedDistributedArea || 0 // 已发面积(亩)
+        seedDistributedArea: parseFloat((data.seedDistributedArea || 0).toFixed(1))  // 已发面积(亩)
       };
 
       // 最近签约的农户（显示前3条）

@@ -1,0 +1,9 @@
+{
+  "name": "test-data-generator",
+  "version": "1.0.0",
+  "description": "批量生成测试数据",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

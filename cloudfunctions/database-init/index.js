@@ -23,12 +23,12 @@ const WAREHOUSES = [
 const TEST_USERS = [
   {
     _id: 'u001',
-    name: '张助理',
+    name: '张静',
     phone: '13800001111',
     password: '123456',
     role: 'assistant',
     avatar: '',
-    nickName: '张助理',
+    nickName: '张静',
     warehouseId: '',
     warehouseName: '',
     status: 'active',
@@ -90,7 +90,28 @@ const TEST_USERS = [
     status: 'active',
     createTime: new Date(),
     updateTime: new Date()
-  }
+  },
+  // ========== 20个助理账号 ==========
+  { _id: 'a001', name: '王建国', phone: '13811110001', password: '123456', role: 'assistant', avatar: '', nickName: '王建国', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a002', name: '李明辉', phone: '13811110002', password: '123456', role: 'assistant', avatar: '', nickName: '李明辉', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a003', name: '张伟东', phone: '13811110003', password: '123456', role: 'assistant', avatar: '', nickName: '张伟东', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a004', name: '刘志强', phone: '13811110004', password: '123456', role: 'assistant', avatar: '', nickName: '刘志强', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a005', name: '陈晓峰', phone: '13811110005', password: '123456', role: 'assistant', avatar: '', nickName: '陈晓峰', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a006', name: '赵军', phone: '13811110006', password: '123456', role: 'assistant', avatar: '', nickName: '赵军', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a007', name: '孙涛', phone: '13811110007', password: '123456', role: 'assistant', avatar: '', nickName: '孙涛', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a008', name: '周磊', phone: '13811110008', password: '123456', role: 'assistant', avatar: '', nickName: '周磊', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a009', name: '吴刚', phone: '13811110009', password: '123456', role: 'assistant', avatar: '', nickName: '吴刚', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a010', name: '郑浩', phone: '13811110010', password: '123456', role: 'assistant', avatar: '', nickName: '郑浩', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a011', name: '王伟', phone: '13811110011', password: '123456', role: 'assistant', avatar: '', nickName: '王伟', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a012', name: '李强', phone: '13811110012', password: '123456', role: 'assistant', avatar: '', nickName: '李强', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a013', name: '张明', phone: '13811110013', password: '123456', role: 'assistant', avatar: '', nickName: '张明', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a014', name: '刘洋', phone: '13811110014', password: '123456', role: 'assistant', avatar: '', nickName: '刘洋', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a015', name: '陈峰', phone: '13811110015', password: '123456', role: 'assistant', avatar: '', nickName: '陈峰', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a016', name: '赵强', phone: '13811110016', password: '123456', role: 'assistant', avatar: '', nickName: '赵强', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a017', name: '孙明', phone: '13811110017', password: '123456', role: 'assistant', avatar: '', nickName: '孙明', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a018', name: '周伟', phone: '13811110018', password: '123456', role: 'assistant', avatar: '', nickName: '周伟', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a019', name: '吴强', phone: '13811110019', password: '123456', role: 'assistant', avatar: '', nickName: '吴强', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() },
+  { _id: 'a020', name: '郑明', phone: '13811110020', password: '123456', role: 'assistant', avatar: '', nickName: '郑明', warehouseId: '', warehouseName: '', status: 'active', createTime: new Date(), updateTime: new Date() }
 ];
 
 // 测试农户（用于测试历史收购汇总）

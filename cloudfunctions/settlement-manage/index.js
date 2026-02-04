@@ -490,47 +490,61 @@ async function auditSettlement(event, context) {
         };
       }
 
-      await db.collection('settlements')
-        .where({ settlementId })
-        .update({
-          data: {
-            status: 'rejected',
-            auditStatus: 'rejected',
-            auditorId: currentUser._id,
-            auditorName: currentUser.name,
-            auditTime: db.serverDate(),
-            auditRemark,
-            updateTime: db.serverDate()
-          }
-        });
-
-      // 更新收购记录状态为审核驳回
-      if (settlement.acquisitionId) {
-        await db.collection('acquisitions')
-          .where({ acquisitionId: settlement.acquisitionId })
+      // ==================== 事务操作开始 ====================
+      await db.runTransaction(async (t) => {
+        // 1. 更新结算单状态
+        await t.collection('settlements')
+          .doc(settlement._id)
           .update({
             data: {
-              status: 'audit_rejected',
+              status: 'rejected',
+              auditStatus: 'rejected',
+              auditorId: currentUser._id,
+              auditorName: currentUser.name,
+              auditTime: db.serverDate(),
               auditRemark,
               updateTime: db.serverDate()
             }
           });
-      }
 
-      // 记录操作日志
-      await db.collection('operation_logs').add({
-        data: {
-          userId: currentUser._id,
-          userName: currentUser.name,
-          userRole: currentUser.role,
-          action: 'audit_settlement_reject',
-          module: 'settlement',
-          targetId: settlementId,
-          targetName: settlement.farmerName,
-          description: `审核驳回结算单：${settlement.farmerName}，原因：${auditRemark}`,
-          createTime: db.serverDate()
+        // 2. 更新收购记录状态为审核驳回
+        if (settlement.acquisitionId) {
+          const acqRes = await db.collection('acquisitions')
+            .where({ acquisitionId: settlement.acquisitionId })
+            .get();
+          if (acqRes.data && acqRes.data.length > 0) {
+            await t.collection('acquisitions')
+              .doc(acqRes.data[0]._id)
+              .update({
+                data: {
+                  status: 'audit_rejected',
+                  auditRemark,
+                  updateTime: db.serverDate()
+                }
+              });
+          }
         }
       });
+      // ==================== 事务操作结束 ====================
+
+      // 非核心操作：记录操作日志（事务外，失败不影响主流程）
+      try {
+        await db.collection('operation_logs').add({
+          data: {
+            userId: currentUser._id,
+            userName: currentUser.name,
+            userRole: currentUser.role,
+            action: 'audit_settlement_reject',
+            module: 'settlement',
+            targetId: settlementId,
+            targetName: settlement.farmerName,
+            description: `审核驳回结算单：${settlement.farmerName}，原因：${auditRemark}`,
+            createTime: db.serverDate()
+          }
+        });
+      } catch (logError) {
+        console.error('审核驳回操作日志写入失败（不影响主流程）:', logError);
+      }
 
       return {
         success: true,
@@ -633,23 +647,27 @@ async function markPayment(event, context) {
         }
       });
 
-    // 记录操作日志
-    await db.collection('operation_logs').add({
-      data: {
-        userId: currentUser._id,
-        userName: currentUser.name,
-        userRole: currentUser.role,
-        action: 'mark_payment',
-        module: 'settlement',
-        targetId: settlementId,
-        targetName: settlement.farmerName,
-        description: `标记支付中：${settlement.farmerName}，方式：${paymentMethod}`,
-        before: { paymentStatus: 'unpaid' },
-        after: { paymentStatus: 'paying' },
-        changes: [{ field: 'paymentStatus', oldValue: 'unpaid', newValue: 'paying' }],
-        createTime: db.serverDate()
-      }
-    });
+    // 非核心操作：记录操作日志（失败不影响主流程）
+    try {
+      await db.collection('operation_logs').add({
+        data: {
+          userId: currentUser._id,
+          userName: currentUser.name,
+          userRole: currentUser.role,
+          action: 'mark_payment',
+          module: 'settlement',
+          targetId: settlementId,
+          targetName: settlement.farmerName,
+          description: `标记支付中：${settlement.farmerName}，方式：${paymentMethod}`,
+          before: { paymentStatus: 'unpaid' },
+          after: { paymentStatus: 'paying' },
+          changes: [{ field: 'paymentStatus', oldValue: 'unpaid', newValue: 'paying' }],
+          createTime: db.serverDate()
+        }
+      });
+    } catch (logError) {
+      console.error('标记支付操作日志写入失败（不影响主流程）:', logError);
+    }
 
     return {
       success: true,
@@ -933,64 +951,72 @@ async function recalculateSettlement(event) {
     const totalDeductions = seedDebt + agriDebt + advPay;
     const actualPayment = Math.max(0, grossAmount - totalDeductions);
 
-    // 记录修改日志
-    await db.collection('modification_logs').add({
-      data: {
-        targetType: 'settlement',
-        targetId: settlementId,
-        action: 'recalculate',
-        beforeData: {
-          grossAmount: settlement.grossAmount,
-          seedDebt: settlement.seedDebt,
-          agriculturalDebt: settlement.agriculturalDebt || 0,
-          advancePayment: settlement.advancePayment || 0,
-          actualPayment: settlement.actualPayment
-        },
-        afterData: {
-          grossAmount,
-          seedDebt,
-          agriculturalDebt: agriDebt,
-          advancePayment: advPay,
-          actualPayment
-        },
-        reason: remark || '财务重新计算结算金额',
-        operatorId: userId,
-        operatorName: currentUser.name,
-        createTime: db.serverDate()
-      }
+    // ==================== 事务操作开始 ====================
+    await db.runTransaction(async (t) => {
+      // 1. 更新结算单
+      await t.collection('settlements')
+        .doc(settlement._id)
+        .update({
+          data: {
+            seedDebt,
+            agriculturalDebt: agriDebt,
+            advancePayment: advPay,
+            totalDeduction: totalDeductions,
+            totalDeductions,
+            actualPayment: Number(actualPayment.toFixed(2)),
+            recalculateBy: currentUser.name,
+            recalculateById: userId,
+            recalculateTime: db.serverDate(),
+            recalculateRemark: remark || '',
+            updateTime: db.serverDate()
+          }
+        });
+
+      // 2. 更新农户的农资款和预支款记录
+      await t.collection('farmers')
+        .doc(farmer._id)
+        .update({
+          data: {
+            agriculturalDebt: agriDebt,
+            advancePayment: advPay,
+            'stats.agriculturalDebt': agriDebt,
+            'stats.advancePayment': advPay,
+            updateTime: db.serverDate()
+          }
+        });
     });
+    // ==================== 事务操作结束 ====================
 
-    // 更新结算单
-    await db.collection('settlements')
-      .where({ settlementId })
-      .update({
+    // 非核心操作：记录修改日志（事务外，失败不影响主流程）
+    try {
+      await db.collection('modification_logs').add({
         data: {
-          seedDebt,
-          agriculturalDebt: agriDebt,
-          advancePayment: advPay,
-          totalDeduction: totalDeductions,
-          totalDeductions,
-          actualPayment: Number(actualPayment.toFixed(2)),
-          recalculateBy: currentUser.name,
-          recalculateById: userId,
-          recalculateTime: db.serverDate(),
-          recalculateRemark: remark || '',
-          updateTime: db.serverDate()
+          targetType: 'settlement',
+          targetId: settlementId,
+          action: 'recalculate',
+          beforeData: {
+            grossAmount: settlement.grossAmount,
+            seedDebt: settlement.seedDebt,
+            agriculturalDebt: settlement.agriculturalDebt || 0,
+            advancePayment: settlement.advancePayment || 0,
+            actualPayment: settlement.actualPayment
+          },
+          afterData: {
+            grossAmount,
+            seedDebt,
+            agriculturalDebt: agriDebt,
+            advancePayment: advPay,
+            actualPayment
+          },
+          reason: remark || '财务重新计算结算金额',
+          operatorId: userId,
+          operatorName: currentUser.name,
+          createTime: db.serverDate()
         }
       });
-
-    // 更新农户的农资款和预支款记录
-    await db.collection('farmers')
-      .where({ farmerId: settlement.farmerId })
-      .update({
-        data: {
-          agriculturalDebt: agriDebt,
-          advancePayment: advPay,
-          'stats.agriculturalDebt': agriDebt,
-          'stats.advancePayment': advPay,
-          updateTime: db.serverDate()
-        }
-      });
+    } catch (logError) {
+      console.error('重新计算结算修改日志写入失败（不影响主流程）:', logError);
+    }
 
     return {
       success: true,

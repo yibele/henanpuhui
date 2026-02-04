@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Table, Input, Card, Tag, Space, Button } from 'antd'
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons'
+import { Table, Input, Card, Tag, Space, Button, Tooltip } from 'antd'
+import { SearchOutlined, PlusOutlined, ExperimentOutlined } from '@ant-design/icons'
 import { farmerApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
 import type { ColumnsType } from 'antd/es/table'
@@ -13,20 +13,23 @@ interface Farmer {
   phone: string
   addressText: string
   acreage: number
+  seedTotal: number
   grade: string
   status: string
   createTime: string
+  createByName?: string
+  firstManager?: string
+  seedDistributionComplete?: boolean
+  stats?: {
+    totalSeedDistributed?: number
+    seedDistributionCount?: number
+  }
 }
 
-const GRADE_COLORS: Record<string, string> = {
-  A: 'gold',
-  B: 'blue',
-  C: 'default',
-}
-
-const STATUS_MAP: Record<string, { text: string; color: string }> = {
-  active: { text: '正常', color: 'green' },
-  inactive: { text: '停用', color: 'red' },
+const GRADE_MAP: Record<string, { text: string; color: string }> = {
+  gold: { text: '金牌农户', color: 'gold' },
+  silver: { text: '银牌农户', color: 'blue' },
+  bronze: { text: '铜牌农户', color: 'default' },
 }
 
 export default function FarmerList() {
@@ -93,27 +96,90 @@ export default function FarmerList() {
     {
       title: '面积(亩)',
       dataIndex: 'acreage',
-      width: 100,
+      width: 80,
       align: 'right',
+    },
+    {
+      title: '操作人',
+      dataIndex: 'createByName',
+      width: 100,
+      render: (val: string) => val || '-',
+    },
+    {
+      title: '发苗进度',
+      width: 180,
+      align: 'center',
+      render: (_: any, record: Farmer) => {
+        const distributed = record.stats?.totalSeedDistributed || 0
+        const total = record.seedTotal || 0
+        const isComplete = record.seedDistributionComplete
+        if (isComplete) {
+          return (
+            <div>
+              <Tag color="success">已完成</Tag>
+              <div style={{ fontSize: 12, color: '#666' }}>{distributed}/{total} 万株</div>
+            </div>
+          )
+        }
+        if (total === 0) {
+          return <span style={{ color: '#999' }}>未签约</span>
+        }
+        const percent = Math.min(100, Math.round((distributed / total) * 100))
+        return (
+          <Tooltip title={`已发 ${distributed} / 签约 ${total} 万株`}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <div style={{
+                  width: 60,
+                  height: 6,
+                  background: '#f0f0f0',
+                  borderRadius: 3,
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${percent}%`,
+                    height: '100%',
+                    background: percent >= 100 ? '#52c41a' : '#1890ff',
+                    borderRadius: 3
+                  }} />
+                </div>
+                <span style={{ fontSize: 12, color: '#666' }}>{percent}%</span>
+              </div>
+              <div style={{ fontSize: 12, color: '#999' }}>{distributed}/{total} 万株</div>
+            </div>
+          </Tooltip>
+        )
+      },
     },
     {
       title: '等级',
       dataIndex: 'grade',
-      width: 80,
+      width: 100,
       align: 'center',
-      render: (grade: string) => (
-        <Tag color={GRADE_COLORS[grade] || 'default'}>{grade}</Tag>
-      ),
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      width: 80,
-      align: 'center',
-      render: (status: string) => {
-        const config = STATUS_MAP[status] || { text: '未知', color: 'default' }
+      render: (grade: string) => {
+        const config = GRADE_MAP[grade] || { text: grade || '未设置', color: 'default' }
         return <Tag color={config.color}>{config.text}</Tag>
       },
+    },
+    {
+      title: '操作',
+      width: 100,
+      align: 'center',
+      render: (_: any, record: Farmer) => (
+        <Tooltip title="发苗">
+          <Button
+            type="primary"
+            size="small"
+            icon={<ExperimentOutlined />}
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/seeds/new?farmerId=${record._id}&farmerName=${encodeURIComponent(record.name)}`)
+            }}
+          >
+            发苗
+          </Button>
+        </Tooltip>
+      ),
     },
   ]
 

@@ -51,27 +51,16 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
     Permission.SETTLEMENT_PAY      // 确认付款
   ],
 
-  // 超级管理员权限：全部
+  // 管理员权限：只查看，不操作（高层只看数据）
   [UserRole.ADMIN]: [
-    Permission.FARMER_CREATE,
-    Permission.FARMER_VIEW_OWN,
-    Permission.FARMER_VIEW_ALL,
-    Permission.SEED_DISTRIBUTE,
-    Permission.SEED_VIEW,
-    Permission.GUIDE_CREATE,
-    Permission.GUIDE_VIEW,
-    Permission.ACQUISITION_CREATE,
-    Permission.ACQUISITION_VIEW,
-    Permission.INVENTORY_IN,
-    Permission.INVENTORY_OUT,
-    Permission.INVENTORY_VIEW,
-    Permission.SETTLEMENT_VIEW,
-    Permission.SETTLEMENT_AUDIT,
-    Permission.SETTLEMENT_PAY,
-    Permission.STATS_OWN,
-    Permission.STATS_WAREHOUSE,
-    Permission.STATS_ALL,
-    Permission.QUERY_MULTI
+    Permission.FARMER_VIEW_ALL,    // 查看所有农户
+    Permission.SEED_VIEW,          // 查看发放记录
+    Permission.GUIDE_VIEW,         // 查看指导记录
+    Permission.ACQUISITION_VIEW,   // 查看收苗记录
+    Permission.INVENTORY_VIEW,     // 查看库存
+    Permission.SETTLEMENT_VIEW,    // 查看结算列表
+    Permission.STATS_ALL,          // 查看全部统计
+    Permission.QUERY_MULTI         // 多维度查询
   ]
 };
 

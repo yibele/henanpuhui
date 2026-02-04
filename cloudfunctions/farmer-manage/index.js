@@ -537,50 +537,64 @@ async function addFarmerAddendum(event) {
       : Math.max(0, (farmer.stats?.totalSeedAmount || 0) - (farmer.deposit || 0));
     const newSeedDebt = Math.max(0, currentSeedDebt - deposit);
 
-    // 3. 更新农户主表
-    await db.collection('farmers').doc(farmerId).update({
-      data: {
-        acreage: newAcreage,
-        seedTotal: newSeedTotal,
-        receivableAmount: newReceivable,
-        deposit: newDeposit,
-        seedDebt: newSeedDebt,  // 同步更新种苗欠款
-        'stats.seedDebt': newSeedDebt,
-        updateTime: db.serverDate()
-      }
-    });
-
-    // 4. 生成业务记录编号
+    // 3. 生成业务记录编号
     const now = new Date();
     const recordId = `BIZ_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
 
-    // 5. 写入业务记录表
-    await db.collection('business_records').add({
-      data: {
-        recordId,
-        farmerId,
-        farmerName: farmer.name,
-        type: 'addendum',
+    // ==================== 事务操作开始 ====================
+    const transaction = await db.startTransaction();
 
-        // 追加内容
-        addedAcreage: acreage,
-        addedSeedTotal: seedTotal,
-        addedSeedUnitPrice: seedUnitPrice,
-        addedReceivable: receivable,
-        addedDeposit: deposit,
+    try {
+      // 4. 更新农户主表
+      await transaction.collection('farmers').doc(farmerId).update({
+        data: {
+          acreage: newAcreage,
+          seedTotal: newSeedTotal,
+          receivableAmount: newReceivable,
+          deposit: newDeposit,
+          seedDebt: newSeedDebt,  // 同步更新种苗欠款
+          'stats.seedDebt': newSeedDebt,
+          updateTime: db.serverDate()
+        }
+      });
 
-        // 追加后的快照
-        snapshotAcreage: newAcreage,
-        snapshotSeedTotal: newSeedTotal,
-        snapshotReceivable: newReceivable,
-        snapshotDeposit: newDeposit,
+      // 5. 写入业务记录表
+      await transaction.collection('business_records').add({
+        data: {
+          recordId,
+          farmerId,
+          farmerName: farmer.name,
+          type: 'addendum',
 
-        remark: remark || '',
-        createTime: db.serverDate(),
-        createBy: userId,
-        createByName: userName || ''
-      }
-    });
+          // 追加内容
+          addedAcreage: acreage,
+          addedSeedTotal: seedTotal,
+          addedSeedUnitPrice: seedUnitPrice,
+          addedReceivable: receivable,
+          addedDeposit: deposit,
+
+          // 追加后的快照
+          snapshotAcreage: newAcreage,
+          snapshotSeedTotal: newSeedTotal,
+          snapshotReceivable: newReceivable,
+          snapshotDeposit: newDeposit,
+
+          remark: remark || '',
+          createTime: db.serverDate(),
+          createBy: userId,
+          createByName: userName || ''
+        }
+      });
+
+      // 提交事务
+      await transaction.commit();
+    } catch (transactionError) {
+      // 事务失败，回滚
+      await transaction.rollback();
+      console.error('追加签约事务失败:', transactionError);
+      throw transactionError;
+    }
+    // ==================== 事务操作结束 ====================
 
     return {
       success: true,
@@ -646,56 +660,74 @@ async function addAdvancePayment(event) {
     const currentAdvance = farmer.advancePayment || 0;
     const newAdvancePayment = currentAdvance + paymentAmount;
 
-    // 3. 更新农户主表的预支款字段
-    await db.collection('farmers').doc(farmerId).update({
-      data: {
-        advancePayment: newAdvancePayment,
-        updateTime: db.serverDate()
-      }
-    });
-
-    // 4. 生成业务记录编号
+    // 3. 生成业务记录编号
     const now = new Date();
     const recordId = `ADV_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
 
-    // 5. 写入业务记录表
-    await db.collection('business_records').add({
-      data: {
-        recordId,
-        farmerId,
-        farmerName: farmer.name,
-        type: 'advance',  // 预支款类型
+    // ==================== 事务操作开始 ====================
+    const transaction = await db.startTransaction();
 
-        // 预支款信息
-        amount: paymentAmount,
-        paymentDate: paymentDate || now.toISOString().split('T')[0],
+    try {
+      // 4. 更新农户主表的预支款字段
+      await transaction.collection('farmers').doc(farmerId).update({
+        data: {
+          advancePayment: newAdvancePayment,
+          updateTime: db.serverDate()
+        }
+      });
 
-        // 余额快照（记录此次操作后的余额）
-        snapshotAdvancePayment: newAdvancePayment,
+      // 5. 写入业务记录表
+      await transaction.collection('business_records').add({
+        data: {
+          recordId,
+          farmerId,
+          farmerName: farmer.name,
+          type: 'advance',  // 预支款类型
 
-        remark: remark || '',
-        createTime: db.serverDate(),
-        createBy: userId,
-        createByName: userName || ''
-      }
-    });
+          // 预支款信息
+          amount: paymentAmount,
+          paymentDate: paymentDate || now.toISOString().split('T')[0],
 
-    // 6. 记录操作日志
-    await db.collection('operation_logs').add({
-      data: {
-        userId,
-        userName: userName || '',
-        userRole: 'assistant',
-        action: 'add_advance_payment',
-        module: 'farmer',
-        targetId: farmerId,
-        targetName: farmer.name,
-        description: `预支款 ¥${paymentAmount}，累计预支 ¥${newAdvancePayment}`,
-        before: { advancePayment: currentAdvance },
-        after: { advancePayment: newAdvancePayment },
-        createTime: db.serverDate()
-      }
-    });
+          // 余额快照（记录此次操作后的余额）
+          snapshotAdvancePayment: newAdvancePayment,
+
+          remark: remark || '',
+          createTime: db.serverDate(),
+          createBy: userId,
+          createByName: userName || ''
+        }
+      });
+
+      // 提交事务
+      await transaction.commit();
+    } catch (transactionError) {
+      // 事务失败，回滚
+      await transaction.rollback();
+      console.error('预支款登记事务失败:', transactionError);
+      throw transactionError;
+    }
+    // ==================== 事务操作结束 ====================
+
+    // 非核心操作：记录操作日志（事务外，失败不影响主流程）
+    try {
+      await db.collection('operation_logs').add({
+        data: {
+          userId,
+          userName: userName || '',
+          userRole: 'assistant',
+          action: 'add_advance_payment',
+          module: 'farmer',
+          targetId: farmerId,
+          targetName: farmer.name,
+          description: `预支款 ¥${paymentAmount}，累计预支 ¥${newAdvancePayment}`,
+          before: { advancePayment: currentAdvance },
+          after: { advancePayment: newAdvancePayment },
+          createTime: db.serverDate()
+        }
+      });
+    } catch (logError) {
+      console.error('预支款操作日志写入失败（不影响主流程）:', logError);
+    }
 
     return {
       success: true,
@@ -892,62 +924,80 @@ async function addAgriculturalSupply(event) {
       updateData.pesticideAmount = currentPesticide + totalAmount;
     }
 
-    // 3. 更新农户主表
-    await db.collection('farmers').doc(farmerId).update({
-      data: updateData
-    });
-
-    // 4. 生成业务记录编号
+    // 3. 生成业务记录编号
     const now = new Date();
     const prefix = type === 'fertilizer' ? 'FER' : 'PES';
     const recordId = `${prefix}_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
-
-    // 5. 写入业务记录表
-    await db.collection('business_records').add({
-      data: {
-        recordId,
-        farmerId,
-        farmerName: farmer.name,
-        type,  // fertilizer 或 pesticide
-
-        // 农资信息
-        name: name.trim(),
-        category: category || '',
-        quantity: qty,
-        unit: unit || (type === 'fertilizer' ? '袋' : '瓶'),
-        unitPrice: price,
-        totalAmount: totalAmount,
-        supplyDate: supplyDate || now.toISOString().split('T')[0],
-
-        // 余额快照
-        snapshotAgriDebt: newAgriDebt,
-        snapshotFertilizer: type === 'fertilizer' ? (currentFertilizer + totalAmount) : currentFertilizer,
-        snapshotPesticide: type === 'pesticide' ? (currentPesticide + totalAmount) : currentPesticide,
-
-        remark: remark || '',
-        createTime: db.serverDate(),
-        createBy: userId,
-        createByName: userName || ''
-      }
-    });
-
-    // 6. 记录操作日志
     const typeName = type === 'fertilizer' ? '化肥' : '农药';
-    await db.collection('operation_logs').add({
-      data: {
-        userId,
-        userName: userName || '',
-        userRole: 'assistant',
-        action: 'add_agricultural_supply',
-        module: 'farmer',
-        targetId: farmerId,
-        targetName: farmer.name,
-        description: `发放${typeName}：${name}，${qty}${unit || ''}，金额 ¥${totalAmount}，农资欠款累计 ¥${newAgriDebt}`,
-        before: { agriculturalDebt: currentAgriDebt },
-        after: { agriculturalDebt: newAgriDebt },
-        createTime: db.serverDate()
-      }
-    });
+
+    // ==================== 事务操作开始 ====================
+    const transaction = await db.startTransaction();
+
+    try {
+      // 4. 更新农户主表
+      await transaction.collection('farmers').doc(farmerId).update({
+        data: updateData
+      });
+
+      // 5. 写入业务记录表
+      await transaction.collection('business_records').add({
+        data: {
+          recordId,
+          farmerId,
+          farmerName: farmer.name,
+          type,  // fertilizer 或 pesticide
+
+          // 农资信息
+          name: name.trim(),
+          category: category || '',
+          quantity: qty,
+          unit: unit || (type === 'fertilizer' ? '袋' : '瓶'),
+          unitPrice: price,
+          totalAmount: totalAmount,
+          supplyDate: supplyDate || now.toISOString().split('T')[0],
+
+          // 余额快照
+          snapshotAgriDebt: newAgriDebt,
+          snapshotFertilizer: type === 'fertilizer' ? (currentFertilizer + totalAmount) : currentFertilizer,
+          snapshotPesticide: type === 'pesticide' ? (currentPesticide + totalAmount) : currentPesticide,
+
+          remark: remark || '',
+          createTime: db.serverDate(),
+          createBy: userId,
+          createByName: userName || ''
+        }
+      });
+
+      // 提交事务
+      await transaction.commit();
+    } catch (transactionError) {
+      // 事务失败，回滚
+      await transaction.rollback();
+      console.error('农资发放事务失败:', transactionError);
+      throw transactionError;
+    }
+    // ==================== 事务操作结束 ====================
+
+    // 非核心操作：记录操作日志（事务外，失败不影响主流程）
+    try {
+      await db.collection('operation_logs').add({
+        data: {
+          userId,
+          userName: userName || '',
+          userRole: 'assistant',
+          action: 'add_agricultural_supply',
+          module: 'farmer',
+          targetId: farmerId,
+          targetName: farmer.name,
+          description: `发放${typeName}：${name}，${qty}${unit || ''}，金额 ¥${totalAmount}，农资欠款累计 ¥${newAgriDebt}`,
+          before: { agriculturalDebt: currentAgriDebt },
+          after: { agriculturalDebt: newAgriDebt },
+          createTime: db.serverDate()
+        }
+      });
+    } catch (logError) {
+      console.error('农资发放操作日志写入失败（不影响主流程）:', logError);
+    }
 
     return {
       success: true,
