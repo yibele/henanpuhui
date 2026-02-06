@@ -1,124 +1,54 @@
 .dashboard-container {
   padding-bottom: 24px;
+  position: relative;
 }
 
+/* 欢迎区域 */
 .welcome-section {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  padding: 0 8px;
 }
 
 .welcome-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
   color: #1f1f1f;
   margin-bottom: 8px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .welcome-subtitle {
   color: #8c8c8c;
-  font-size: 14px;
+  font-size: 16px;
 }
 
-/* 统计卡片样式 */
-.stat-card {
-  height: 100%;
-  background: #fff;
+/* 现代卡片样式 */
+.modern-card {
+  background: #ffffff;
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s ease;
-  border: 1px solid #f0f0f0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-  border-color: transparent;
-}
-
-.stat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.stat-title {
-  font-size: 14px;
-  color: #8c8c8c;
-  font-weight: 500;
-}
-
-.stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  transition: all 0.3s;
-}
-
-.stat-content {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1f1f1f;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-}
-
-.stat-unit {
-  font-size: 14px;
-  color: #8c8c8c;
-}
-
-.stat-footer {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #f5f5f5;
-  font-size: 13px;
-  color: #8c8c8c;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* 颜色变体 */
-.theme-blue .stat-icon { background: #e6f7ff; color: #1890ff; }
-.theme-green .stat-icon { background: #f6ffed; color: #52c41a; }
-.theme-gold .stat-icon { background: #fffbe6; color: #faad14; }
-.theme-red .stat-icon { background: #fff1f0; color: #f5222d; }
-.theme-purple .stat-icon { background: #f9f0ff; color: #722ed1; }
-.theme-cyan .stat-icon { background: #e6fffb; color: #13c2c2; }
-.theme-orange .stat-icon { background: #fff7e6; color: #fa8c16; }
-
-/* 图表卡片 */
-.chart-card {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-  border: 1px solid #f0f0f0;
-  overflow: hidden;
   height: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.02);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.chart-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #f0f0f0;
+.modern-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* 卡片标题 */
+.card-header-flex {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
 }
 
-.chart-title {
+.card-title {
   font-size: 16px;
   font-weight: 600;
   color: #1f1f1f;
@@ -127,29 +57,97 @@
   gap: 8px;
 }
 
-.chart-title::before {
-  content: '';
-  display: block;
-  width: 4px;
-  height: 16px;
-  background: #1890ff;
-  border-radius: 2px;
+.card-title-icon {
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.chart-body {
-  padding: 24px;
+/* 概览数据卡片 - 顶部大卡片 */
+.overview-stat-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* 表格样式优化 */
-.custom-table .ant-table-thead > tr > th {
-  background: #fafafa;
+.overview-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f1f1f;
+  line-height: 1.2;
+  margin: 8px 0;
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.overview-label {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.overview-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f5f5f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.footer-value {
   font-weight: 600;
+  color: #595959;
 }
 
-.custom-table .ant-table-row {
-  transition: all 0.2s;
+/* 颜色变体 */
+.bg-blue-light { background: #e6f7ff; color: #1890ff; }
+.bg-green-light { background: #f6ffed; color: #52c41a; }
+.bg-purple-light { background: #f9f0ff; color: #722ed1; }
+.bg-orange-light { background: #fff7e6; color: #fa8c16; }
+
+/* 统计网格 */
+.stats-grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
-.custom-table .ant-table-row:hover {
-  background: #fbfbfb;
+.mini-stat-item {
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  transition: background 0.3s;
+}
+
+.mini-stat-item:hover {
+  background: #f0f5ff;
+}
+
+.mini-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f1f1f;
+  margin-bottom: 4px;
+}
+
+.mini-stat-label {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+/* 颜色辅助类 */
+.text-blue { color: #1890ff; }
+.text-green { color: #52c41a; }
+.text-purple { color: #722ed1; }
+.text-orange { color: #fa8c16; }
+.text-red { color: #f5222d; }
+
+/* 玻璃拟态装饰 - 可选 */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
 }

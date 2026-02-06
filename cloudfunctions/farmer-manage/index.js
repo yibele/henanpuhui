@@ -30,6 +30,15 @@ function generateFarmerId() {
   return `FAR_${year}${month}${day}_${random}`;
 }
 
+function buildFarmerLookupCondition(farmerId) {
+  const value = String(farmerId || '').trim();
+  if (!value) return null;
+  if (value.startsWith('FAR_')) {
+    return { farmerId: value };
+  }
+  return { _id: value };
+}
+
 /**
  * 创建农户档案
  */
@@ -140,6 +149,25 @@ async function createFarmer(event) {
       seedDebt: parseFloat(seedDebt) || 0,
       agriculturalDebt: 0,  // 农资款欠款
       advancePayment: 0,    // 预支款项
+      stats: {
+        // 发苗统计
+        totalSeedDistributed: 0,
+        totalSeedAmount: 0,
+        totalSeedArea: 0,
+        seedDistributionCount: 0,
+        lastSeedDistributionDate: null,
+
+        // 收购统计
+        totalAcquisitionCount: 0,
+        totalAcquisitionWeight: 0,
+        totalAcquisitionAmount: 0,
+
+        // 结算/欠款统计
+        totalPaidAmount: 0,
+        seedDebt: parseFloat(seedDebt) || 0,
+        agriculturalDebt: 0,
+        advancePayment: 0
+      },
       status: 'active',
       isDeleted: false,
       createBy: userId,
@@ -187,11 +215,20 @@ async function getFarmer(event) {
   }
 
   try {
+    const lookupCondition = buildFarmerLookupCondition(farmerId);
+    if (!lookupCondition) {
+      return {
+        success: false,
+        message: '缺少农户ID'
+      };
+    }
+
     const result = await db.collection('farmers')
       .where({
-        _id: farmerId,
+        ...lookupCondition,
         isDeleted: false
       })
+      .limit(1)
       .get();
 
     if (result.data.length === 0) {
@@ -750,6 +787,7 @@ async function addAdvancePayment(event) {
 /**
  * 获取农户发苗状态统计
  * 返回各状态的农户数量：all, pending, inProgress, completed
+ * 以及聚合统计：totalAcreage, totalSeedTotal, totalSeedDistributed
  */
 async function getFarmerStatusStats(event) {
   const { userId } = event;
@@ -800,13 +838,53 @@ async function getFarmerStatusStats(event) {
     // 统计未发苗（未完成 且 无发苗记录）
     const pendingCount = allCount.total - completedCount.total - inProgressCount.total;
 
+    // 聚合统计：总签约面积、签约种苗、已发种苗
+    let totalAcreage = 0;
+    let totalSeedTotal = 0;
+    let totalSeedDistributed = 0;
+
+    // 获取所有农户数据进行聚合（分批获取避免超限）
+    const batchSize = 100;
+    let skip = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+      const farmersRes = await db.collection('farmers')
+        .where(baseCondition)
+        .field({
+          acreage: true,
+          seedTotal: true,
+          'stats.totalSeedDistributed': true
+        })
+        .skip(skip)
+        .limit(batchSize)
+        .get();
+
+      if (farmersRes.data.length === 0) {
+        hasMore = false;
+      } else {
+        farmersRes.data.forEach(farmer => {
+          totalAcreage += (farmer.acreage || 0);
+          totalSeedTotal += (farmer.seedTotal || 0);
+          totalSeedDistributed += (farmer.stats?.totalSeedDistributed || 0);
+        });
+        skip += batchSize;
+        if (farmersRes.data.length < batchSize) {
+          hasMore = false;
+        }
+      }
+    }
+
     return {
       success: true,
       data: {
         all: allCount.total,
         pending: Math.max(0, pendingCount),
         inProgress: inProgressCount.total,
-        completed: completedCount.total
+        completed: completedCount.total,
+        totalAcreage: Number(totalAcreage.toFixed(2)),
+        totalSeedTotal: Number(totalSeedTotal.toFixed(2)),
+        totalSeedDistributed: Number(totalSeedDistributed.toFixed(2))
       }
     };
 
@@ -1088,14 +1166,15 @@ async function getBusinessRecords(event) {
   try {
     // 先获取农户信息，拿到 farmerId 编号
     let farmerCode = farmerId;
+    const lookupCondition = buildFarmerLookupCondition(farmerId);
 
-    const farmerRes = await db.collection('farmers')
-      .where(_.or([
-        { _id: farmerId },
-        { farmerId: farmerId }
-      ]))
-      .limit(1)
-      .get();
+    let farmerRes = { data: [] };
+    if (lookupCondition) {
+      farmerRes = await db.collection('farmers')
+        .where(lookupCondition)
+        .limit(1)
+        .get();
+    }
 
     if (farmerRes.data && farmerRes.data.length > 0) {
       farmerCode = farmerRes.data[0].farmerId || farmerId;

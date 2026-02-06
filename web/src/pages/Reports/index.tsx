@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { Row, Col, Card, Statistic, Table, DatePicker, Space, Button, Spin, message } from 'antd'
 import { DownloadOutlined } from '@ant-design/icons'
 import { settlementApi, acquisitionApi } from '../../services/cloudbase'
+import { useAuth } from '../../stores/AuthContext'
 import dayjs from 'dayjs'
 
 const { RangePicker } = DatePicker
 
 export default function Reports() {
+  const { userInfo } = useAuth()
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf('month'),
@@ -24,7 +26,7 @@ export default function Reports() {
 
   useEffect(() => {
     loadData()
-  }, [dateRange])
+  }, [dateRange, userInfo?.id])
 
   const loadData = async () => {
     setLoading(true)
@@ -33,7 +35,7 @@ export default function Reports() {
       const endDate = dateRange[1].format('YYYY-MM-DD')
 
       const [settlementRes, acquisitionRes] = await Promise.all([
-        settlementApi.getStatistics({ startDate, endDate }),
+        settlementApi.getStatistics({ startDate, endDate, userId: userInfo?.id }),
         acquisitionApi.getStats({ startDate, endDate }),
       ]) as any[]
 

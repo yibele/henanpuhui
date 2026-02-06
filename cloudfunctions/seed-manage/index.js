@@ -122,38 +122,9 @@ async function distributeSeed(event) {
 
         // 3. 生成记录编号
         const recordId = generateRecordId();
+        const bizRecordId = `BIZ_${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
 
-        // 4. 写入种苗发放记录表
-        await db.collection('seed_records').add({
-            data: {
-                recordId,
-                farmerId,
-                farmerName: farmer.name,
-                farmerPhone: farmer.phone,
-
-                // 发放信息
-                quantity: qty,
-                unitPrice: price,
-                amount: seedAmount,
-                distributedArea: area,   // 已发放面积
-
-                // 领取信息
-                receiverName: receiverName || farmer.name,
-                receiveLocation: receiveLocation || '',
-                managerName: managerName || userName || '',
-
-                // 其他信息
-                distributionDate: distributionDate || new Date().toISOString().split('T')[0],
-                remark: remark || '',
-
-                // 操作信息
-                createTime: db.serverDate(),
-                createBy: userId,
-                createByName: userName || ''
-            }
-        });
-
-        // 5. 更新农户统计（累计发放数量、金额和面积）
+        // 4. 计算农户统计更新值
         const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
         const currentArea = farmer.stats?.totalSeedArea || 0;
@@ -161,47 +132,90 @@ async function distributeSeed(event) {
         const currentSeedDebt = farmer.seedDebt || 0;
         const newSeedDebt = Math.max(0, currentSeedDebt + seedAmount);
 
-        await db.collection('farmers').doc(farmerId).update({
-            data: {
-                'stats.totalSeedDistributed': currentDistributed + qty,
-                'stats.totalSeedAmount': currentAmount + seedAmount,
-                'stats.totalSeedArea': currentArea + area,  // 累加已发面积
-                'stats.seedDistributionCount': currentCount + 1, // 累计发苗次数
-                'stats.lastSeedDistributionDate': db.serverDate(),
-                seedDebt: newSeedDebt,
-                'stats.seedDebt': newSeedDebt,
-                updateTime: db.serverDate()
-            }
-        });
+        // ==================== 事务操作开始 ====================
+        const transaction = await db.startTransaction();
 
-        // 6. 同时写入业务记录表（便于统一展示）
-        const bizRecordId = `BIZ_${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+        try {
+            // 5. 写入种苗发放记录表
+            await transaction.collection('seed_records').add({
+                data: {
+                    recordId,
+                    farmerId,
+                    farmerName: farmer.name,
+                    farmerPhone: farmer.phone,
 
-        await db.collection('business_records').add({
-            data: {
-                recordId: bizRecordId,
-                farmerId,
-                farmerName: farmer.name,
-                type: 'seed',
+                    // 发放信息
+                    quantity: qty,
+                    unitPrice: price,
+                    amount: seedAmount,
+                    distributedArea: area,   // 已发放面积
 
-                // 发放内容
-                quantity: qty,
-                unit: '万株',
-                unitPrice: price,
-                totalAmount: seedAmount,
-                distributedArea: area,  // 已发面积
+                    // 领取信息
+                    receiverName: receiverName || farmer.name,
+                    receiveLocation: receiveLocation || '',
+                    managerName: managerName || userName || '',
 
-                // 领取信息
-                receiverName: receiverName || farmer.name,
-                receiveLocation: receiveLocation || '',
-                managerName: managerName || userName || '',
+                    // 其他信息
+                    distributionDate: distributionDate || new Date().toISOString().split('T')[0],
+                    remark: remark || '',
 
-                remark: remark || '',
-                createTime: db.serverDate(),
-                createBy: userId,
-                createByName: userName || ''
-            }
-        });
+                    // 操作信息
+                    createTime: db.serverDate(),
+                    createBy: userId,
+                    createByName: userName || ''
+                }
+            });
+
+            // 6. 更新农户统计（累计发放数量、金额和面积）
+            await transaction.collection('farmers').doc(farmerId).update({
+                data: {
+                    'stats.totalSeedDistributed': currentDistributed + qty,
+                    'stats.totalSeedAmount': currentAmount + seedAmount,
+                    'stats.totalSeedArea': currentArea + area,  // 累加已发面积
+                    'stats.seedDistributionCount': currentCount + 1, // 累计发苗次数
+                    'stats.lastSeedDistributionDate': db.serverDate(),
+                    seedDebt: newSeedDebt,
+                    'stats.seedDebt': newSeedDebt,
+                    updateTime: db.serverDate()
+                }
+            });
+
+            // 7. 同时写入业务记录表（便于统一展示）
+            await transaction.collection('business_records').add({
+                data: {
+                    recordId: bizRecordId,
+                    farmerId,
+                    farmerName: farmer.name,
+                    type: 'seed',
+
+                    // 发放内容
+                    quantity: qty,
+                    unit: '万株',
+                    unitPrice: price,
+                    totalAmount: seedAmount,
+                    distributedArea: area,  // 已发面积
+
+                    // 领取信息
+                    receiverName: receiverName || farmer.name,
+                    receiveLocation: receiveLocation || '',
+                    managerName: managerName || userName || '',
+
+                    remark: remark || '',
+                    createTime: db.serverDate(),
+                    createBy: userId,
+                    createByName: userName || ''
+                }
+            });
+
+            // 提交事务
+            await transaction.commit();
+        } catch (transactionError) {
+            // 事务失败，回滚
+            await transaction.rollback();
+            console.error('发苗事务失败:', transactionError);
+            throw transactionError;
+        }
+        // ==================== 事务操作结束 ====================
 
         return {
             success: true,
@@ -492,23 +506,8 @@ async function updateSeedRecord(event) {
         const diffAmount = (data.amount || 0) - (old.amount || 0);
         const diffArea = (data.distributedArea || 0) - (old.distributedArea || 0);
 
-        // 3. 更新记录
-        await db.collection('seed_records').doc(recordId).update({
-            data: {
-                quantity: data.quantity,
-                unitPrice: data.unitPrice,
-                amount: data.amount,
-                distributedArea: data.distributedArea,
-                distributionDate: data.distributionDate,
-                receiverName: data.receiverName,
-                receiveLocation: data.receiveLocation,
-                managerName: data.managerName,
-                remark: data.remark,
-                updateTime: db.serverDate()
-            }
-        });
-
-        // 4. 同步更新农户统计（如果有差值）
+        // 3. 获取农户信息（如果有差值需要更新）
+        let farmerUpdateData = null;
         if (diffQuantity !== 0 || diffAmount !== 0 || diffArea !== 0) {
             const farmerRes = await db.collection('farmers').doc(farmerId).get();
             if (!farmerRes.data) {
@@ -524,17 +523,52 @@ async function updateSeedRecord(event) {
             const currentSeedDebt = farmer.seedDebt || 0;
             const newSeedDebt = Math.max(0, currentSeedDebt + diffAmount);
 
-            await db.collection('farmers').doc(farmerId).update({
+            farmerUpdateData = {
+                'stats.totalSeedDistributed': currentDistributed + diffQuantity,
+                'stats.totalSeedAmount': currentAmount + diffAmount,
+                'stats.totalSeedArea': currentArea + diffArea,
+                seedDebt: newSeedDebt,
+                'stats.seedDebt': newSeedDebt,
+                updateTime: db.serverDate()
+            };
+        }
+
+        // ==================== 事务操作开始 ====================
+        const transaction = await db.startTransaction();
+
+        try {
+            // 4. 更新发苗记录
+            await transaction.collection('seed_records').doc(recordId).update({
                 data: {
-                    'stats.totalSeedDistributed': currentDistributed + diffQuantity,
-                    'stats.totalSeedAmount': currentAmount + diffAmount,
-                    'stats.totalSeedArea': currentArea + diffArea,
-                    seedDebt: newSeedDebt,
-                    'stats.seedDebt': newSeedDebt,
+                    quantity: data.quantity,
+                    unitPrice: data.unitPrice,
+                    amount: data.amount,
+                    distributedArea: data.distributedArea,
+                    distributionDate: data.distributionDate,
+                    receiverName: data.receiverName,
+                    receiveLocation: data.receiveLocation,
+                    managerName: data.managerName,
+                    remark: data.remark,
                     updateTime: db.serverDate()
                 }
             });
+
+            // 5. 同步更新农户统计（如果有差值）
+            if (farmerUpdateData) {
+                await transaction.collection('farmers').doc(farmerId).update({
+                    data: farmerUpdateData
+                });
+            }
+
+            // 提交事务
+            await transaction.commit();
+        } catch (transactionError) {
+            // 事务失败，回滚
+            await transaction.rollback();
+            console.error('更新发苗记录事务失败:', transactionError);
+            throw transactionError;
         }
+        // ==================== 事务操作结束 ====================
 
         return {
             success: true,
@@ -601,10 +635,7 @@ async function deleteSeedRecord(event) {
         const amount = old.amount || 0;
         const area = old.distributedArea || 0;
 
-        // 2. 删除记录
-        await db.collection('seed_records').doc(recordId).remove();
-
-        // 3. 同步减少农户统计
+        // 2. 获取农户信息，计算更新值
         const farmerRes = await db.collection('farmers').doc(farmerId).get();
         if (!farmerRes.data) {
             return {
@@ -620,17 +651,35 @@ async function deleteSeedRecord(event) {
         const currentSeedDebt = farmer.seedDebt || 0;
         const newSeedDebt = Math.max(0, currentSeedDebt - amount);
 
-        await db.collection('farmers').doc(farmerId).update({
-            data: {
-                'stats.totalSeedDistributed': currentDistributed - quantity,
-                'stats.totalSeedAmount': currentAmount - amount,
-                'stats.totalSeedArea': currentArea - area,
-                'stats.seedDistributionCount': Math.max(0, currentCount - 1),
-                seedDebt: newSeedDebt,
-                'stats.seedDebt': newSeedDebt,
-                updateTime: db.serverDate()
-            }
-        });
+        // ==================== 事务操作开始 ====================
+        const transaction = await db.startTransaction();
+
+        try {
+            // 3. 删除发苗记录
+            await transaction.collection('seed_records').doc(recordId).remove();
+
+            // 4. 同步减少农户统计
+            await transaction.collection('farmers').doc(farmerId).update({
+                data: {
+                    'stats.totalSeedDistributed': currentDistributed - quantity,
+                    'stats.totalSeedAmount': currentAmount - amount,
+                    'stats.totalSeedArea': currentArea - area,
+                    'stats.seedDistributionCount': Math.max(0, currentCount - 1),
+                    seedDebt: newSeedDebt,
+                    'stats.seedDebt': newSeedDebt,
+                    updateTime: db.serverDate()
+                }
+            });
+
+            // 提交事务
+            await transaction.commit();
+        } catch (transactionError) {
+            // 事务失败，回滚
+            await transaction.rollback();
+            console.error('删除发苗记录事务失败:', transactionError);
+            throw transactionError;
+        }
+        // ==================== 事务操作结束 ====================
 
         return {
             success: true,

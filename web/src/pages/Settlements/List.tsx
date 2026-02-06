@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Table, Input, Card, Tag, Space, Tabs } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { settlementApi } from '../../services/cloudbase'
+import { useAuth } from '../../stores/AuthContext'
 import type { ColumnsType } from 'antd/es/table'
 
 interface Settlement {
@@ -26,6 +27,7 @@ const STATUS_MAP: Record<string, { text: string; color: string }> = {
 
 export default function SettlementList() {
   const navigate = useNavigate()
+  const { userInfo } = useAuth()
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<Settlement[]>([])
   const [total, setTotal] = useState(0)
@@ -36,14 +38,16 @@ export default function SettlementList() {
 
   useEffect(() => {
     loadData()
-  }, [page, pageSize, status])
+  }, [page, pageSize, status, userInfo?.id])
 
   const loadData = async () => {
+    if (!userInfo?.id) return
     setLoading(true)
     try {
       const result = await settlementApi.list({
         page,
         pageSize,
+        userId: userInfo?.id,
         keyword,
         status: status || undefined,
       }) as any
@@ -156,7 +160,7 @@ export default function SettlementList() {
           />
         </Space>
         <Table
-          rowKey="_id"
+          rowKey="settlementId"
           columns={columns}
           dataSource={data}
           loading={loading}
@@ -172,7 +176,7 @@ export default function SettlementList() {
             },
           }}
           onRow={(record) => ({
-            onClick: () => navigate(`/settlements/${record._id}`),
+            onClick: () => navigate(`/settlements/${record.settlementId}`),
             style: { cursor: 'pointer' },
           })}
         />

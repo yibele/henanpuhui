@@ -119,7 +119,7 @@ export default function AcquisitionForm() {
     setSubmitLoading(true)
     try {
       const data = {
-        farmerId: selectedFarmer._id,
+        farmerId: selectedFarmer.farmerId || selectedFarmer._id,
         farmerName: selectedFarmer.name,
         farmerPhone: selectedFarmer.phone,
         grossWeight: values.grossWeight,

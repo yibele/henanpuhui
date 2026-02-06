@@ -132,11 +132,15 @@ Page({
 
     try {
       const userInfo = reportApp.globalData.userInfo;
+      const userId = userInfo?.id || userInfo?._id || '';
+      if (!userId) {
+        throw new Error('请先登录');
+      }
       const res = await wx.cloud.callFunction({
         name: 'settlement-manage',
         data: {
           action: 'list',
-          userId: userInfo?._id || '',
+          userId,
           page,
           pageSize: PAGE_SIZE,
           status: 'completed',  // 只查已完成的

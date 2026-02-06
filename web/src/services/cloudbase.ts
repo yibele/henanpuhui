@@ -173,45 +173,45 @@ export const settlementApi = {
     callFunction('settlement-manage', { action: 'list', ...params }),
 
   // 获取结算详情
-  get: (settlementId: string) =>
-    callFunction('settlement-manage', { action: 'get', settlementId }),
+  get: (settlementId: string, userId?: string) =>
+    callFunction('settlement-manage', { action: 'get', settlementId, userId }),
 
   // 获取统计数据
-  getStatistics: (params: { startDate?: string; endDate?: string }) =>
+  getStatistics: (params: { startDate?: string; endDate?: string; userId?: string }) =>
     callFunction('settlement-manage', { action: 'getStatistics', ...params }),
 
   // 获取出纳统计
-  getCashierStats: () =>
-    callFunction('settlement-manage', { action: 'getCashierStats' }),
+  getCashierStats: (userId?: string) =>
+    callFunction('settlement-manage', { action: 'getCashierStats', userId }),
 
   // 会计审核通过
-  audit: (settlementId: string, userId: string, userName: string) =>
+  audit: (settlementId: string, userId: string, auditRemark?: string) =>
     callFunction('settlement-manage', {
       action: 'audit',
       settlementId,
       userId,
-      userName,
+      approved: true,
+      auditRemark,
     }),
 
   // 会计驳回
-  reject: (settlementId: string, userId: string, userName: string, reason: string) =>
+  reject: (settlementId: string, userId: string, reason: string) =>
     callFunction('settlement-manage', {
-      action: 'reject',
+      action: 'audit',
       settlementId,
       userId,
-      userName,
-      reason,
+      approved: false,
+      auditRemark: reason,
     }),
 
   // 出纳付款
-  pay: (settlementId: string, userId: string, userName: string, paymentMethod: string, remark?: string) =>
+  pay: (settlementId: string, userId: string, paymentMethod: string, paymentRemark?: string) =>
     callFunction('settlement-manage', {
-      action: 'pay',
+      action: 'completePayment',
       settlementId,
       userId,
-      userName,
       paymentMethod,
-      remark,
+      paymentRemark,
     }),
 }
 

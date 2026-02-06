@@ -20,11 +20,11 @@ interface SettlementDetail {
   status: string
   createTime: string
   auditTime?: string
-  auditBy?: string
-  payTime?: string
-  payBy?: string
+  auditorName?: string
+  paymentTime?: string
+  cashierName?: string
   paymentMethod?: string
-  remark?: string
+  paymentRemark?: string
 }
 
 const STATUS_MAP: Record<string, { text: string; color: string }> = {
@@ -67,11 +67,15 @@ export default function SettlementDetail() {
   const loadDetail = async (settlementId: string) => {
     setLoading(true)
     try {
-      const result = await settlementApi.get(settlementId) as any
+      const result = await settlementApi.get(settlementId, userInfo?.id) as any
       if (result.success) {
-        setDetail(result.data)
+        const raw = result.data?.settlement || result.data || {}
+        setDetail({
+          ...raw,
+          status: raw.status || raw.auditStatus || 'pending',
+        })
       } else {
-        message.error(result.message || '加载失败')
+        message.error(result.errMsg || result.message || '加载失败')
       }
     } catch (error) {
       console.error('加载结算详情失败:', error)
@@ -91,12 +95,12 @@ export default function SettlementDetail() {
       onOk: async () => {
         setActionLoading(true)
         try {
-          const result = await settlementApi.audit(detail._id, userInfo.id, userInfo.name) as any
+          const result = await settlementApi.audit(detail.settlementId, userInfo.id) as any
           if (result.success) {
             message.success('审核通过')
-            loadDetail(detail._id)
+            loadDetail(detail.settlementId)
           } else {
-            message.error(result.message || '操作失败')
+            message.error(result.errMsg || result.message || '操作失败')
           }
         } catch (error) {
           console.error('审核失败:', error)
@@ -117,14 +121,14 @@ export default function SettlementDetail() {
 
     setActionLoading(true)
     try {
-      const result = await settlementApi.reject(detail._id, userInfo.id, userInfo.name, rejectReason) as any
+      const result = await settlementApi.reject(detail.settlementId, userInfo.id, rejectReason) as any
       if (result.success) {
         message.success('已驳回')
         setRejectModalVisible(false)
         setRejectReason('')
-        loadDetail(detail._id)
+        loadDetail(detail.settlementId)
       } else {
-        message.error(result.message || '操作失败')
+        message.error(result.errMsg || result.message || '操作失败')
       }
     } catch (error) {
       console.error('驳回失败:', error)
@@ -140,14 +144,14 @@ export default function SettlementDetail() {
 
     setActionLoading(true)
     try {
-      const result = await settlementApi.pay(detail._id, userInfo.id, userInfo.name, paymentMethod, payRemark) as any
+      const result = await settlementApi.pay(detail.settlementId, userInfo.id, paymentMethod, payRemark) as any
       if (result.success) {
         message.success('付款成功')
         setPayModalVisible(false)
         setPayRemark('')
-        loadDetail(detail._id)
+        loadDetail(detail.settlementId)
       } else {
-        message.error(result.message || '操作失败')
+        message.error(result.errMsg || result.message || '操作失败')
       }
     } catch (error) {
       console.error('付款失败:', error)
@@ -249,8 +253,8 @@ export default function SettlementDetail() {
               {new Date(detail.auditTime).toLocaleString('zh-CN')}
             </Descriptions.Item>
           )}
-          {detail.auditBy && (
-            <Descriptions.Item label="审核人">{detail.auditBy}</Descriptions.Item>
+          {detail.auditorName && (
+            <Descriptions.Item label="审核人">{detail.auditorName}</Descriptions.Item>
           )}
         </Descriptions>
       </Card>
@@ -296,12 +300,12 @@ export default function SettlementDetail() {
             <Descriptions.Item label="付款方式">
               {PAYMENT_METHODS[detail.paymentMethod || ''] || detail.paymentMethod || '-'}
             </Descriptions.Item>
-            <Descriptions.Item label="付款人">{detail.payBy || '-'}</Descriptions.Item>
-            <Descriptions.Item label="付款时间">
-              {detail.payTime ? new Date(detail.payTime).toLocaleString('zh-CN') : '-'}
-            </Descriptions.Item>
-            {detail.remark && (
-              <Descriptions.Item label="备注">{detail.remark}</Descriptions.Item>
+              <Descriptions.Item label="付款人">{detail.cashierName || '-'}</Descriptions.Item>
+              <Descriptions.Item label="付款时间">
+                {detail.paymentTime ? new Date(detail.paymentTime).toLocaleString('zh-CN') : '-'}
+              </Descriptions.Item>
+            {detail.paymentRemark && (
+              <Descriptions.Item label="备注">{detail.paymentRemark}</Descriptions.Item>
             )}
           </Descriptions>
         </Card>

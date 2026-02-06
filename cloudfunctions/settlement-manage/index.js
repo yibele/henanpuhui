@@ -129,8 +129,21 @@ async function listSettlements(event, context) {
         .get();
     }
 
-    // 如果找不到用户，直接返回空列表（允许查看但没有权限限制）
     const currentUser = userRes && userRes.data.length > 0 ? userRes.data[0] : null;
+    if (!currentUser) {
+      return {
+        success: false,
+        errMsg: '用户不存在或未登录'
+      };
+    }
+
+    // 仅仓管/会计/出纳/管理员可查看结算列表
+    if (!['warehouse_manager', 'finance_admin', 'cashier', 'admin'].includes(currentUser.role)) {
+      return {
+        success: false,
+        errMsg: '无权限查看结算单列表'
+      };
+    }
 
     // 构建查询条件
     let whereCondition = {};

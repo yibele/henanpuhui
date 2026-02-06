@@ -66,6 +66,15 @@ function normalizeYmd(input) {
   return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+function buildFarmerLookupCondition(farmerId) {
+  const value = String(farmerId || '').trim();
+  if (!value) return null;
+  if (value.startsWith('FAR_')) {
+    return { farmerId: value };
+  }
+  return { _id: value };
+}
+
 /**
  * 分批拉取全部数据（避免 get() 默认/上限返回导致统计不准）
  */
@@ -163,8 +172,20 @@ async function createAcquisition(event, context) {
     }
 
     // 获取农户信息
+    const farmerLookupCondition = buildFarmerLookupCondition(farmerId);
+    if (!farmerLookupCondition) {
+      return {
+        success: false,
+        errMsg: '缺少农户ID'
+      };
+    }
+
     const farmerRes = await db.collection('farmers')
-      .where({ farmerId, status: 'active' })
+      .where({
+        ...farmerLookupCondition,
+        status: 'active'
+      })
+      .limit(1)
       .get();
 
     if (farmerRes.data.length === 0) {
