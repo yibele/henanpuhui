@@ -85,6 +85,14 @@ Page({
     depositAction: '' as 'add' | 'reduce',
     depositInputValue: '',
 
+    // ========== 定金退还 ==========
+    canReturnDeposit: false,       // 是否有退还定金权限（出纳/管理员）
+    depositReturnPopupVisible: false,
+    depositReturnForm: {
+      method: 'cash' as string,
+      remark: ''
+    },
+
     // ========== 面积管理（追加签约信息） ==========
     acreagePopupVisible: false,
     acreageForm: {
@@ -135,7 +143,9 @@ Page({
   checkUserRole() {
     const userRole = app.globalData.userRole;
     const isFinanceAdmin = userRole === UserRole.FINANCE_ADMIN;
-    this.setData({ isFinanceAdmin });
+    // 出纳和管理员可以退还定金
+    const canReturnDeposit = userRole === 'cashier' || userRole === 'admin';
+    this.setData({ isFinanceAdmin, canReturnDeposit });
   },
 
   /**
@@ -185,7 +195,10 @@ Page({
           pesticideAmount: farmerData.pesticideAmount || 0,     // 农药金额
           agriculturalDebt: farmerData.agriculturalDebt || 0,   // 农资欠款
           // 预支款
-          advancePayment: farmerData.advancePayment || 0        // 预支款余额
+          advancePayment: farmerData.advancePayment || 0,       // 预支款余额
+          // 定金退还状态
+          depositReturned: farmerData.depositReturned || false,
+          depositReturnedAmount: farmerData.depositReturnedAmount || 0
         };
 
         this.setData({ farmer });
@@ -278,7 +291,8 @@ Page({
       'acquisition': '收购入库',
       'settlement': '结算',
       'settlement_audit': '结算审核',
-      'payment': '结算付款'
+      'payment': '结算付款',
+      'deposit_return': '定金退还'
     };
     return typeNames[type] || '业务记录';
   },
@@ -307,6 +321,8 @@ Page({
         return record.desc || `货款¥${record.grossAmount || record.amount || 0}`;
       case 'payment':
         return record.desc || `实付¥${record.amount || 0}`;
+      case 'deposit_return':
+        return record.desc || `退还定金¥${record.amount || 0}`;
       default:
         return record.desc || record.remark || '';
     }
@@ -998,6 +1014,91 @@ Page({
     } catch (error: any) {
       wx.hideLoading();
       console.error('追加签约失败:', error);
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+    }
+  },
+
+  // ==================== 定金退还 ====================
+
+  onOpenDepositReturnPopup() {
+    this.setData({
+      depositReturnPopupVisible: true,
+      depositReturnForm: { method: 'cash', remark: '' }
+    });
+  },
+
+  onCloseDepositReturnPopup() {
+    this.setData({ depositReturnPopupVisible: false });
+  },
+
+  onDepositReturnMethodTap(e: WechatMiniprogram.TouchEvent) {
+    const method = e.currentTarget.dataset.method;
+    this.setData({ 'depositReturnForm.method': method });
+  },
+
+  onDepositReturnRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'depositReturnForm.remark': e.detail.value });
+  },
+
+  async onSubmitDepositReturn() {
+    const { farmer, farmerId, depositReturnForm } = this.data;
+    if (!farmer) return;
+
+    const depositAmount = farmer.deposit || 0;
+    if (depositAmount <= 0) {
+      wx.showToast({ title: '无可退还定金', icon: 'none' });
+      return;
+    }
+
+    // 二次确认
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '确认退还定金',
+        content: `确认退还农户「${farmer.name}」定金 ¥${depositAmount}？此操作不可撤销。`,
+        confirmText: '确认退还',
+        confirmColor: '#059669',
+        cancelText: '取消',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+
+    if (!confirmed) return;
+
+    wx.showLoading({ title: '处理中...' });
+
+    try {
+      const userInfo = (app.globalData as any)?.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+      const userName = userInfo.name || '出纳';
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'returnDeposit',
+          userId,
+          userName,
+          farmerId: farmer.id || farmerId,
+          data: {
+            paymentMethod: depositReturnForm.method,
+            remark: depositReturnForm.remark
+          }
+        }
+      });
+
+      wx.hideLoading();
+      const result = res.result as any;
+
+      if (result.success) {
+        wx.showToast({ title: '定金退还成功', icon: 'success' });
+        this.setData({ depositReturnPopupVisible: false });
+        // 刷新页面数据
+        this.loadFarmerDetail(farmer.id || farmerId);
+      } else {
+        wx.showToast({ title: result.message || '操作失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('定金退还失败:', error);
       wx.showToast({ title: '网络错误，请重试', icon: 'none' });
     }
   }

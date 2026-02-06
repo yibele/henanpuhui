@@ -365,15 +365,10 @@ async function auditSettlement(event, context) {
       const acquisitionAmount = settlement.acquisitionAmount || settlement.grossAmount || 0; // 收购货款
 
       // 2. 读取当前欠款余额
-      // 种苗欠款 = 实际发苗金额 - 定金
-      const deposit = farmer.deposit || 0;
-      const seedDebtFromField = Number.isFinite(farmer.seedDebt) ? farmer.seedDebt : null;
-      const totalSeedAmount = Number.isFinite(farmer.stats?.totalSeedAmount)
-        ? farmer.stats.totalSeedAmount
-        : (Number.isFinite(farmer.receivableAmount) ? farmer.receivableAmount : 0);
-      const currentSeedDebt = seedDebtFromField !== null
-        ? Math.max(0, seedDebtFromField)
-        : Math.max(0, totalSeedAmount - deposit);
+      // 种苗欠款 = 累计发苗金额 - 结算已扣（定金独立管理，不参与种苗欠款计算）
+      const currentSeedDebt = Number.isFinite(farmer.seedDebt)
+        ? Math.max(0, farmer.seedDebt)
+        : Math.max(0, farmer.stats?.totalSeedAmount || farmer.receivableAmount || 0);
       const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;  // 农资欠款
       const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;  // 预付款
 
@@ -989,15 +984,10 @@ async function recalculateSettlement(event) {
 
     // 计算各项扣款
     const grossAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;  // 收购总额
-    // 种苗欠款 = 实际发苗金额 - 定金
-    const deposit = farmer.deposit || 0;
-    const seedDebtFromField = Number.isFinite(farmer.seedDebt) ? farmer.seedDebt : null;
-    const totalSeedAmount = Number.isFinite(farmer.stats?.totalSeedAmount)
-      ? farmer.stats.totalSeedAmount
-      : (Number.isFinite(farmer.receivableAmount) ? farmer.receivableAmount : 0);
-    const seedDebt = seedDebtFromField !== null
-      ? Math.max(0, seedDebtFromField)
-      : Math.max(0, totalSeedAmount - deposit);
+    // 种苗欠款 = 累计发苗金额 - 结算已扣（定金独立管理，不参与种苗欠款计算）
+    const seedDebt = Number.isFinite(farmer.seedDebt)
+      ? Math.max(0, farmer.seedDebt)
+      : Math.max(0, farmer.stats?.totalSeedAmount || farmer.receivableAmount || 0);
     const agriDebt = parseFloat(agriculturalDebt) || farmer.agriculturalDebt || 0;  // 农资款
     const advPay = parseFloat(advancePayment) || farmer.advancePayment || 0;        // 预支款
 
@@ -1214,15 +1204,10 @@ async function previewDeduction(event) {
     const acquisitionAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;
 
     // 读取当前欠款余额
-    // 种苗欠款 = 实际发苗金额 - 定金
-    const deposit = farmer.deposit || 0;
-    const seedDebtFromField = Number.isFinite(farmer.seedDebt) ? farmer.seedDebt : null;
-    const totalSeedAmount = Number.isFinite(farmer.stats?.totalSeedAmount)
-      ? farmer.stats.totalSeedAmount
-      : (Number.isFinite(farmer.receivableAmount) ? farmer.receivableAmount : 0);
-    const currentSeedDebt = seedDebtFromField !== null
-      ? Math.max(0, seedDebtFromField)
-      : Math.max(0, totalSeedAmount - deposit);
+    // 种苗欠款 = 累计发苗金额 - 结算已扣（定金独立管理，不参与种苗欠款计算）
+    const currentSeedDebt = Number.isFinite(farmer.seedDebt)
+      ? Math.max(0, farmer.seedDebt)
+      : Math.max(0, farmer.stats?.totalSeedAmount || farmer.receivableAmount || 0);
     const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;
     const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;
 
@@ -1406,11 +1391,11 @@ async function backfillFarmersSeedDebt(event) {
   let updated = 0;
   for (const doc of list) {
     if (isFiniteNumber(doc.seedDebt)) continue;
-    const deposit = doc.deposit || 0;
+    // 种苗欠款 = 累计发苗金额（定金独立管理，不参与种苗欠款计算）
     const baseReceivable = isFiniteNumber(doc.stats?.totalSeedAmount)
       ? doc.stats.totalSeedAmount
       : (isFiniteNumber(doc.receivableAmount) ? doc.receivableAmount : 0);
-    const newSeedDebt = Math.max(0, baseReceivable - deposit);
+    const newSeedDebt = Math.max(0, baseReceivable);
 
     const updateData = {
       seedDebt: newSeedDebt,

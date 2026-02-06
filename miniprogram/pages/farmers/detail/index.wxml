@@ -7,19 +7,14 @@
     <!-- 1. 顶部身份卡片 -->
     <view class="profile-header">
       <view class="profile-main">
-        <view class="avatar-area">
-          <view class="avatar-circle grade-bg-{{farmer.grade}}">
-            <text class="avatar-text">{{farmer.name[0]}}</text>
-          </view>
-          <view class="grade-tag grade-tag-{{farmer.grade}}">
-            <text wx:if="{{farmer.grade === 'gold'}}">金牌农户</text>
-            <text wx:elif="{{farmer.grade === 'silver'}}">银牌农户</text>
-            <text wx:else>铜牌农户</text>
-          </view>
-        </view>
         <view class="info-area">
           <view class="name-row">
             <text class="name-text">{{farmer.name}}</text>
+            <view class="grade-tag grade-tag-{{farmer.grade}}">
+              <text wx:if="{{farmer.grade === 'gold'}}">金牌农户</text>
+              <text wx:elif="{{farmer.grade === 'silver'}}">银牌农户</text>
+              <text wx:else>铜牌农户</text>
+            </view>
             <text class="phone-text">{{farmer.phone}}</text>
             <view class="call-btn" bindtap="onCallTap">
               <t-icon name="call" size="32rpx" color="#059669" />
@@ -28,7 +23,7 @@
           <view class="meta-row">
             <text class="meta-item">编码: {{farmer.customerCode}}</text>
             <text class="meta-divider">|</text>
-            <text class="meta-item">负责人: {{farmer.manager || '无'}}</text>
+            <text class="meta-item">录入人: {{farmer.salesmanName || farmer.manager || '无'}}</text>
           </view>
           <view class="address-row">
             <t-icon name="location" size="24rpx" color="#9ca3af" />
@@ -139,6 +134,26 @@
         <view class="stat-item">
           <text class="stat-value stat-orange">¥{{farmer.advancePayment || 0}}</text>
           <text class="stat-label">预支款</text>
+        </view>
+      </view>
+
+      <!-- 定金退还状态（出纳/管理员可见） -->
+      <view class="section-title-row section-title-row-mt" wx:if="{{canReturnDeposit || farmer.depositReturned}}">
+        <text class="section-title-text">定金状态</text>
+      </view>
+      <view class="stats-row" wx:if="{{farmer.depositReturned}}">
+        <view class="stat-item" style="flex: 1;">
+          <text class="stat-value stat-green">¥{{farmer.depositReturnedAmount || farmer.deposit || 0}} 已退还</text>
+          <text class="stat-label">定金已退还</text>
+        </view>
+      </view>
+      <view wx:elif="{{canReturnDeposit && farmer.deposit > 0}}" class="deposit-return-bar">
+        <view class="deposit-return-info">
+          <text class="deposit-return-label">待退定金</text>
+          <text class="deposit-return-amount">¥{{farmer.deposit}}</text>
+        </view>
+        <view class="deposit-return-btn" bindtap="onOpenDepositReturnPopup">
+          <text>退还定金</text>
         </view>
       </view>
     </view>
@@ -425,6 +440,42 @@
       <view class="popup-footer-bar">
         <button class="btn-cancel" bindtap="onCloseFertilizerPopup">取消</button>
         <button class="btn-confirm" bindtap="onSubmitFertilizer">确认发放</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- 定金退还弹窗 -->
+  <t-popup visible="{{depositReturnPopupVisible}}" placement="bottom" bind:visible-change="onCloseDepositReturnPopup">
+    <view class="popup-container">
+      <view class="popup-header-bar">
+        <text class="popup-title">退还定金</text>
+        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseDepositReturnPopup" />
+      </view>
+      <view class="popup-body">
+        <view class="popup-info-row">
+          <text>退还金额</text>
+          <text class="popup-highlight">¥{{farmer.deposit || 0}}</text>
+        </view>
+        <view class="popup-info-row">
+          <text>农户姓名</text>
+          <text>{{farmer.name}}</text>
+        </view>
+        <view class="form-field">
+          <text class="field-label">退还方式</text>
+          <view class="tag-group">
+            <view class="tag-item {{depositReturnForm.method === 'cash' ? 'active' : ''}}" bindtap="onDepositReturnMethodTap" data-method="cash">现金</view>
+            <view class="tag-item {{depositReturnForm.method === 'wechat' ? 'active' : ''}}" bindtap="onDepositReturnMethodTap" data-method="wechat">微信</view>
+            <view class="tag-item {{depositReturnForm.method === 'bank' ? 'active' : ''}}" bindtap="onDepositReturnMethodTap" data-method="bank">转账</view>
+          </view>
+        </view>
+        <view class="form-field">
+          <text class="field-label">备注（选填）</text>
+          <input class="field-input" placeholder="请输入备注" value="{{depositReturnForm.remark}}" bindinput="onDepositReturnRemarkInput" />
+        </view>
+      </view>
+      <view class="popup-footer-bar">
+        <button class="btn-cancel" bindtap="onCloseDepositReturnPopup">取消</button>
+        <button class="btn-confirm" bindtap="onSubmitDepositReturn">确认退还</button>
       </view>
     </view>
   </t-popup>

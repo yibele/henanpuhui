@@ -604,11 +604,7 @@ async function addFarmerAddendum(event) {
     const newSeedTotal = roundToFen(add(farmer.seedTotal || 0, seedTotal));
     const newReceivable = roundToFen(add(farmer.receivableAmount || 0, receivable));
     const newDeposit = roundToFen(add(farmer.deposit || 0, deposit));
-    // 种苗欠款为剩余欠款：追加定金后减少欠款余额
-    const currentSeedDebt = Number.isFinite(farmer.seedDebt)
-      ? farmer.seedDebt
-      : Math.max(0, subtract(farmer.stats?.totalSeedAmount || 0, farmer.deposit || 0));
-    const newSeedDebt = roundToFen(Math.max(0, subtract(currentSeedDebt, deposit)));
+    // 定金独立管理，不影响种苗欠款（种苗欠款 = 累计发苗金额 - 结算已扣，定金在合同结束时单独退还）
 
     // 3. 生成业务记录编号
     const now = new Date();
@@ -625,8 +621,6 @@ async function addFarmerAddendum(event) {
           seedTotal: newSeedTotal,
           receivableAmount: newReceivable,
           deposit: newDeposit,
-          seedDebt: newSeedDebt,  // 同步更新种苗欠款
-          'stats.seedDebt': newSeedDebt,
           updateTime: db.serverDate()
         }
       });
@@ -1138,6 +1132,146 @@ async function addAgriculturalSupply(event) {
 }
 
 /**
+ * 定金退还（出纳/管理员操作）
+ * 合同结束时，将农户已交定金退还给农户
+ */
+async function returnDeposit(event) {
+  const { userId, userName, farmerId, data } = event;
+
+  if (!userId || !farmerId) {
+    return {
+      success: false,
+      message: '缺少必要参数'
+    };
+  }
+
+  const {
+    paymentMethod,   // 退还方式：cash/wechat/bank
+    remark
+  } = data || {};
+
+  try {
+    // 1. 权限检查：只有出纳和管理员可操作
+    const userRes = await db.collection('users').doc(userId).get();
+    if (!userRes.data) {
+      return { success: false, message: '用户不存在' };
+    }
+    const currentUser = userRes.data;
+    if (!['cashier', 'admin'].includes(currentUser.role)) {
+      return { success: false, message: '无权限操作，请使用出纳或管理员账号' };
+    }
+
+    // 2. 获取农户信息
+    const farmerRes = await db.collection('farmers')
+      .where({ _id: farmerId, isDeleted: false })
+      .get();
+    if (farmerRes.data.length === 0) {
+      return { success: false, message: '农户不存在' };
+    }
+    const farmer = farmerRes.data[0];
+
+    const depositAmount = farmer.deposit || 0;
+    if (depositAmount <= 0) {
+      return { success: false, message: '该农户无可退还定金' };
+    }
+
+    // 检查是否已退还
+    if (farmer.depositReturned) {
+      return { success: false, message: '该农户定金已退还，请勿重复操作' };
+    }
+
+    // 付款方式名称映射
+    const methodNames = {
+      'cash': '现金',
+      'wechat': '微信转账',
+      'bank': '银行转账'
+    };
+
+    // 3. 生成业务记录编号
+    const now = new Date();
+    const recordId = `BIZ_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
+
+    // 4. 事务操作
+    const transaction = await db.startTransaction();
+    try {
+      // 更新农户：标记定金已退还
+      await transaction.collection('farmers').doc(farmerId).update({
+        data: {
+          depositReturned: true,
+          depositReturnedAmount: depositAmount,
+          depositReturnTime: db.serverDate(),
+          depositReturnBy: userId,
+          depositReturnByName: currentUser.name,
+          depositReturnMethod: paymentMethod || 'cash',
+          updateTime: db.serverDate()
+        }
+      });
+
+      // 写入业务往来记录
+      await transaction.collection('business_records').add({
+        data: {
+          recordId,
+          farmerId,
+          farmerName: farmer.name,
+          type: 'deposit_return',
+          name: '定金退还',
+          date: now.toISOString().split('T')[0],
+          amount: depositAmount,
+          desc: `退还定金¥${depositAmount}，${methodNames[paymentMethod] || '现金'}`,
+          paymentMethod: paymentMethod || 'cash',
+          remark: remark || '',
+          createTime: db.serverDate(),
+          createBy: userId,
+          createByName: currentUser.name
+        }
+      });
+
+      await transaction.commit();
+    } catch (transactionError) {
+      await transaction.rollback();
+      console.error('定金退还事务失败:', transactionError);
+      throw transactionError;
+    }
+
+    // 5. 记录操作日志（事务外，失败不影响主流程）
+    try {
+      await db.collection('operation_logs').add({
+        data: {
+          userId: currentUser._id,
+          userName: currentUser.name,
+          userRole: currentUser.role,
+          action: 'return_deposit',
+          module: 'farmer',
+          targetId: farmerId,
+          targetName: farmer.name,
+          description: `退还定金：${farmer.name}，金额¥${depositAmount}，方式：${methodNames[paymentMethod] || '现金'}`,
+          createTime: db.serverDate()
+        }
+      });
+    } catch (logError) {
+      console.error('定金退还日志写入失败（不影响主流程）:', logError);
+    }
+
+    return {
+      success: true,
+      message: '定金退还成功',
+      data: {
+        farmerName: farmer.name,
+        depositAmount,
+        paymentMethod: paymentMethod || 'cash'
+      }
+    };
+
+  } catch (error) {
+    console.error('定金退还失败:', error);
+    return {
+      success: false,
+      message: error.message || '定金退还失败'
+    };
+  }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -1177,6 +1311,9 @@ exports.main = async (event, context) => {
     case 'addAgriculturalSupply':
       return await addAgriculturalSupply(event);
 
+    case 'returnDeposit':
+      return await returnDeposit(event);
+
     default:
       return {
         success: false,
@@ -1200,8 +1337,8 @@ async function getBusinessRecords(event) {
   }
 
   try {
-    // 先获取农户信息，拿到 farmerId 编号
-    let farmerCode = farmerId;
+    // 统一口径：business_records.farmerId 仅按农户文档 _id 查询
+    let farmerDocId = farmerId;
     const lookupCondition = buildFarmerLookupCondition(farmerId);
 
     let farmerRes = { data: [] };
@@ -1213,18 +1350,18 @@ async function getBusinessRecords(event) {
     }
 
     if (farmerRes.data && farmerRes.data.length > 0) {
-      farmerCode = farmerRes.data[0].farmerId || farmerId;
+      farmerDocId = farmerRes.data[0]._id || farmerId;
     }
 
     // 只查 business_records 表
     const skip = (page - 1) * pageSize;
 
     const countRes = await db.collection('business_records')
-      .where({ farmerId: farmerCode })
+      .where({ farmerId: farmerDocId })
       .count();
 
     const listRes = await db.collection('business_records')
-      .where({ farmerId: farmerCode })
+      .where({ farmerId: farmerDocId })
       .orderBy('createTime', 'desc')
       .skip(skip)
       .limit(pageSize)

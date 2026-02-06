@@ -111,7 +111,7 @@
           <text class="info-value info-value-red">¥{{formatted.seedDebt}}</text>
         </view>
         <view class="info-row-note">
-          <text class="info-note-text">种苗欠款为剩余欠款（已扣除定金及已结算抵扣）</text>
+          <text class="info-note-text">种苗欠款 = 累计发苗金额 - 结算已扣（定金合同结束时单独退还）</text>
         </view>
       </view>
 
@@ -351,7 +351,7 @@
         </view>
         <view class="summary-row">
           <text class="summary-label" style="color: #9ca3af; font-size: 24rpx;">说明</text>
-          <text class="summary-value" style="color: #9ca3af; font-size: 24rpx;">种苗欠款已扣除定金</text>
+          <text class="summary-value" style="color: #9ca3af; font-size: 24rpx;">定金合同结束时单独退还</text>
         </view>
 
         <view class="summary-divider"></view>
