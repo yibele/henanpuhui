@@ -86,8 +86,8 @@ export const farmerApi = {
     callFunction('farmer-manage', { action: 'getBusinessRecords', farmerId, page, pageSize }),
 
   // 获取发苗统计
-  getSeedStats: (farmerId: string) =>
-    callFunction('seed-manage', { action: 'getByFarmer', farmerId }),
+  getSeedStats: (farmerId: string, userId: string) =>
+    callFunction('seed-manage', { action: 'getByFarmer', farmerId, userId }),
 
   // 获取农户发苗状态统计
   getStatusStats: (userId: string) =>

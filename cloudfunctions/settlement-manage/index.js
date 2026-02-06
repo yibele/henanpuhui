@@ -19,6 +19,9 @@ const _ = db.command;
 const $ = db.command.aggregate;
 const MAX_BACKFILL_BATCH = 100;
 
+// 引入精确计算工具
+const { multiply, subtract, add, roundToFen } = require('./calc');
+
 function isFiniteNumber(val) {
   return typeof val === 'number' && Number.isFinite(val);
 }
@@ -40,7 +43,8 @@ async function deleteCollectionBatch(collectionName) {
  * 获取结算单详情
  */
 async function getSettlement(event) {
-  const { settlementId } = event;
+  const { OPENID } = cloud.getWXContext();
+  const { settlementId, userId = '' } = event;
 
   if (!settlementId) {
     return {
@@ -50,6 +54,35 @@ async function getSettlement(event) {
   }
 
   try {
+    // 获取当前用户信息（优先 userId，其次 OPENID）
+    let userRes;
+    if (userId) {
+      userRes = await db.collection('users')
+        .where({ _id: userId })
+        .get();
+    } else if (OPENID) {
+      userRes = await db.collection('users')
+        .where({ _openid: OPENID })
+        .get();
+    } else {
+      userRes = { data: [] };
+    }
+
+    if (!userRes.data || userRes.data.length === 0) {
+      return {
+        success: false,
+        errMsg: '用户不存在或未登录'
+      };
+    }
+
+    const currentUser = userRes.data[0];
+    if (!['warehouse_manager', 'finance_admin', 'cashier', 'admin'].includes(currentUser.role)) {
+      return {
+        success: false,
+        errMsg: '无权限查看结算详情'
+      };
+    }
+
     const result = await db.collection('settlements')
       .where({ settlementId })
       .get();
@@ -62,6 +95,14 @@ async function getSettlement(event) {
     }
 
     const settlement = result.data[0];
+
+    // 仓库管理员仅可查看本仓库结算单
+    if (currentUser.role === 'warehouse_manager' && settlement.warehouseId !== currentUser.warehouseId) {
+      return {
+        success: false,
+        errMsg: '无权限查看该结算单'
+      };
+    }
 
     // 同时获取关联的收购记录
     const acquisitionRes = await db.collection('acquisitions')
@@ -336,7 +377,7 @@ async function auditSettlement(event, context) {
       const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;  // 农资欠款
       const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;  // 预付款
 
-      // 3. 计算本次可扣除金额（按优先级：预付款 > 种苗 > 农资）
+      // 3. 计算本次可扣除金额（按优先级：预付款 > 种苗 > 农资）- 使用精确计算
       let remaining = acquisitionAmount;  // 剩余可用于扣款的金额
       let deductAdvance = 0;
       let deductSeed = 0;
@@ -345,41 +386,41 @@ async function auditSettlement(event, context) {
       // 优先扣预付款（现金债权优先回收）
       if (remaining > 0 && currentAdvance > 0) {
         deductAdvance = Math.min(remaining, currentAdvance);
-        remaining -= deductAdvance;
+        remaining = subtract(remaining, deductAdvance);
       }
 
       // 其次扣种苗欠款
       if (remaining > 0 && currentSeedDebt > 0) {
         deductSeed = Math.min(remaining, currentSeedDebt);
-        remaining -= deductSeed;
+        remaining = subtract(remaining, deductSeed);
       }
 
       // 最后扣农资欠款
       if (remaining > 0 && currentAgriDebt > 0) {
         deductAgri = Math.min(remaining, currentAgriDebt);
-        remaining -= deductAgri;
+        remaining = subtract(remaining, deductAgri);
       }
 
-      const totalDeduction = deductAdvance + deductSeed + deductAgri;
-      const actualPayment = remaining; // 剩余的就是实际应付给农户的
+      const totalDeduction = add(deductAdvance, deductSeed, deductAgri);
+      const actualPayment = roundToFen(remaining); // 剩余的就是实际应付给农户的
 
-      // 4. 更新结算单 & 农户欠款（事务）
+      // 4. 更新结算单 & 农户欠款（事务）- 使用精确计算
       const updateData = {
         updateTime: db.serverDate()
       };
 
       if (deductAdvance > 0) {
-        updateData.advancePayment = currentAdvance - deductAdvance;
-        updateData['stats.advancePayment'] = currentAdvance - deductAdvance;
+        updateData.advancePayment = roundToFen(subtract(currentAdvance, deductAdvance));
+        updateData['stats.advancePayment'] = roundToFen(subtract(currentAdvance, deductAdvance));
       }
       if (deductSeed > 0) {
-        const newSeedDebt = currentSeedDebt - deductSeed;
+        const newSeedDebt = roundToFen(subtract(currentSeedDebt, deductSeed));
         updateData.seedDebt = newSeedDebt;
         updateData['stats.seedDebt'] = newSeedDebt;
       }
       if (deductAgri > 0) {
-        updateData.agriculturalDebt = currentAgriDebt - deductAgri;
-        updateData['stats.agriculturalDebt'] = currentAgriDebt - deductAgri;
+        updateData.agriculturalDebt = roundToFen(subtract(currentAgriDebt, deductAgri));
+        updateData['stats.agriculturalDebt'] = roundToFen(subtract(currentAgriDebt, deductAgri));
       }
 
       await db.runTransaction(async (t) => {
@@ -393,7 +434,7 @@ async function auditSettlement(event, context) {
               agriculturalDeduction: deductAgri,
               totalDeduction: totalDeduction,
               totalDeductions: totalDeduction,
-              actualPayment: Number(actualPayment.toFixed(2)),
+              actualPayment: actualPayment,
 
               // 状态更新
               status: 'approved',  // 待付款
@@ -427,7 +468,7 @@ async function auditSettlement(event, context) {
             userRole: 'cashier',
             type: 'payment_pending',
             title: '新的待付款结算',
-            content: `农户${settlement.farmerName}的结算单已审核通过，待付金额￥${actualPayment.toFixed(2)}`,
+            content: `农户${settlement.farmerName}的结算单已审核通过，待付金额￥${actualPayment}`,
             data: {
               settlementId,
               farmerName: settlement.farmerName,
@@ -452,7 +493,7 @@ async function auditSettlement(event, context) {
           module: 'settlement',
           targetId: settlementId,
           targetName: settlement.farmerName,
-          description: `审核通过结算单：${settlement.farmerName}，货款￥${acquisitionAmount}，扣款￥${totalDeduction}，实付￥${actualPayment.toFixed(2)}`,
+          description: `审核通过结算单：${settlement.farmerName}，货款￥${acquisitionAmount}，扣款￥${totalDeduction}，实付￥${actualPayment}`,
           deductionDetail: {
             advanceDeduction: deductAdvance,
             seedDeduction: deductSeed,
@@ -472,8 +513,8 @@ async function auditSettlement(event, context) {
           type: 'settlement_audit',
           name: '结算审核',
           date: new Date().toISOString().split('T')[0],
-          amount: Number(actualPayment.toFixed(2)),
-          desc: `货款¥${acquisitionAmount}，扣款¥${totalDeduction.toFixed(2)}，待付¥${actualPayment.toFixed(2)}`,
+          amount: actualPayment,
+          desc: `货款¥${acquisitionAmount}，扣款¥${totalDeduction}，待付¥${actualPayment}`,
           relatedId: settlementId,
           relatedType: 'settlement',
           operator: currentUser.name,
@@ -491,7 +532,7 @@ async function auditSettlement(event, context) {
           seedDeduction: deductSeed,
           agriculturalDeduction: deductAgri,
           totalDeduction,
-          actualPayment: Number(actualPayment.toFixed(2))
+          actualPayment: actualPayment
         }
       };
     } else {
@@ -960,9 +1001,9 @@ async function recalculateSettlement(event) {
     const agriDebt = parseFloat(agriculturalDebt) || farmer.agriculturalDebt || 0;  // 农资款
     const advPay = parseFloat(advancePayment) || farmer.advancePayment || 0;        // 预支款
 
-    // 新结算公式
-    const totalDeductions = seedDebt + agriDebt + advPay;
-    const actualPayment = Math.max(0, grossAmount - totalDeductions);
+    // 新结算公式 - 使用精确计算
+    const totalDeductions = add(seedDebt, agriDebt, advPay);
+    const actualPayment = roundToFen(Math.max(0, subtract(grossAmount, totalDeductions)));
 
     // ==================== 事务操作开始 ====================
     await db.runTransaction(async (t) => {
@@ -976,7 +1017,7 @@ async function recalculateSettlement(event) {
             advancePayment: advPay,
             totalDeduction: totalDeductions,
             totalDeductions,
-            actualPayment: Number(actualPayment.toFixed(2)),
+            actualPayment: actualPayment,
             recalculateBy: currentUser.name,
             recalculateById: userId,
             recalculateTime: db.serverDate(),
@@ -1040,7 +1081,7 @@ async function recalculateSettlement(event) {
         agriculturalDebt: agriDebt,
         advancePayment: advPay,
         totalDeductions,
-        actualPayment: Number(actualPayment.toFixed(2))
+        actualPayment: actualPayment
       }
     };
   } catch (error) {
@@ -1185,7 +1226,7 @@ async function previewDeduction(event) {
     const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;
     const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;
 
-    // 计算扣款
+    // 计算扣款 - 使用精确计算
     let remaining = acquisitionAmount;
     let deductAdvance = 0;
     let deductSeed = 0;
@@ -1193,21 +1234,21 @@ async function previewDeduction(event) {
 
     if (remaining > 0 && currentAdvance > 0) {
       deductAdvance = Math.min(remaining, currentAdvance);
-      remaining -= deductAdvance;
+      remaining = subtract(remaining, deductAdvance);
     }
 
     if (remaining > 0 && currentSeedDebt > 0) {
       deductSeed = Math.min(remaining, currentSeedDebt);
-      remaining -= deductSeed;
+      remaining = subtract(remaining, deductSeed);
     }
 
     if (remaining > 0 && currentAgriDebt > 0) {
       deductAgri = Math.min(remaining, currentAgriDebt);
-      remaining -= deductAgri;
+      remaining = subtract(remaining, deductAgri);
     }
 
-    const totalDeduction = deductAdvance + deductSeed + deductAgri;
-    const actualPayment = remaining;
+    const totalDeduction = add(deductAdvance, deductSeed, deductAgri);
+    const actualPayment = roundToFen(remaining);
 
     return {
       success: true,
@@ -1224,7 +1265,7 @@ async function previewDeduction(event) {
           agriculturalDeduction: deductAgri,
           totalDeduction
         },
-        actualPayment: Number(actualPayment.toFixed(2))
+        actualPayment: actualPayment
       }
     };
   } catch (error) {

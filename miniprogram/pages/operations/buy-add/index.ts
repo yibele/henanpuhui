@@ -426,19 +426,20 @@ Page({
   checkCanSubmit() {
     const { warehouseInfo, selectedFarmer, form, netWeight } = this.data;
     const netWeightNum = parseFloat(netWeight) || 0;
+    const hasValue = (v: any) => v !== undefined && v !== null && String(v).trim() !== '';
 
     const canSubmit = !!(
       form.date &&
       warehouseInfo.id &&
       selectedFarmer.id &&
-      form.grossWeight &&
+      hasValue(form.grossWeight) &&
       parseFloat(form.grossWeight) > 0 &&
-      form.tareWeight &&
+      hasValue(form.tareWeight) &&
       parseFloat(form.tareWeight) >= 0 &&
-      form.moistureRate &&
+      hasValue(form.moistureRate) &&
       parseFloat(form.moistureRate) >= 0 &&
       netWeightNum > 0 &&
-      form.unitPrice &&
+      hasValue(form.unitPrice) &&
       parseFloat(form.unitPrice) > 0
     );
 

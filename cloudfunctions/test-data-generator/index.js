@@ -95,6 +95,11 @@ function generateName() {
   return randomPick(SURNAMES) + randomPick(NAMES) + (Math.random() > 0.7 ? randomPick(NAMES).charAt(0) : '');
 }
 
+function generateFarmerOnlyId(batchTag, index) {
+  const seq = String(index).padStart(4, '0');
+  return `TEST_SIGN_${batchTag}_${seq}`;
+}
+
 // 生成过去N天内的随机日期
 function randomDate(daysAgo) {
   const now = new Date();
@@ -387,6 +392,65 @@ function generateFullFarmerData(index, assistantId, assistantName) {
 }
 
 /**
+ * 仅生成签单农户（不包含发苗/收购/业务记录）
+ */
+function generateFarmerOnlyData(index, assistantId, assistantName, batchTag) {
+  const grade = randomPickWeighted(GRADES, GRADE_WEIGHTS);
+  const acreage = randomFloat(3, 80, 1);
+  const seedTotal = randomFloat(acreage * 0.8, acreage * 1.2, 1);
+  const seedUnitPrice = randomInt(800, 1500);
+  const receivableAmount = parseFloat((seedTotal * seedUnitPrice).toFixed(2));
+  const deposit = randomInt(1, 10) * 500;
+
+  const county = randomPick(COUNTIES);
+  const township = randomPick(TOWNSHIPS);
+  const village = randomPick(VILLAGES);
+  const createTime = randomDate(30);
+
+  return {
+    farmerId: generateFarmerOnlyId(batchTag, index),
+    name: generateName(),
+    phone: generatePhone(),
+    idCard: generateIdCard(),
+    address: { county, township, village },
+    addressText: `${county}${township}${village}`,
+    acreage,
+    grade,
+    deposit,
+    firstManager: assistantName,
+    firstManagerId: assistantId,
+    secondManager: '',
+    secondManagerId: '',
+    seedTotal,
+    seedUnitPrice,
+    receivableAmount,
+    seedDebt: 0,
+    agriculturalDebt: 0,
+    advancePayment: 0,
+    seedDistributionComplete: false,
+    seedDistributionCompleteTime: null,
+    stats: {
+      seedDistributionCount: 0,
+      totalSeedDistributed: 0,
+      totalSeedArea: 0,
+      totalSeedAmount: 0,
+      totalAcquisitionCount: 0,
+      totalAcquisitionWeight: 0,
+      totalAcquisitionAmount: 0,
+      totalPaidAmount: 0,
+      currentDebt: 0
+    },
+    status: 'active',
+    isDeleted: false,
+    isTestData: true,
+    createBy: assistantId,
+    createByName: assistantName,
+    createTime,
+    updateTime: new Date()
+  };
+}
+
+/**
  * 批量插入数据
  */
 async function batchInsert(collection, dataList) {
@@ -433,7 +497,35 @@ exports.main = async (event) => {
   const { action = 'generate', count = 100 } = event;
 
   try {
-    if (action === 'generate') {
+    if (action === 'generateFarmersOnly') {
+      const farmerCount = Math.min(parseInt(count) || 20, 500);
+      const batchTag = Date.now().toString().slice(-8);
+      console.log(`开始生成 ${farmerCount} 条签单农户（仅农户主档）...`);
+
+      const assistants = await getAssistants();
+      let totalFarmers = 0;
+
+      for (let i = 0; i < farmerCount; i++) {
+        const assistant = assistants[i % assistants.length];
+        const farmerData = generateFarmerOnlyData(i + 1, assistant.id, assistant.name, batchTag);
+        try {
+          await db.collection('farmers').add({ data: farmerData });
+          totalFarmers++;
+        } catch (e) {
+          console.error(`生成签单农户 ${i + 1} 失败:`, e.message);
+        }
+      }
+
+      return {
+        success: true,
+        message: `签单农户生成完成`,
+        data: {
+          farmers: totalFarmers,
+          batchTag
+        }
+      };
+
+    } else if (action === 'generate') {
       const farmerCount = Math.min(parseInt(count) || 100, 500);  // 每批最多500条
 
       console.log(`开始生成 ${farmerCount} 条完整测试数据...`);
@@ -509,7 +601,7 @@ exports.main = async (event) => {
     } else if (action === 'clean') {
       console.log('开始清理测试数据...');
 
-      const collections = ['farmers', 'seed_records', 'business_records', 'acquisitions'];
+      const collections = ['farmers', 'seed_records', 'business_records', 'acquisitions', 'settlements'];
       const results = {};
 
       for (const collection of collections) {
@@ -548,7 +640,7 @@ exports.main = async (event) => {
 
     } else if (action === 'stats') {
       // 查看当前测试数据统计
-      const collections = ['farmers', 'seed_records', 'business_records', 'acquisitions'];
+      const collections = ['farmers', 'seed_records', 'business_records', 'acquisitions', 'settlements'];
       const stats = {};
 
       for (const collection of collections) {
@@ -596,7 +688,7 @@ exports.main = async (event) => {
       console.log(`找到 ${oldFarmerIds.length} 个旧测试农户`);
 
       // 2. 删除关联的记录
-      const relatedCollections = ['seed_records', 'business_records', 'acquisitions'];
+      const relatedCollections = ['seed_records', 'business_records', 'acquisitions', 'settlements'];
 
       for (const collection of relatedCollections) {
         let deleted = 0;
@@ -658,7 +750,7 @@ exports.main = async (event) => {
 
       console.log('开始清空所有数据...');
 
-      const collections = ['farmers', 'seed_records', 'business_records', 'acquisitions'];
+      const collections = ['farmers', 'seed_records', 'business_records', 'acquisitions', 'settlements'];
       const results = {};
 
       for (const collection of collections) {
@@ -696,7 +788,7 @@ exports.main = async (event) => {
     } else {
       return {
         success: false,
-        message: '未知操作，请使用 action: "generate" / "clean" / "stats"'
+        message: '未知操作，请使用 action: "generateFarmersOnly" / "generate" / "clean" / "stats"'
       };
     }
 

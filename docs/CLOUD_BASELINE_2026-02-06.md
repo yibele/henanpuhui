@@ -82,24 +82,18 @@
 - `purgeBusinessData` 清空业务数据
 - `getStatistics` 结算统计
 
-## 5. 鉴权基线（本次已落地）
+## 5. 鉴权与数据范围（当前实现）
 
-### 5.1 鉴权入口
-- `farmer-manage`、`settlement-manage` 已新增统一鉴权：
-  - 优先用 `OPENID` 查 `users._openid`
-  - 若前端传 `userId`，强校验与 `OPENID` 对应用户一致
-  - 不一致直接拒绝
+### 5.1 鉴权现状
+- 当前多数云函数以 `event.userId` 为主进行身份与权限判断。
+- `settlement-manage/list`、`settlement-manage/get` 已要求用户存在且做角色校验。
 
-### 5.2 数据范围限制
-- `farmer-manage/get`：助理仅可查看自己创建的农户
-- `farmer-manage/getBusinessRecords`：助理仅可查看自己农户
-- `farmer-manage/searchByPhone`：助理仅可搜到自己农户
-- `settlement-manage/list/get`：需登录且限制角色；仓管仅可看自己仓库
-- `settlement-manage/previewDeduction/getCashierStats/getStatistics`：需登录并限制角色
+### 5.2 数据范围限制（已落地）
+- `settlement-manage/list`：仅 `warehouse_manager/finance_admin/cashier/admin` 可访问。
+- `settlement-manage/get`：仅上述角色可访问；`warehouse_manager` 限本仓库。
 
 ## 6. 仍需继续收口的点（下一步）
 
-1. 把 `acquisition-manage` 与 `seed-manage` 也切到统一鉴权入口（同样的 OPENID + userId 一致性）。
+1. 收口 `acquisition-manage` 与 `seed-manage` 的身份校验一致性。
 2. 清理所有接口里 `userId` 既作“身份”又作“业务参数”的混用。
 3. 对齐前端登录态语义：本地 `token` 仅作 UI 会话，不作为后端鉴权依据。
-

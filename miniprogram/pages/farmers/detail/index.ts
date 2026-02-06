@@ -317,11 +317,14 @@ Page({
    */
   async loadSeedStats(farmerId: string) {
     try {
+      const userInfo = wx.getStorageSync('userInfo') || {};
+      const userId = userInfo.id || userInfo._id || '';
       const res = await wx.cloud.callFunction({
         name: 'seed-manage',
         data: {
           action: 'getByFarmer',
-          farmerId
+          farmerId,
+          userId
         }
       });
 

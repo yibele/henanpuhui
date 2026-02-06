@@ -16,6 +16,9 @@ cloud.init({
 const db = cloud.database();
 const _ = db.command;
 
+// 引入精确计算工具
+const { multiply, subtract, add, roundToFen } = require('./calc');
+
 /**
  * 生成收购单号
  * 格式：ACQ_YYYYMMDD_XXXX
@@ -128,7 +131,8 @@ async function createAcquisition(event, context) {
   } = data || {};
 
   // 数据验证
-  if (!farmerId || !clientWarehouseId || !grossWeight || !tareWeight || moistureRate === undefined || !unitPrice) {
+  const isEmpty = (val) => val === undefined || val === null || val === '';
+  if (!farmerId || !clientWarehouseId || isEmpty(grossWeight) || isEmpty(tareWeight) || isEmpty(moistureRate) || isEmpty(unitPrice)) {
     return {
       success: false,
       message: '缺少必填字段'
@@ -233,9 +237,11 @@ async function createAcquisition(event, context) {
       return { success: false, errMsg: '单价不合法' };
     }
 
-    const computedMoistureWeight = (grossWeightNum - tareWeightNum) * (moistureRateNum / 100);
-    const computedNetWeight = grossWeightNum - tareWeightNum - computedMoistureWeight;
-    const computedTotalAmount = computedNetWeight * unitPriceNum;
+    // 使用精确计算：净重 = 毛重 - 皮重 - 水杂重量
+    const baseWeight = subtract(grossWeightNum, tareWeightNum);
+    const computedMoistureWeight = roundToFen(multiply(baseWeight, moistureRateNum / 100));
+    const computedNetWeight = roundToFen(subtract(baseWeight, computedMoistureWeight));
+    const computedTotalAmount = roundToFen(multiply(computedNetWeight, unitPriceNum));
 
     if (!Number.isFinite(computedNetWeight) || computedNetWeight <= 0) {
       return { success: false, errMsg: '净重不合法' };
@@ -243,9 +249,9 @@ async function createAcquisition(event, context) {
 
     // 计算预估重量和差异（使用已发苗面积，而非签约面积）
     const distributedArea = farmer.stats?.totalSeedArea || 0;
-    const estimatedWeightKg = distributedArea * 300; // 每亩 300kg
-    const weightDifference = computedNetWeight - estimatedWeightKg;
-    const weightDifferenceRate = estimatedWeightKg > 0 ? (weightDifference / estimatedWeightKg) * 100 : 0;
+    const estimatedWeightKg = multiply(distributedArea, 300); // 每亩 300kg
+    const weightDifference = roundToFen(subtract(computedNetWeight, estimatedWeightKg));
+    const weightDifferenceRate = estimatedWeightKg > 0 ? roundToFen(multiply(weightDifference / estimatedWeightKg, 100)) : 0;
     const isAbnormal = estimatedWeightKg > 0 ? Math.abs(weightDifferenceRate) > 50 : false; // 差异率超过50%为异常
 
     // 生成收购单号
@@ -270,12 +276,12 @@ async function createAcquisition(event, context) {
       grossWeight: grossWeightNum,
       tareWeight: tareWeightNum,
       moistureRate: moistureRateNum,
-      moistureWeight: Number(computedMoistureWeight.toFixed(2)),
-      netWeight: Number(computedNetWeight.toFixed(2)),
+      moistureWeight: computedMoistureWeight,
+      netWeight: computedNetWeight,
       unitPrice: unitPriceNum,
-      totalAmount: Number(computedTotalAmount.toFixed(2)),
-      weightDifference: Number(weightDifference.toFixed(2)),
-      weightDifferenceRate: Number(weightDifferenceRate.toFixed(2)),
+      totalAmount: computedTotalAmount,
+      weightDifference: weightDifference,
+      weightDifferenceRate: weightDifferenceRate,
       isAbnormal,
       remark: remark || '',
       photos: [],
@@ -310,13 +316,13 @@ async function createAcquisition(event, context) {
 
       // 收购信息
       acquisitionDate,
-      acquisitionWeight: Number(computedNetWeight.toFixed(2)),
+      acquisitionWeight: computedNetWeight,
       acquisitionPrice: unitPriceNum,
-      acquisitionAmount: Number(computedTotalAmount.toFixed(2)), // 收购货款
+      acquisitionAmount: computedTotalAmount, // 收购货款
       // 兼容字段
-      netWeight: Number(computedNetWeight.toFixed(2)),
+      netWeight: computedNetWeight,
       unitPrice: unitPriceNum,
-      grossAmount: Number(computedTotalAmount.toFixed(2)),
+      grossAmount: computedTotalAmount,
 
       // 扣款明细（审核时才计算，初始为0）
       advanceDeduction: 0,      // 预付款扣除
@@ -354,8 +360,8 @@ async function createAcquisition(event, context) {
     const isFirstAcquisition = farmer.stats.totalAcquisitionCount === 0;
     const farmerUpdateData = {
       'stats.totalAcquisitionCount': _.inc(1),
-      'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
-      'stats.totalAcquisitionAmount': _.inc(Number(computedTotalAmount.toFixed(2))),
+      'stats.totalAcquisitionWeight': _.inc(computedNetWeight),
+      'stats.totalAcquisitionAmount': _.inc(computedTotalAmount),
       lastAcquisitionTime: db.serverDate(),
       firstAcquisitionTime: isFirstAcquisition ? db.serverDate() : farmer.firstAcquisitionTime,
       updateTime: db.serverDate()
@@ -364,17 +370,17 @@ async function createAcquisition(event, context) {
     // 仓库统计更新数据
     const warehouseUpdates = {
       'stats.totalAcquisitionCount': _.inc(1),
-      'stats.totalAcquisitionWeight': _.inc(Number(computedNetWeight.toFixed(2))),
-      'stats.totalAcquisitionAmount': _.inc(Number(computedTotalAmount.toFixed(2))),
-      'stats.currentStock': _.inc(Number(computedNetWeight.toFixed(2))),
+      'stats.totalAcquisitionWeight': _.inc(computedNetWeight),
+      'stats.totalAcquisitionAmount': _.inc(computedTotalAmount),
+      'stats.currentStock': _.inc(computedNetWeight),
       statsUpdateTime: db.serverDate(),
       updateTime: db.serverDate()
     };
     // 只有业务日期=今天时，才更新"今日"统计
     if (acquisitionDate === todayStr) {
       warehouseUpdates['stats.todayAcquisitionCount'] = _.inc(1);
-      warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(Number(computedNetWeight.toFixed(2)));
-      warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(Number(computedTotalAmount.toFixed(2)));
+      warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(computedNetWeight);
+      warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(computedTotalAmount);
     }
 
     // ==================== 事务操作开始 ====================
@@ -429,8 +435,8 @@ async function createAcquisition(event, context) {
           action: 'create_acquisition',
           module: 'acquisition',
           targetId: acquisitionId,
-          targetName: `${farmer.name} - ${computedNetWeight.toFixed(2)}kg`,
-          description: `创建收购记录：${farmer.name}，净重${computedNetWeight.toFixed(2)}kg`,
+          targetName: `${farmer.name} - ${computedNetWeight}kg`,
+          description: `创建收购记录：${farmer.name}，净重${computedNetWeight}kg`,
           before: {},
           after: acquisitionData,
           changes: [],
@@ -446,11 +452,11 @@ async function createAcquisition(event, context) {
           type: 'acquisition',
           name: '收购入库',
           date: acquisitionDate,
-          amount: Number(computedTotalAmount.toFixed(2)),
-          quantity: Number(computedNetWeight.toFixed(2)),
+          amount: computedTotalAmount,
+          quantity: computedNetWeight,
           unit: 'kg',
           unitPrice: unitPriceNum,
-          desc: `净重${computedNetWeight.toFixed(2)}kg，单价¥${unitPriceNum}/kg，货款¥${computedTotalAmount.toFixed(2)}`,
+          desc: `净重${computedNetWeight}kg，单价¥${unitPriceNum}/kg，货款¥${computedTotalAmount}`,
           relatedId: acquisitionId,
           relatedType: 'acquisition',
           warehouseId: currentUser.warehouseId,
@@ -747,14 +753,14 @@ async function updateAcquisition(event, context) {
     // 修复逻辑：同步更新结算单和统计数据
     // ==========================================
 
-    // 1. 计算差额
+    // 1. 计算差额（使用精确计算）
     const oldNetWeight = acquisition.netWeight || 0;
     const oldTotalAmount = acquisition.totalAmount || 0;
     const newNetWeight = updateData.netWeight !== undefined ? updateData.netWeight : oldNetWeight;
     const newTotalAmount = updateData.totalAmount !== undefined ? updateData.totalAmount : oldTotalAmount;
 
-    const diffWeight = Number((newNetWeight - oldNetWeight).toFixed(2));
-    const diffAmount = Number((newTotalAmount - oldTotalAmount).toFixed(2));
+    const diffWeight = roundToFen(subtract(newNetWeight, oldNetWeight));
+    const diffAmount = roundToFen(subtract(newTotalAmount, oldTotalAmount));
 
     if (diffWeight !== 0 || diffAmount !== 0) {
       // 2. 同步更新结算单
@@ -764,13 +770,13 @@ async function updateAcquisition(event, context) {
 
       if (settlementRes.data.length > 0) {
         const settlement = settlementRes.data[0];
-        // 重新计算应付金额（保持原有的扣款项）
+        // 重新计算应付金额（保持原有的扣款项）- 使用精确计算
         const totalDeduction = Number.isFinite(settlement.totalDeduction)
           ? settlement.totalDeduction
           : Number.isFinite(settlement.totalDeductions)
             ? settlement.totalDeductions
-            : (settlement.advanceDeduction || 0) + (settlement.seedDeduction || 0) + (settlement.agriculturalDeduction || 0) + (settlement.otherDeductions || 0);
-        const newActualPayment = Number((newTotalAmount - totalDeduction).toFixed(2));
+            : add(settlement.advanceDeduction || 0, settlement.seedDeduction || 0, settlement.agriculturalDeduction || 0, settlement.otherDeductions || 0);
+        const newActualPayment = roundToFen(subtract(newTotalAmount, totalDeduction));
 
         const settlementUpdates = {
           acquisitionWeight: newNetWeight,
@@ -1039,106 +1045,111 @@ async function deleteAcquisition(event) {
 
     if (settlementCheckRes.data.length > 0) {
       const settlement = settlementCheckRes.data[0];
-      if (settlement.status === 'completed') {
+      if (settlement.status === 'completed' || settlement.paymentStatus === 'paid') {
         return {
           success: false,
           message: '该收购记录已完成付款，无法删除'
         };
       }
-      if (settlement.status === 'approved') {
+      if (settlement.status === 'approved' || settlement.status === 'paying' || settlement.paymentStatus === 'paying' || settlement.auditStatus === 'approved') {
         return {
           success: false,
-          message: '该收购记录已审核通过，请先撤销审核再删除'
+          message: '该收购记录已进入付款流程，请先撤销审核/付款状态再删除'
         };
       }
     }
 
-    // 记录修改日志
-    await db.collection('modification_logs').add({
-      data: {
-        targetType: 'acquisition',
-        targetId: acquisitionId,
-        action: 'delete',
-        beforeData: acquisition,
-        afterData: null,
-        reason: reason.trim(),
-        operatorId: userId,
-        operatorName: currentUser.name,
-        createTime: db.serverDate()
-      }
-    });
-
-    // 软删除：更新状态为 deleted
-    await db.collection('acquisitions')
-      .where({ acquisitionId })
-      .update({
-        data: {
-          status: 'deleted',
-          deleteReason: reason.trim(),
-          deleteBy: currentUser.name,
-          deleteById: userId,
-          deleteTime: db.serverDate(),
-          updateTime: db.serverDate()
-        }
-      });
-
-    // 同时删除对应的结算单
-    await db.collection('settlements')
-      .where({ acquisitionId })
-      .update({
-        data: {
-          status: 'deleted',
-          deleteReason: reason.trim(),
-          deleteBy: currentUser.name,
-          deleteById: userId,
-          deleteTime: db.serverDate(),
-          updateTime: db.serverDate()
-        }
-      });
-
     // ==========================================
-    // 修复逻辑：回滚农户和仓库的统计数据
+    // 核心删除流程（事务）：软删除 + 统计回滚
     // ==========================================
     const netWeight = acquisition.netWeight || 0;
     const totalAmount = acquisition.totalAmount || 0;
-
-    // 1. 回滚农户统计
-    if (acquisition.farmerId && netWeight > 0) {
-      await db.collection('farmers')
-        .where({ farmerId: acquisition.farmerId })
+    await db.runTransaction(async (t) => {
+      // 1. 软删除收购记录
+      await t.collection('acquisitions')
+        .where({ acquisitionId })
         .update({
           data: {
-            'stats.totalAcquisitionCount': _.inc(-1),
-            'stats.totalAcquisitionWeight': _.inc(-netWeight),
-            'stats.totalAcquisitionAmount': _.inc(-totalAmount),
+            status: 'deleted',
+            deleteReason: reason.trim(),
+            deleteBy: currentUser.name,
+            deleteById: userId,
+            deleteTime: db.serverDate(),
             updateTime: db.serverDate()
           }
         });
-    }
 
-    // 2. 回滚仓库统计
-    if (acquisition.warehouseId && netWeight > 0) {
-      const warehouseUpdates = {
-        'stats.totalAcquisitionCount': _.inc(-1),
-        'stats.totalAcquisitionWeight': _.inc(-netWeight),
-        'stats.totalAcquisitionAmount': _.inc(-totalAmount),
-        'stats.currentStock': _.inc(-netWeight),
-        updateTime: db.serverDate()
-      };
+      // 2. 软删除关联结算单
+      await t.collection('settlements')
+        .where({ acquisitionId })
+        .update({
+          data: {
+            status: 'deleted',
+            deleteReason: reason.trim(),
+            deleteBy: currentUser.name,
+            deleteById: userId,
+            deleteTime: db.serverDate(),
+            updateTime: db.serverDate()
+          }
+        });
 
-      // 如果是今天的记录，同时回滚今日统计
-      const todayStr = formatDate(new Date());
-      if (acquisition.acquisitionDate === todayStr) {
-        warehouseUpdates['stats.todayAcquisitionCount'] = _.inc(-1);
-        warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(-netWeight);
-        warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(-totalAmount);
+      // 3. 回滚农户统计
+      if (acquisition.farmerId && netWeight > 0) {
+        await t.collection('farmers')
+          .where({ farmerId: acquisition.farmerId })
+          .update({
+            data: {
+              'stats.totalAcquisitionCount': _.inc(-1),
+              'stats.totalAcquisitionWeight': _.inc(-netWeight),
+              'stats.totalAcquisitionAmount': _.inc(-totalAmount),
+              updateTime: db.serverDate()
+            }
+          });
       }
 
-      await db.collection('warehouses')
-        .where({ _id: acquisition.warehouseId })
-        .update({
-          data: warehouseUpdates
-        });
+      // 4. 回滚仓库统计
+      if (acquisition.warehouseId && netWeight > 0) {
+        const warehouseUpdates = {
+          'stats.totalAcquisitionCount': _.inc(-1),
+          'stats.totalAcquisitionWeight': _.inc(-netWeight),
+          'stats.totalAcquisitionAmount': _.inc(-totalAmount),
+          'stats.currentStock': _.inc(-netWeight),
+          updateTime: db.serverDate()
+        };
+
+        // 如果是今天的记录，同时回滚今日统计
+        const todayStr = formatDate(new Date());
+        if (acquisition.acquisitionDate === todayStr) {
+          warehouseUpdates['stats.todayAcquisitionCount'] = _.inc(-1);
+          warehouseUpdates['stats.todayAcquisitionWeight'] = _.inc(-netWeight);
+          warehouseUpdates['stats.todayAcquisitionAmount'] = _.inc(-totalAmount);
+        }
+
+        await t.collection('warehouses')
+          .where({ _id: acquisition.warehouseId })
+          .update({
+            data: warehouseUpdates
+          });
+      }
+    });
+
+    // 记录修改日志（非核心操作，失败不影响主流程）
+    try {
+      await db.collection('modification_logs').add({
+        data: {
+          targetType: 'acquisition',
+          targetId: acquisitionId,
+          action: 'delete',
+          beforeData: acquisition,
+          afterData: null,
+          reason: reason.trim(),
+          operatorId: userId,
+          operatorName: currentUser.name,
+          createTime: db.serverDate()
+        }
+      });
+    } catch (logErr) {
+      console.error('删除收购记录日志写入失败（不影响主流程）:', logErr);
     }
 
     return {

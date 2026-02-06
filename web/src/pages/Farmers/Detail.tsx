@@ -83,15 +83,19 @@ export default function FarmerDetail() {
     if (id) {
       loadDetail(id)
     }
-  }, [id])
+  }, [id, userInfo?.id])
 
   const loadDetail = async (farmerId: string) => {
     setLoading(true)
     try {
+      const seedPromise = userInfo?.id
+        ? farmerApi.getSeedStats(farmerId, userInfo.id)
+        : Promise.resolve({ success: false, data: null })
+
       const [detailRes, recordsRes, seedRes] = await Promise.all([
         farmerApi.get(farmerId),
         farmerApi.getBusinessRecords(farmerId),
-        farmerApi.getSeedStats(farmerId),
+        seedPromise,
       ]) as any[]
 
       if (detailRes.success) {

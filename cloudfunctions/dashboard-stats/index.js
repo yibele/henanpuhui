@@ -8,6 +8,9 @@ cloud.init({
 const db = cloud.database();
 const _ = db.command;
 
+// 引入精确计算工具
+const { add, roundToFen } = require('./calc');
+
 /**
  * 分批拉取全部数据（避免 get() 默认/上限返回导致统计不准）
  */
@@ -66,6 +69,30 @@ exports.main = async (event, context) => {
 
     const currentUser = userRes.data;
 
+    const actionPermissions = {
+      getAssistantStats: ['assistant', 'admin', 'finance_admin'],
+      getWarehouseStats: ['warehouse_manager', 'admin', 'finance_admin'],
+      getFinanceStats: ['finance_admin', 'cashier', 'admin'],
+      getAdminDashboard: ['admin', 'finance_admin']
+    };
+
+    const allowedRoles = actionPermissions[action];
+    if (!allowedRoles) {
+      return {
+        success: false,
+        code: 'INVALID_ACTION',
+        message: '无效的操作类型'
+      };
+    }
+
+    if (!allowedRoles.includes(currentUser.role)) {
+      return {
+        success: false,
+        code: 'NO_PERMISSION',
+        message: '无权限访问该统计数据'
+      };
+    }
+
     // 根据不同的角色和动作，返回不同的统计数据
     switch (action) {
       case 'getAssistantStats':
@@ -110,13 +137,12 @@ async function getAssistantStats(user) {
       isDeleted: false
     }).count();
 
-    // 获取农户详细列表（用于计算其他统计数据）
-    const farmersList = await db.collection('farmers').where({
-      createBy: userId,
-      isDeleted: false
-    }).get();
-
-    const farmers = farmersList.data;
+    // 获取农户详细列表（分批，避免 get() 上限导致漏算）
+    const farmers = await queryAll(
+      'farmers',
+      { createBy: userId, isDeleted: false },
+      { orderByField: 'createTime', orderByDirection: 'desc' }
+    );
 
     // 计算总面积、应收款、欠款、定金
     let totalAcreage = 0;
@@ -310,29 +336,36 @@ async function getWarehouseStats(user) {
  */
 async function getFinanceStats(user) {
   try {
-    // 获取所有仓库
-    const warehousesRes = await db.collection('warehouses').get();
-    const warehouses = warehousesRes.data;
+    // 获取所有仓库（分批）
+    const warehouses = await queryAll(
+      'warehouses',
+      {},
+      { orderByField: 'createTime', orderByDirection: 'desc' }
+    );
 
-    // 获取待审核结算单
-    const pendingSettlements = await db.collection('settlements').where(
+    // 获取待审核结算单（分批）
+    const pendingSettlements = await queryAll(
+      'settlements',
       _.or([
         { auditStatus: 'pending' },
         { status: 'pending' }
-      ])
-    ).get();
+      ]),
+      { orderByField: 'createTime', orderByDirection: 'desc', fields: { actualPayment: true, finalAmount: true } }
+    );
 
-    // 获取待支付结算单
-    const approvedSettlements = await db.collection('settlements').where(
+    // 获取待支付结算单（分批）
+    const approvedSettlements = await queryAll(
+      'settlements',
       _.and([
         _.or([{ auditStatus: 'approved' }, { status: 'approved' }]),
         _.or([{ paymentStatus: 'unpaid' }, { paymentStatus: 'paying' }])
-      ])
-    ).get();
+      ]),
+      { orderByField: 'createTime', orderByDirection: 'desc', fields: { actualPayment: true, finalAmount: true } }
+    );
 
     // 计算待支付总额
     let totalPendingAmount = 0;
-    approvedSettlements.data.forEach(settlement => {
+    approvedSettlements.forEach(settlement => {
       totalPendingAmount += settlement.actualPayment || settlement.finalAmount || 0;
     });
 
@@ -341,31 +374,37 @@ async function getFinanceStats(user) {
       isDeleted: false
     }).count();
 
-    // 获取所有收购记录
-    const acquisitionsRes = await db.collection('acquisitions').get();
+    // 获取所有收购记录（分批）
+    const acquisitionsRes = await queryAll(
+      'acquisitions',
+      { status: _.neq('deleted') },
+      { orderByField: 'createTime', orderByDirection: 'desc', fields: { totalAmount: true, netWeight: true, weight: true, warehouseId: true } }
+    );
     let totalAcquisitionAmount = 0;
-    acquisitionsRes.data.forEach(acq => {
+    acquisitionsRes.forEach(acq => {
       totalAcquisitionAmount += acq.totalAmount || 0;
     });
 
     // 获取各仓库的统计数据
     const warehouseStats = [];
     for (const warehouse of warehouses) {
-      const warehouseAcquisitions = await db.collection('acquisitions').where({
-        warehouseId: warehouse._id
-      }).get();
+      const warehouseAcquisitions = await queryAll(
+        'acquisitions',
+        { warehouseId: warehouse._id, status: _.neq('deleted') },
+        { orderByField: 'createTime', orderByDirection: 'desc', fields: { totalAmount: true, netWeight: true, weight: true } }
+      );
 
       let warehouseTotal = 0;
       let warehouseWeight = 0;
-      warehouseAcquisitions.data.forEach(acq => {
+      warehouseAcquisitions.forEach(acq => {
         warehouseTotal += acq.totalAmount || 0;
-        warehouseWeight += acq.weight || 0;
+        warehouseWeight += acq.netWeight || acq.weight || 0;
       });
 
       warehouseStats.push({
         warehouseId: warehouse._id,
         warehouseName: warehouse.name,
-        acquisitionCount: warehouseAcquisitions.data.length,
+        acquisitionCount: warehouseAcquisitions.length,
         totalWeight: warehouseWeight,
         totalAmount: warehouseTotal
       });
@@ -375,8 +414,8 @@ async function getFinanceStats(user) {
       success: true,
       data: {
         warehouses: warehouses,
-        pendingSettlementCount: pendingSettlements.data.length,
-        approvedSettlementCount: approvedSettlements.data.length,
+        pendingSettlementCount: pendingSettlements.length,
+        approvedSettlementCount: approvedSettlements.length,
         totalPendingAmount: totalPendingAmount,
         totalFarmers: farmersRes.total,
         totalAcquisitionAmount: totalAcquisitionAmount,

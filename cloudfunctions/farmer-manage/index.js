@@ -17,17 +17,53 @@ cloud.init({
 const db = cloud.database();
 const _ = db.command;
 
+// 引入精确计算工具
+const { multiply, add, subtract, roundToFen } = require('./calc');
+
 /**
  * 生成农户编号
- * 格式：FAR_YYYYMMDD_XXXX
+ * 格式：FAR_YYYYMMDD_XXXXXX（按天自增，避免随机号撞号）
  */
-function generateFarmerId() {
+async function generateFarmerId() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
-  const random = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-  return `FAR_${year}${month}${day}_${random}`;
+  const ymd = `${year}${month}${day}`;
+  const counterId = `farmer_id_${ymd}`;
+
+  const seq = await db.runTransaction(async (t) => {
+    const res = await t.collection('id_counters')
+      .where({ _id: counterId })
+      .limit(1)
+      .get();
+
+    if (!res.data || res.data.length === 0) {
+      await t.collection('id_counters').add({
+        data: {
+          _id: counterId,
+          bizType: 'farmer',
+          date: ymd,
+          seq: 1,
+          createTime: db.serverDate(),
+          updateTime: db.serverDate()
+        }
+      });
+      return 1;
+    }
+
+    const current = Number(res.data[0].seq || 0);
+    const next = current + 1;
+    await t.collection('id_counters').doc(counterId).update({
+      data: {
+        seq: next,
+        updateTime: db.serverDate()
+      }
+    });
+    return next;
+  });
+
+  return `FAR_${ymd}_${String(seq).padStart(6, '0')}`;
 }
 
 function buildFarmerLookupCondition(farmerId) {
@@ -122,7 +158,7 @@ async function createFarmer(event) {
     const currentUser = userRes.data;
 
     // 生成农户编号
-    const farmerId = generateFarmerId();
+    const farmerId = await generateFarmerId();
 
     // 构造农户数据
     const farmerData = {
@@ -558,21 +594,21 @@ async function addFarmerAddendum(event) {
 
     const farmer = farmerRes.data[0];
 
-    // 2. 计算新的累计值
+    // 2. 计算新的累计值 - 使用精确计算
     const seedTotal = parseFloat(addedSeedTotal) || 0;
     const seedUnitPrice = parseFloat(addedSeedUnitPrice) || 0;
-    const receivable = parseFloat(addedReceivable) || (seedTotal * seedUnitPrice);
+    const receivable = parseFloat(addedReceivable) || multiply(seedTotal, seedUnitPrice);
     const deposit = parseFloat(addedDeposit) || 0;
 
-    const newAcreage = (farmer.acreage || 0) + acreage;
-    const newSeedTotal = (farmer.seedTotal || 0) + seedTotal;
-    const newReceivable = (farmer.receivableAmount || 0) + receivable;
-    const newDeposit = (farmer.deposit || 0) + deposit;
+    const newAcreage = roundToFen(add(farmer.acreage || 0, acreage));
+    const newSeedTotal = roundToFen(add(farmer.seedTotal || 0, seedTotal));
+    const newReceivable = roundToFen(add(farmer.receivableAmount || 0, receivable));
+    const newDeposit = roundToFen(add(farmer.deposit || 0, deposit));
     // 种苗欠款为剩余欠款：追加定金后减少欠款余额
     const currentSeedDebt = Number.isFinite(farmer.seedDebt)
       ? farmer.seedDebt
-      : Math.max(0, (farmer.stats?.totalSeedAmount || 0) - (farmer.deposit || 0));
-    const newSeedDebt = Math.max(0, currentSeedDebt - deposit);
+      : Math.max(0, subtract(farmer.stats?.totalSeedAmount || 0, farmer.deposit || 0));
+    const newSeedDebt = roundToFen(Math.max(0, subtract(currentSeedDebt, deposit)));
 
     // 3. 生成业务记录编号
     const now = new Date();
@@ -693,9 +729,9 @@ async function addAdvancePayment(event) {
 
     const farmer = farmerRes.data[0];
 
-    // 2. 计算新的预支款余额
+    // 2. 计算新的预支款余额 - 使用精确计算
     const currentAdvance = farmer.advancePayment || 0;
-    const newAdvancePayment = currentAdvance + paymentAmount;
+    const newAdvancePayment = roundToFen(add(currentAdvance, paymentAmount));
 
     // 3. 生成业务记录编号
     const now = new Date();
@@ -965,8 +1001,8 @@ async function addAgriculturalSupply(event) {
     };
   }
 
-  // 计算金额
-  const totalAmount = parseFloat(amount) || (qty * price);
+  // 计算金额 - 使用精确计算
+  const totalAmount = parseFloat(amount) || multiply(qty, price);
 
   try {
     // 1. 获取当前农户信息
@@ -983,12 +1019,12 @@ async function addAgriculturalSupply(event) {
 
     const farmer = farmerRes.data[0];
 
-    // 2. 计算新的农资欠款
+    // 2. 计算新的农资欠款 - 使用精确计算
     const currentAgriDebt = farmer.agriculturalDebt || 0;
     const currentFertilizer = farmer.fertilizerAmount || 0;
     const currentPesticide = farmer.pesticideAmount || 0;
 
-    const newAgriDebt = currentAgriDebt + totalAmount;
+    const newAgriDebt = roundToFen(add(currentAgriDebt, totalAmount));
 
     // 根据类型更新对应金额
     const updateData = {
@@ -997,9 +1033,9 @@ async function addAgriculturalSupply(event) {
     };
 
     if (type === 'fertilizer') {
-      updateData.fertilizerAmount = currentFertilizer + totalAmount;
+      updateData.fertilizerAmount = roundToFen(add(currentFertilizer, totalAmount));
     } else {
-      updateData.pesticideAmount = currentPesticide + totalAmount;
+      updateData.pesticideAmount = roundToFen(add(currentPesticide, totalAmount));
     }
 
     // 3. 生成业务记录编号

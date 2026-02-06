@@ -141,12 +141,15 @@ Page({
     wx.showLoading({ title: '加载中...' });
 
     try {
+      const userInfo = wx.getStorageSync('userInfo') || {};
+      const userId = userInfo.id || userInfo._id || '';
       // 调用云函数获取记录详情
       const res = await wx.cloud.callFunction({
         name: 'seed-manage',
         data: {
           action: 'getDetail',
-          recordId
+          recordId,
+          userId
         }
       });
 
@@ -450,11 +453,14 @@ Page({
    */
   async loadFarmerDistributedArea(farmerId: string) {
     try {
+      const userInfo = wx.getStorageSync('userInfo') || {};
+      const userId = userInfo.id || userInfo._id || '';
       const res = await wx.cloud.callFunction({
         name: 'seed-manage',
         data: {
           action: 'getByFarmer',
-          farmerId
+          farmerId,
+          userId
         }
       });
 

@@ -1,0 +1,10 @@
+{
+  "name": "business-data-reset",
+  "version": "1.0.0",
+  "description": "业务数据初始化（清空业务数据，保留用户和仓库）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
+
