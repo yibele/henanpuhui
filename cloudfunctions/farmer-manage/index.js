@@ -1132,23 +1132,38 @@ async function addAgriculturalSupply(event) {
 }
 
 /**
- * 定金退还（出纳/管理员操作）
- * 合同结束时，将农户已交定金退还给农户
+ * 定金处理（退还/扣除）—— 出纳/管理员操作
+ * depositStatus: 'returned'=已退还（农户履约）, 'forfeited'=已扣除（农户违约）
+ *
+ * @param {string} event.data.handleType - 'return' 退还 | 'forfeit' 扣除
+ * @param {string} event.data.paymentMethod - 退还方式（仅退还时有意义）：cash/wechat/bank
+ * @param {string} event.data.reason - 扣除原因（仅扣除时必填）
+ * @param {string} event.data.remark - 备注
  */
-async function returnDeposit(event) {
+async function handleDeposit(event) {
   const { userId, userName, farmerId, data } = event;
 
   if (!userId || !farmerId) {
-    return {
-      success: false,
-      message: '缺少必要参数'
-    };
+    return { success: false, message: '缺少必要参数' };
   }
 
   const {
-    paymentMethod,   // 退还方式：cash/wechat/bank
+    handleType,      // 'return' 退还 | 'forfeit' 扣除
+    paymentMethod,   // 退还方式：cash/wechat/bank（退还时用）
+    reason,          // 扣除原因（扣除时必填）
     remark
   } = data || {};
+
+  const isReturn = handleType === 'return';
+  const isForfeit = handleType === 'forfeit';
+
+  if (!isReturn && !isForfeit) {
+    return { success: false, message: '无效的操作类型，请指定 return 或 forfeit' };
+  }
+
+  if (isForfeit && !reason) {
+    return { success: false, message: '扣除定金时必须填写原因' };
+  }
 
   try {
     // 1. 权限检查：只有出纳和管理员可操作
@@ -1172,12 +1187,13 @@ async function returnDeposit(event) {
 
     const depositAmount = farmer.deposit || 0;
     if (depositAmount <= 0) {
-      return { success: false, message: '该农户无可退还定金' };
+      return { success: false, message: '该农户无定金可处理' };
     }
 
-    // 检查是否已退还
-    if (farmer.depositReturned) {
-      return { success: false, message: '该农户定金已退还，请勿重复操作' };
+    // 检查是否已处理（兼容旧字段 depositReturned）
+    if (farmer.depositStatus === 'returned' || farmer.depositStatus === 'forfeited' || farmer.depositReturned) {
+      const statusText = (farmer.depositStatus === 'forfeited') ? '已扣除' : '已退还';
+      return { success: false, message: `该农户定金${statusText}，请勿重复操作` };
     }
 
     // 付款方式名称映射
@@ -1187,6 +1203,14 @@ async function returnDeposit(event) {
       'bank': '银行转账'
     };
 
+    const actionLabel = isReturn ? '退还' : '扣除';
+    const bizType = isReturn ? 'deposit_return' : 'deposit_forfeit';
+    const bizName = isReturn ? '定金退还' : '定金扣除';
+    const depositStatus = isReturn ? 'returned' : 'forfeited';
+    const descText = isReturn
+      ? `退还定金¥${depositAmount}，${methodNames[paymentMethod] || '现金'}`
+      : `扣除定金¥${depositAmount}，原因：${reason}`;
+
     // 3. 生成业务记录编号
     const now = new Date();
     const recordId = `BIZ_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`;
@@ -1194,17 +1218,27 @@ async function returnDeposit(event) {
     // 4. 事务操作
     const transaction = await db.startTransaction();
     try {
-      // 更新农户：标记定金已退还
+      // 更新农户：标记定金状态
+      const farmerUpdate = {
+        depositStatus,
+        depositHandleAmount: depositAmount,
+        depositHandleTime: db.serverDate(),
+        depositHandleBy: userId,
+        depositHandleByName: currentUser.name,
+        // 兼容旧字段
+        depositReturned: isReturn,
+        depositReturnedAmount: isReturn ? depositAmount : 0,
+        updateTime: db.serverDate()
+      };
+      if (isReturn) {
+        farmerUpdate.depositReturnMethod = paymentMethod || 'cash';
+      }
+      if (isForfeit) {
+        farmerUpdate.depositForfeitReason = reason;
+      }
+
       await transaction.collection('farmers').doc(farmerId).update({
-        data: {
-          depositReturned: true,
-          depositReturnedAmount: depositAmount,
-          depositReturnTime: db.serverDate(),
-          depositReturnBy: userId,
-          depositReturnByName: currentUser.name,
-          depositReturnMethod: paymentMethod || 'cash',
-          updateTime: db.serverDate()
-        }
+        data: farmerUpdate
       });
 
       // 写入业务往来记录
@@ -1213,12 +1247,13 @@ async function returnDeposit(event) {
           recordId,
           farmerId,
           farmerName: farmer.name,
-          type: 'deposit_return',
-          name: '定金退还',
+          type: bizType,
+          name: bizName,
           date: now.toISOString().split('T')[0],
           amount: depositAmount,
-          desc: `退还定金¥${depositAmount}，${methodNames[paymentMethod] || '现金'}`,
-          paymentMethod: paymentMethod || 'cash',
+          desc: descText,
+          paymentMethod: isReturn ? (paymentMethod || 'cash') : '',
+          forfeitReason: isForfeit ? reason : '',
           remark: remark || '',
           createTime: db.serverDate(),
           createBy: userId,
@@ -1229,7 +1264,7 @@ async function returnDeposit(event) {
       await transaction.commit();
     } catch (transactionError) {
       await transaction.rollback();
-      console.error('定金退还事务失败:', transactionError);
+      console.error(`定金${actionLabel}事务失败:`, transactionError);
       throw transactionError;
     }
 
@@ -1240,33 +1275,33 @@ async function returnDeposit(event) {
           userId: currentUser._id,
           userName: currentUser.name,
           userRole: currentUser.role,
-          action: 'return_deposit',
+          action: isReturn ? 'return_deposit' : 'forfeit_deposit',
           module: 'farmer',
           targetId: farmerId,
           targetName: farmer.name,
-          description: `退还定金：${farmer.name}，金额¥${depositAmount}，方式：${methodNames[paymentMethod] || '现金'}`,
+          description: `${actionLabel}定金：${farmer.name}，金额¥${depositAmount}${isForfeit ? '，原因：' + reason : ''}`,
           createTime: db.serverDate()
         }
       });
     } catch (logError) {
-      console.error('定金退还日志写入失败（不影响主流程）:', logError);
+      console.error(`定金${actionLabel}日志写入失败（不影响主流程）:`, logError);
     }
 
     return {
       success: true,
-      message: '定金退还成功',
+      message: `定金${actionLabel}成功`,
       data: {
         farmerName: farmer.name,
         depositAmount,
-        paymentMethod: paymentMethod || 'cash'
+        depositStatus
       }
     };
 
   } catch (error) {
-    console.error('定金退还失败:', error);
+    console.error(`定金处理失败:`, error);
     return {
       success: false,
-      message: error.message || '定金退还失败'
+      message: error.message || '定金处理失败'
     };
   }
 }
@@ -1312,7 +1347,9 @@ exports.main = async (event, context) => {
       return await addAgriculturalSupply(event);
 
     case 'returnDeposit':
-      return await returnDeposit(event);
+    case 'forfeitDeposit':
+    case 'handleDeposit':
+      return await handleDeposit(event);
 
     default:
       return {

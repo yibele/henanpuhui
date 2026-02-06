@@ -697,9 +697,9 @@
   box-sizing: border-box;
 }
 
-/* ==================== 9. 定金退还 ==================== */
+/* ==================== 9. 定金处理（退还/扣除） ==================== */
 
-.deposit-return-bar {
+.deposit-action-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -710,28 +710,40 @@
   border: 1rpx solid #fde68a;
 }
 
-.deposit-return-info {
+.deposit-action-info {
   display: flex;
   align-items: center;
   gap: 12rpx;
 }
 
-.deposit-return-label {
+.deposit-action-label {
   font-size: 26rpx;
   color: #92400e;
 }
 
-.deposit-return-amount {
+.deposit-action-amount {
   font-size: 32rpx;
   font-weight: 600;
   color: #b45309;
 }
 
-.deposit-return-btn {
-  background-color: #059669;
+.deposit-action-btns {
+  display: flex;
+  gap: 16rpx;
+}
+
+.deposit-btn {
   color: #ffffff;
   font-size: 26rpx;
   padding: 12rpx 28rpx;
   border-radius: 8rpx;
   font-weight: 500;
+}
+
+.deposit-btn-return {
+  background-color: #059669;
+}
+
+.deposit-btn-forfeit {
+  background-color: #ef4444;
 }

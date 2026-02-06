@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Table, Button, Spin, Tag, message, Popconfirm, Space, Dropdown, Row, Col, Statistic } from 'antd'
-import { ArrowLeftOutlined, PhoneOutlined, EditOutlined, DeleteOutlined, ExperimentOutlined, CheckCircleOutlined, DollarOutlined, ShopOutlined, PlusCircleOutlined, DownOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Table, Button, Spin, Tag, message, Popconfirm, Space, Dropdown, Row, Col, Statistic, Alert } from 'antd'
+import { ArrowLeftOutlined, PhoneOutlined, EditOutlined, DeleteOutlined, ExperimentOutlined, CheckCircleOutlined, DollarOutlined, ShopOutlined, PlusCircleOutlined, DownOutlined, WalletOutlined } from '@ant-design/icons'
 import { farmerApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
-import { AdvancePaymentModal, AgriculturalSupplyModal, AddendumModal } from '../../components/BusinessModals'
+import { AdvancePaymentModal, AgriculturalSupplyModal, AddendumModal, DepositHandleModal } from '../../components/BusinessModals'
 
 interface FarmerDetail {
   _id: string
@@ -29,6 +29,11 @@ interface FarmerDetail {
   pesticideAmount: number       // 农药金额
   firstManager: string          // 负责人
   seedDistributionComplete: boolean  // 发苗完成状态
+  // 定金处理状态
+  depositStatus: '' | 'returned' | 'forfeited'
+  depositReturned: boolean
+  depositHandleAmount: number
+  depositForfeitReason: string
 }
 
 interface SeedStats {
@@ -48,6 +53,7 @@ interface BusinessRecord {
 }
 
 const TYPE_NAMES: Record<string, string> = {
+  contract: '农户签约',
   seed: '种苗发放',
   fertilizer: '化肥发放',
   pesticide: '农药发放',
@@ -56,6 +62,18 @@ const TYPE_NAMES: Record<string, string> = {
   acquisition: '收购入库',
   settlement: '结算',
   payment: '结算付款',
+  deposit_return: '定金退还',
+  deposit_forfeit: '定金扣除',
+}
+
+function buildContractInitRecord(farmer: FarmerDetail): BusinessRecord {
+  return {
+    _id: 'contract_init',
+    type: 'contract',
+    createTime: farmer.createTime || '',
+    totalAmount: farmer.receivableAmount || 0,
+    remark: `签约面积 ${farmer.acreage || 0} 亩，定金 ¥${farmer.deposit || 0}`,
+  }
 }
 
 export default function FarmerDetail() {
@@ -78,6 +96,11 @@ export default function FarmerDetail() {
   const [advanceModalVisible, setAdvanceModalVisible] = useState(false)
   const [agriModalVisible, setAgriModalVisible] = useState(false)
   const [addendumModalVisible, setAddendumModalVisible] = useState(false)
+  const [depositModalVisible, setDepositModalVisible] = useState(false)
+  const [depositHandleType, setDepositHandleType] = useState<'return' | 'forfeit'>('return')
+
+  // 权限判断：出纳和管理员可操作定金
+  const canHandleDeposit = userInfo?.role === 'cashier' || userInfo?.role === 'admin'
 
   useEffect(() => {
     if (id) {
@@ -98,11 +121,14 @@ export default function FarmerDetail() {
         seedPromise,
       ]) as any[]
 
+      const farmerData = detailRes?.success ? detailRes.data as FarmerDetail : null
       if (detailRes.success) {
-        setFarmer(detailRes.data)
+        setFarmer(farmerData)
       }
       if (recordsRes.success) {
-        setRecords(recordsRes.data.list || [])
+        const baseRecords = recordsRes.data.list || []
+        const contractRecord = farmerData ? [buildContractInitRecord(farmerData)] : []
+        setRecords([...baseRecords, ...contractRecord])
       }
       if (seedRes?.success && seedRes.data) {
         setSeedStats({
@@ -309,7 +335,8 @@ export default function FarmerDetail() {
               {farmer.grade === 'gold' ? '金牌农户' : farmer.grade === 'silver' ? '银牌农户' : '铜牌农户'}
             </Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="负责人">{farmer.firstManager || farmer.createByName || '-'}</Descriptions.Item>
+          <Descriptions.Item label="负责人">{farmer.firstManager || '-'}</Descriptions.Item>
+          <Descriptions.Item label="录入人">{farmer.createByName || '-'}</Descriptions.Item>
           <Descriptions.Item label="登记时间">{farmer.createTime ? new Date(farmer.createTime).toLocaleDateString('zh-CN') : '-'}</Descriptions.Item>
         </Descriptions>
       </Card>
@@ -372,12 +399,12 @@ export default function FarmerDetail() {
       <Card title="欠款汇总" style={{ marginBottom: 24 }}>
         <Row gutter={16}>
           <Col span={6}>
-            <Statistic
-              title="种苗欠款"
-              value={seedStats.recordCount > 0 ? (farmer.seedDebt || 0) : 0}
-              prefix="¥"
-              valueStyle={{ color: farmer.seedDebt > 0 ? '#f5222d' : undefined }}
-            />
+              <Statistic
+                title="种苗欠款"
+                value={farmer.seedDebt || 0}
+                prefix="¥"
+                valueStyle={{ color: farmer.seedDebt > 0 ? '#f5222d' : undefined }}
+              />
           </Col>
           <Col span={6}>
             <Statistic
@@ -397,6 +424,62 @@ export default function FarmerDetail() {
           </Col>
         </Row>
       </Card>
+
+      {/* 定金状态卡片 */}
+      {(() => {
+        const depositAmount = farmer.deposit || 0
+        // 兼容旧字段
+        const status = farmer.depositStatus || (farmer.depositReturned ? 'returned' : '')
+        const handleAmount = farmer.depositHandleAmount || depositAmount
+        const showCard = canHandleDeposit || !!status
+
+        if (!showCard || depositAmount <= 0) return null
+
+        return (
+          <Card
+            title={<span><WalletOutlined style={{ marginRight: 8 }} />定金状态</span>}
+            style={{ marginBottom: 24 }}
+          >
+            {status === 'returned' ? (
+              <Alert
+                type="success"
+                showIcon
+                message={`定金已退还 ¥${handleAmount.toFixed(2)}`}
+                description="定金已退还给农户"
+              />
+            ) : status === 'forfeited' ? (
+              <Alert
+                type="error"
+                showIcon
+                message={`定金已扣除 ¥${handleAmount.toFixed(2)}`}
+                description={`扣除原因：${farmer.depositForfeitReason || '农户违约'}`}
+              />
+            ) : canHandleDeposit ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 14, color: '#8c8c8c', marginBottom: 4 }}>待处理定金</div>
+                  <div style={{ fontSize: 28, fontWeight: 700, color: '#fa8c16' }}>¥{depositAmount.toFixed(2)}</div>
+                </div>
+                <Space>
+                  <Button
+                    danger
+                    onClick={() => { setDepositHandleType('forfeit'); setDepositModalVisible(true) }}
+                  >
+                    扣除定金
+                  </Button>
+                  <Button
+                    type="primary"
+                    style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                    onClick={() => { setDepositHandleType('return'); setDepositModalVisible(true) }}
+                  >
+                    退还定金
+                  </Button>
+                </Space>
+              </div>
+            ) : null}
+          </Card>
+        )
+      })()}
 
       <Card title="业务记录">
         <Table
@@ -433,6 +516,17 @@ export default function FarmerDetail() {
         userId={userInfo?.id || ''}
         userName={userInfo?.name || ''}
         onClose={() => setAddendumModalVisible(false)}
+        onSuccess={() => loadDetail(id!)}
+      />
+      <DepositHandleModal
+        visible={depositModalVisible}
+        handleType={depositHandleType}
+        farmerId={id || ''}
+        farmerName={farmer.name}
+        depositAmount={farmer.deposit || 0}
+        userId={userInfo?.id || ''}
+        userName={userInfo?.name || ''}
+        onClose={() => setDepositModalVisible(false)}
         onSuccess={() => loadDetail(id!)}
       />
     </div>

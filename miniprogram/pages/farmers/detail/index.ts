@@ -85,11 +85,16 @@ Page({
     depositAction: '' as 'add' | 'reduce',
     depositInputValue: '',
 
-    // ========== 定金退还 ==========
-    canReturnDeposit: false,       // 是否有退还定金权限（出纳/管理员）
+    // ========== 定金处理（退还/扣除） ==========
+    canHandleDeposit: false,       // 是否有定金操作权限（出纳/管理员）
     depositReturnPopupVisible: false,
     depositReturnForm: {
       method: 'cash' as string,
+      remark: ''
+    },
+    depositForfeitPopupVisible: false,
+    depositForfeitForm: {
+      reason: '',
       remark: ''
     },
 
@@ -144,8 +149,8 @@ Page({
     const userRole = app.globalData.userRole;
     const isFinanceAdmin = userRole === UserRole.FINANCE_ADMIN;
     // 出纳和管理员可以退还定金
-    const canReturnDeposit = userRole === 'cashier' || userRole === 'admin';
-    this.setData({ isFinanceAdmin, canReturnDeposit });
+    const canHandleDeposit = userRole === 'cashier' || userRole === 'admin';
+    this.setData({ isFinanceAdmin, canHandleDeposit });
   },
 
   /**
@@ -196,9 +201,10 @@ Page({
           agriculturalDebt: farmerData.agriculturalDebt || 0,   // 农资欠款
           // 预支款
           advancePayment: farmerData.advancePayment || 0,       // 预支款余额
-          // 定金退还状态
-          depositReturned: farmerData.depositReturned || false,
-          depositReturnedAmount: farmerData.depositReturnedAmount || 0
+          // 定金处理状态
+          depositStatus: farmerData.depositStatus || (farmerData.depositReturned ? 'returned' : ''),
+          depositHandleAmount: farmerData.depositHandleAmount || farmerData.depositReturnedAmount || 0,
+          depositForfeitReason: farmerData.depositForfeitReason || ''
         };
 
         this.setData({ farmer });
@@ -292,7 +298,8 @@ Page({
       'settlement': '结算',
       'settlement_audit': '结算审核',
       'payment': '结算付款',
-      'deposit_return': '定金退还'
+      'deposit_return': '定金退还',
+      'deposit_forfeit': '定金扣除'
     };
     return typeNames[type] || '业务记录';
   },
@@ -323,6 +330,8 @@ Page({
         return record.desc || `实付¥${record.amount || 0}`;
       case 'deposit_return':
         return record.desc || `退还定金¥${record.amount || 0}`;
+      case 'deposit_forfeit':
+        return record.desc || `扣除定金¥${record.amount || 0}`;
       default:
         return record.desc || record.remark || '';
     }
@@ -1074,11 +1083,12 @@ Page({
       const res = await wx.cloud.callFunction({
         name: 'farmer-manage',
         data: {
-          action: 'returnDeposit',
+          action: 'handleDeposit',
           userId,
           userName,
           farmerId: farmer.id || farmerId,
           data: {
+            handleType: 'return',
             paymentMethod: depositReturnForm.method,
             remark: depositReturnForm.remark
           }
@@ -1099,6 +1109,95 @@ Page({
     } catch (error) {
       wx.hideLoading();
       console.error('定金退还失败:', error);
+      wx.showToast({ title: '网络错误，请重试', icon: 'none' });
+    }
+  },
+
+  // ========== 定金扣除 ==========
+  onOpenDepositForfeitPopup() {
+    this.setData({
+      depositForfeitPopupVisible: true,
+      depositForfeitForm: { reason: '', remark: '' }
+    });
+  },
+
+  onCloseDepositForfeitPopup() {
+    this.setData({ depositForfeitPopupVisible: false });
+  },
+
+  onDepositForfeitReasonInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'depositForfeitForm.reason': e.detail.value });
+  },
+
+  onDepositForfeitRemarkInput(e: WechatMiniprogram.CustomEvent) {
+    this.setData({ 'depositForfeitForm.remark': e.detail.value });
+  },
+
+  async onSubmitDepositForfeit() {
+    const { farmer, farmerId, depositForfeitForm } = this.data;
+    if (!farmer) return;
+
+    const depositAmount = farmer.deposit || 0;
+    if (depositAmount <= 0) {
+      wx.showToast({ title: '无定金可扣除', icon: 'none' });
+      return;
+    }
+
+    if (!depositForfeitForm.reason || !depositForfeitForm.reason.trim()) {
+      wx.showToast({ title: '请填写扣除原因', icon: 'none' });
+      return;
+    }
+
+    // 二次确认（红色警告）
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '确认扣除定金',
+        content: `确认扣除农户「${farmer.name}」定金 ¥${depositAmount}？此操作不可撤销！\n\n原因：${depositForfeitForm.reason}`,
+        confirmText: '确认扣除',
+        confirmColor: '#ef4444',
+        cancelText: '取消',
+        success: (res) => resolve(res.confirm)
+      });
+    });
+
+    if (!confirmed) return;
+
+    wx.showLoading({ title: '处理中...' });
+
+    try {
+      const userInfo = (app.globalData as any)?.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+      const userName = userInfo.name || '出纳';
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'handleDeposit',
+          userId,
+          userName,
+          farmerId: farmer.id || farmerId,
+          data: {
+            handleType: 'forfeit',
+            reason: depositForfeitForm.reason.trim(),
+            remark: depositForfeitForm.remark
+          }
+        }
+      });
+
+      wx.hideLoading();
+      const result = res.result as any;
+
+      if (result.success) {
+        wx.showToast({ title: '定金扣除成功', icon: 'success' });
+        this.setData({ depositForfeitPopupVisible: false });
+        // 刷新页面数据
+        this.loadFarmerDetail(farmer.id || farmerId);
+      } else {
+        wx.showToast({ title: result.message || '操作失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('定金扣除失败:', error);
       wx.showToast({ title: '网络错误，请重试', icon: 'none' });
     }
   }

@@ -178,6 +178,102 @@ export function AgriculturalSupplyModal({ visible, farmerId, farmerName, userId,
   )
 }
 
+// 定金处理弹窗（退还 / 扣除）
+interface DepositHandleModalProps {
+  visible: boolean
+  handleType: 'return' | 'forfeit'
+  farmerId: string
+  farmerName: string
+  depositAmount: number
+  userId: string
+  userName: string
+  onClose: () => void
+  onSuccess: () => void
+}
+
+export function DepositHandleModal({
+  visible,
+  handleType,
+  farmerId,
+  farmerName,
+  depositAmount,
+  userId,
+  userName,
+  onClose,
+  onSuccess,
+}: DepositHandleModalProps) {
+  const [form] = Form.useForm()
+  const [loading, setLoading] = useState(false)
+
+  const isReturn = handleType === 'return'
+  const title = isReturn ? '退还定金' : '扣除定金'
+  const okText = isReturn ? '确认退还' : '确认扣除'
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields()
+      setLoading(true)
+      const result = await farmerApi.handleDeposit(userId, userName, farmerId, {
+        handleType,
+        paymentMethod: isReturn ? (values.paymentMethod || 'cash') : undefined,
+        reason: !isReturn ? values.reason : undefined,
+        remark: values.remark || '',
+      }) as any
+      if (result.success) {
+        message.success(`${title}成功`)
+        form.resetFields()
+        onSuccess()
+        onClose()
+      } else {
+        message.error(result.message || '操作失败')
+      }
+    } catch (error) {
+      console.error(`${title}失败:`, error)
+      message.error('操作失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={`${title} - ${farmerName}`}
+      open={visible}
+      onOk={handleSubmit}
+      onCancel={onClose}
+      confirmLoading={loading}
+      okText={okText}
+      okButtonProps={isReturn ? { style: { background: '#52c41a', borderColor: '#52c41a' } } : { danger: true }}
+      destroyOnClose
+    >
+      <div style={{ background: isReturn ? '#f6ffed' : '#fff2f0', padding: 16, borderRadius: 8, marginBottom: 16, textAlign: 'center' }}>
+        <div style={{ fontSize: 14, color: '#8c8c8c', marginBottom: 4 }}>{isReturn ? '退还金额' : '扣除金额'}</div>
+        <div style={{ fontSize: 28, fontWeight: 700, color: isReturn ? '#52c41a' : '#f5222d' }}>¥{depositAmount.toFixed(2)}</div>
+      </div>
+      <Form form={form} layout="vertical" initialValues={{ paymentMethod: 'cash' }}>
+        {isReturn ? (
+          <Form.Item name="paymentMethod" label="退还方式" rules={[{ required: true, message: '请选择退还方式' }]}>
+            <Select
+              options={[
+                { value: 'cash', label: '现金' },
+                { value: 'wechat', label: '微信转账' },
+                { value: 'bank', label: '银行转账' },
+              ]}
+            />
+          </Form.Item>
+        ) : (
+          <Form.Item name="reason" label="扣除原因" rules={[{ required: true, message: '请输入扣除原因' }]}>
+            <Input.TextArea rows={2} placeholder="如：农户违约未交货、逾期未履约等" />
+          </Form.Item>
+        )}
+        <Form.Item name="remark" label="备注">
+          <Input.TextArea rows={2} placeholder="可选" />
+        </Form.Item>
+      </Form>
+    </Modal>
+  )
+}
+
 // 追加签约弹窗
 export function AddendumModal({ visible, farmerId, farmerName, userId, userName, onClose, onSuccess }: ModalProps) {
   const [form] = Form.useForm()

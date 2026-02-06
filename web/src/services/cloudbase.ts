@@ -137,6 +137,15 @@ export const farmerApi = {
     remark?: string;
   }) =>
     callFunction('farmer-manage', { action: 'addendum', userId, userName, farmerId, data }),
+
+  // 定金处理（退还/扣除）
+  handleDeposit: (userId: string, userName: string, farmerId: string, data: {
+    handleType: 'return' | 'forfeit';
+    paymentMethod?: string;
+    reason?: string;
+    remark?: string;
+  }) =>
+    callFunction('farmer-manage', { action: 'handleDeposit', userId, userName, farmerId, data }),
 }
 
 /**

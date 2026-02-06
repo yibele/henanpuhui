@@ -137,23 +137,37 @@
         </view>
       </view>
 
-      <!-- 定金退还状态（出纳/管理员可见） -->
-      <view class="section-title-row section-title-row-mt" wx:if="{{canReturnDeposit || farmer.depositReturned}}">
+      <!-- 定金处理状态（出纳/管理员可见） -->
+      <view class="section-title-row section-title-row-mt" wx:if="{{canHandleDeposit || farmer.depositStatus}}">
         <text class="section-title-text">定金状态</text>
       </view>
-      <view class="stats-row" wx:if="{{farmer.depositReturned}}">
+      <!-- 已退还 -->
+      <view class="stats-row" wx:if="{{farmer.depositStatus === 'returned'}}">
         <view class="stat-item" style="flex: 1;">
-          <text class="stat-value stat-green">¥{{farmer.depositReturnedAmount || farmer.deposit || 0}} 已退还</text>
-          <text class="stat-label">定金已退还</text>
+          <text class="stat-value stat-green">¥{{farmer.depositHandleAmount || farmer.deposit || 0}} 已退还</text>
+          <text class="stat-label">定金已退还给农户</text>
         </view>
       </view>
-      <view wx:elif="{{canReturnDeposit && farmer.deposit > 0}}" class="deposit-return-bar">
-        <view class="deposit-return-info">
-          <text class="deposit-return-label">待退定金</text>
-          <text class="deposit-return-amount">¥{{farmer.deposit}}</text>
+      <!-- 已扣除 -->
+      <view class="stats-row" wx:elif="{{farmer.depositStatus === 'forfeited'}}">
+        <view class="stat-item" style="flex: 1;">
+          <text class="stat-value stat-red">¥{{farmer.depositHandleAmount || farmer.deposit || 0}} 已扣除</text>
+          <text class="stat-label">定金已扣除（{{farmer.depositForfeitReason || '农户违约'}}）</text>
         </view>
-        <view class="deposit-return-btn" bindtap="onOpenDepositReturnPopup">
-          <text>退还定金</text>
+      </view>
+      <!-- 待处理：显示退还和扣除两个按钮 -->
+      <view wx:elif="{{canHandleDeposit && farmer.deposit > 0}}" class="deposit-action-bar">
+        <view class="deposit-action-info">
+          <text class="deposit-action-label">待处理定金</text>
+          <text class="deposit-action-amount">¥{{farmer.deposit}}</text>
+        </view>
+        <view class="deposit-action-btns">
+          <view class="deposit-btn deposit-btn-forfeit" bindtap="onOpenDepositForfeitPopup">
+            <text>扣除</text>
+          </view>
+          <view class="deposit-btn deposit-btn-return" bindtap="onOpenDepositReturnPopup">
+            <text>退还</text>
+          </view>
         </view>
       </view>
     </view>
@@ -476,6 +490,38 @@
       <view class="popup-footer-bar">
         <button class="btn-cancel" bindtap="onCloseDepositReturnPopup">取消</button>
         <button class="btn-confirm" bindtap="onSubmitDepositReturn">确认退还</button>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- 定金扣除弹窗 -->
+  <t-popup visible="{{depositForfeitPopupVisible}}" placement="bottom" bind:visible-change="onCloseDepositForfeitPopup">
+    <view class="popup-container">
+      <view class="popup-header-bar">
+        <text class="popup-title">扣除定金</text>
+        <t-icon name="close" size="40rpx" color="#9ca3af" bindtap="onCloseDepositForfeitPopup" />
+      </view>
+      <view class="popup-body">
+        <view class="popup-info-row">
+          <text>扣除金额</text>
+          <text class="popup-highlight" style="color: #ef4444;">¥{{farmer.deposit || 0}}</text>
+        </view>
+        <view class="popup-info-row">
+          <text>农户姓名</text>
+          <text>{{farmer.name}}</text>
+        </view>
+        <view class="form-field">
+          <text class="field-label required">扣除原因</text>
+          <input class="field-input" placeholder="请输入扣除原因（必填）" value="{{depositForfeitForm.reason}}" bindinput="onDepositForfeitReasonInput" />
+        </view>
+        <view class="form-field">
+          <text class="field-label">备注（选填）</text>
+          <input class="field-input" placeholder="请输入备注" value="{{depositForfeitForm.remark}}" bindinput="onDepositForfeitRemarkInput" />
+        </view>
+      </view>
+      <view class="popup-footer-bar">
+        <button class="btn-cancel" bindtap="onCloseDepositForfeitPopup">取消</button>
+        <button class="btn-confirm" style="background-color: #ef4444;" bindtap="onSubmitDepositForfeit">确认扣除</button>
       </view>
     </view>
   </t-popup>
