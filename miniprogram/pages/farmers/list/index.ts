@@ -38,6 +38,7 @@ Page({
 
   onLoad() {
     this.loadFarmers(1, false);
+    this.loadStats();
   },
 
   onShow() {
@@ -107,21 +108,9 @@ Page({
           });
         } else {
           // 替换模式（首次加载或搜索）
-          // 计算统计
-          const totalAcreage = this.formatNumber(
-            rawFarmers.reduce((sum: number, f: any) => sum + (f.acreage || 0), 0)
-          );
-          const totalDeposit = this.formatMoney(
-            rawFarmers.reduce((sum: number, f: any) => sum + (f.deposit || 0), 0)
-          );
-
           this.setData({
             farmers: newFarmers,
-            stats: {
-              totalFarmers: total,
-              totalAcreage,
-              totalDeposit
-            },
+            'stats.totalFarmers': total,
             currentPage: page,
             hasMore: newFarmers.length >= 20,
             loading: false
@@ -154,6 +143,35 @@ Page({
       return (amount / 10000).toFixed(2) + '万';
     }
     return amount.toString();
+  },
+
+  /**
+   * 加载全局统计数据（后端聚合，避免前端 reduce 被分页截断）
+   */
+  async loadStats() {
+    try {
+      const globalData = (app.globalData as any) || {};
+      const userInfo = globalData.currentUser || {};
+      const userId = userInfo.id || userInfo._id || '';
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'getStatusStats',
+          userId
+        }
+      });
+
+      const result = res.result as any;
+      if (result.success && result.data) {
+        this.setData({
+          'stats.totalAcreage': this.formatNumber(result.data.totalAcreage || 0),
+          'stats.totalDeposit': this.formatMoney(result.data.totalDeposit || 0)
+        });
+      }
+    } catch (error) {
+      console.error('加载统计数据失败:', error);
+    }
   },
 
   /**

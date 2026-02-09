@@ -42,6 +42,8 @@ Page({
     trendData: [] as any[],
     // 全部收购记录
     allRecords: [] as any[],
+    // 后端聚合汇总（不受分页截断）
+    serverSummary: null as any,
     // 仓库信息
     warehouseList: [] as any[],
     // 页面加载中
@@ -113,8 +115,8 @@ Page({
 
       console.log('[acquisition-stats] 从服务器加载数据');
 
-      // 并行获取收购记录和仓库信息
-      const [acquisitionRes, warehouseRes] = await Promise.all([
+      // 并行获取收购记录、仓库信息、汇总统计
+      const [acquisitionRes, warehouseRes, statsRes] = await Promise.all([
         wx.cloud.callFunction({
           name: 'acquisition-manage',
           data: {
@@ -130,11 +132,19 @@ Page({
             action: 'getWarehouseList',
             userId
           }
+        }),
+        wx.cloud.callFunction({
+          name: 'acquisition-manage',
+          data: {
+            action: 'getSummaryStats',
+            dateRange: 'all'
+          }
         })
       ]);
 
       const acquisitionResult = acquisitionRes.result as any;
       const warehouseResult = warehouseRes.result as any;
+      const statsResult = statsRes.result as any;
 
       let records: any[] = [];
       let warehouses: any[] = [];
@@ -150,9 +160,13 @@ Page({
       // 保存到缓存
       setCache(cacheKey, { records, warehouses });
 
+      // 保存后端聚合汇总
+      const serverSummary = (statsResult && statsResult.success && statsResult.data) ? statsResult.data : null;
+
       this.setData({
         allRecords: records,
         warehouseList: warehouses,
+        serverSummary,
         pageLoading: false,
         fromCache: false
       });
@@ -194,7 +208,7 @@ Page({
    * 计算统计数据
    */
   calculateStats() {
-    const { allRecords, warehouseList, currentTab } = this.data;
+    const { allRecords, warehouseList, currentTab, serverSummary } = this.data;
 
     // 筛选数据（今日 or 全部）
     let records = [...allRecords];
@@ -206,14 +220,26 @@ Page({
       });
     }
 
-    // 计算总量
-    const totalWeight = records.reduce((sum, r) => sum + (r.weight || r.quantity || 0), 0);
-    const totalAmount = records.reduce((sum, r) => sum + (r.amount || 0), 0);
-    const avgPrice = totalWeight > 0 ? (totalAmount / totalWeight).toFixed(2) : '0';
+    // 汇总统计：全部Tab优先使用后端聚合（不受分页截断），今日Tab用本地计算
+    let totalWeight: number;
+    let totalAmount: number;
+    let avgPrice: string;
+    let farmerCount: number;
 
-    // 农户数（去重）
-    const farmerIds = new Set(records.map(r => r.farmerId));
-    const farmerCount = farmerIds.size;
+    if (currentTab === 1 && serverSummary) {
+      // 全部Tab：使用后端聚合数据
+      totalWeight = serverSummary.totalWeight || 0;
+      totalAmount = serverSummary.totalAmount || 0;
+      avgPrice = totalWeight > 0 ? (totalAmount / totalWeight).toFixed(2) : '0';
+      farmerCount = serverSummary.farmerCount || 0;
+    } else {
+      // 今日Tab或无后端数据：使用本地记录计算
+      totalWeight = records.reduce((sum, r) => sum + (r.netWeight || r.weight || 0), 0);
+      totalAmount = records.reduce((sum, r) => sum + (r.totalAmount || r.amount || 0), 0);
+      avgPrice = totalWeight > 0 ? (totalAmount / totalWeight).toFixed(2) : '0';
+      const farmerIds = new Set(records.map(r => r.farmerId));
+      farmerCount = farmerIds.size;
+    }
 
     // 按仓库分组统计
     const warehouseMap = new Map<string, any>();
@@ -235,15 +261,15 @@ Page({
       const warehouseId = r.warehouseId;
       if (warehouseMap.has(warehouseId)) {
         const wData = warehouseMap.get(warehouseId);
-        wData.weight += (r.weight || r.quantity || 0);
-        wData.amount += (r.amount || 0);
+        wData.weight += (r.netWeight || r.weight || 0);
+        wData.amount += (r.totalAmount || r.amount || 0);
       } else {
         // 如果仓库不在列表中，创建一个
         warehouseMap.set(warehouseId, {
           warehouseId,
           warehouseName: r.warehouseName || '未知仓库',
-          weight: r.weight || r.quantity || 0,
-          amount: r.amount || 0,
+          weight: r.netWeight || r.weight || 0,
+          amount: r.totalAmount || r.amount || 0,
           currentStock: 0
         });
       }
@@ -325,7 +351,7 @@ Page({
 
       const dateStr = `${recordDate.getMonth() + 1}-${String(recordDate.getDate()).padStart(2, '0')}`;
       if (trendMap.has(dateStr)) {
-        const weight = r.weight || r.quantity || 0;
+        const weight = r.netWeight || r.weight || 0;
         trendMap.set(dateStr, (trendMap.get(dateStr) || 0) + weight);
       }
     });

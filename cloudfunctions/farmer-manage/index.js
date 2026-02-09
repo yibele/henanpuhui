@@ -16,21 +16,18 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
+const $ = db.command.aggregate;
 
 // 引入精确计算工具
 const { multiply, add, subtract, roundToFen } = require('./calc');
 
 /**
  * 生成农户编号
- * 格式：FAR_YYYYMMDD_XXXXXX（按天自增，避免随机号撞号）
+ * 格式：PH10001 起步，全局自增（事务保证并发安全）
  */
 async function generateFarmerId() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const ymd = `${year}${month}${day}`;
-  const counterId = `farmer_id_${ymd}`;
+  const counterId = 'farmer_id_global';
+  const START_SEQ = 10001;
 
   const seq = await db.runTransaction(async (t) => {
     const res = await t.collection('id_counters')
@@ -43,16 +40,15 @@ async function generateFarmerId() {
         data: {
           _id: counterId,
           bizType: 'farmer',
-          date: ymd,
-          seq: 1,
+          seq: START_SEQ,
           createTime: db.serverDate(),
           updateTime: db.serverDate()
         }
       });
-      return 1;
+      return START_SEQ;
     }
 
-    const current = Number(res.data[0].seq || 0);
+    const current = Number(res.data[0].seq || START_SEQ - 1);
     const next = current + 1;
     await t.collection('id_counters').doc(counterId).update({
       data: {
@@ -63,16 +59,31 @@ async function generateFarmerId() {
     return next;
   });
 
-  return `FAR_${ymd}_${String(seq).padStart(6, '0')}`;
+  return `PH${seq}`;
 }
 
-function buildFarmerLookupCondition(farmerId) {
+function normalizeFarmerLookupValue(farmerId) {
   const value = String(farmerId || '').trim();
+  return value || '';
+}
+
+async function findFarmerByAnyId(farmerId, extraWhere = {}) {
+  const value = normalizeFarmerLookupValue(farmerId);
   if (!value) return null;
-  if (value.startsWith('FAR_')) {
-    return { farmerId: value };
-  }
-  return { _id: value };
+
+  let res = await db.collection('farmers')
+    .where({ farmerId: value, ...extraWhere })
+    .limit(1)
+    .get();
+  if (res.data && res.data.length > 0) return res.data[0];
+
+  res = await db.collection('farmers')
+    .where({ _id: value, ...extraWhere })
+    .limit(1)
+    .get();
+  if (res.data && res.data.length > 0) return res.data[0];
+
+  return null;
 }
 
 /**
@@ -184,6 +195,7 @@ async function createFarmer(event) {
       receivableAmount: parseFloat(receivableAmount) || 0,
       seedDebt: parseFloat(seedDebt) || 0,
       agriculturalDebt: 0,  // 农资款欠款
+      agriculturalPaidAmount: 0, // 农资已付款
       advancePayment: 0,    // 预支款项
       stats: {
         // 发苗统计
@@ -202,6 +214,7 @@ async function createFarmer(event) {
         totalPaidAmount: 0,
         seedDebt: parseFloat(seedDebt) || 0,
         agriculturalDebt: 0,
+        agriculturalPaidAmount: 0,
         advancePayment: 0
       },
       status: 'active',
@@ -251,23 +264,16 @@ async function getFarmer(event) {
   }
 
   try {
-    const lookupCondition = buildFarmerLookupCondition(farmerId);
-    if (!lookupCondition) {
+    const value = normalizeFarmerLookupValue(farmerId);
+    if (!value) {
       return {
         success: false,
         message: '缺少农户ID'
       };
     }
 
-    const result = await db.collection('farmers')
-      .where({
-        ...lookupCondition,
-        isDeleted: false
-      })
-      .limit(1)
-      .get();
-
-    if (result.data.length === 0) {
+    const farmer = await findFarmerByAnyId(value, { isDeleted: false });
+    if (!farmer) {
       return {
         success: false,
         message: '农户不存在'
@@ -276,7 +282,7 @@ async function getFarmer(event) {
 
     return {
       success: true,
-      data: result.data[0]
+      data: farmer
     };
 
   } catch (error) {
@@ -294,7 +300,7 @@ async function getFarmer(event) {
 async function listFarmers(event) {
   const { userId, page = 1, pageSize = 20, keyword = '', status = '', seedStatus = '' } = event;
 
-  // userId 必填（助理只能看自己的农户）
+  // userId 必填
   if (!userId) {
     return {
       success: false,
@@ -306,22 +312,20 @@ async function listFarmers(event) {
     // 构建基础查询条件
     let baseConditions = [{ isDeleted: false }];
 
-    // 获取用户信息，判断权限
+    // 获取用户信息，校验登录状态
     try {
       const userRes = await db.collection('users').doc(userId).get();
-
-      if (userRes.data) {
-        const currentUser = userRes.data;
-
-        // 如果是助理，只能看自己创建的农户
-        if (currentUser.role === 'assistant') {
-          baseConditions.push({ createBy: userId });
-        }
-        // 管理员、财务可以看所有农户
+      if (!userRes.data) {
+        return {
+          success: false,
+          message: '用户不存在'
+        };
       }
     } catch (userErr) {
-      // 用户不存在，按助理处理（只看自己创建的）
-      baseConditions.push({ createBy: userId });
+      return {
+        success: false,
+        message: '用户不存在'
+      };
     }
 
     // 关键词搜索（姓名或手机号）
@@ -442,10 +446,22 @@ async function updateFarmer(event) {
 
     const currentUser = userRes.data;
     if (currentUser.role === 'assistant' && farmer.createBy !== userId) {
-      return {
-        success: false,
-        message: '无权修改此农户信息'
-      };
+      // 助理可跨农户执行“发苗完成标记”相关更新，其他字段仍受限
+      const allowedFields = new Set([
+        'seedDistributionComplete',
+        'seedDistributionCompleteTime',
+        'seedDistributionCompleteBy',
+        'seedDistributionCompleteByName'
+      ]);
+      const updateKeys = Object.keys(data || {});
+      const isOnlySeedProgressUpdate = updateKeys.length > 0 && updateKeys.every((key) => allowedFields.has(key));
+
+      if (!isOnlySeedProgressUpdate) {
+        return {
+          success: false,
+          message: '无权修改此农户信息'
+        };
+      }
     }
 
     // 更新数据
@@ -459,6 +475,29 @@ async function updateFarmer(event) {
       .update({
         data: updateData
       });
+
+    // 同步冗余字段到关联表（非核心操作，失败不影响主流程）
+    const nameChanged = updateData.name && updateData.name !== farmer.name;
+    const phoneChanged = updateData.phone && updateData.phone !== farmer.phone;
+
+    if (nameChanged || phoneChanged) {
+      const syncUpdates = {};
+      if (nameChanged) syncUpdates.farmerName = updateData.name;
+      if (phoneChanged) syncUpdates.farmerPhone = updateData.phone;
+      syncUpdates.updateTime = db.serverDate();
+
+      try {
+        const farmerIdValue = farmer.farmerId;
+        await Promise.all([
+          db.collection('acquisitions').where({ farmerId: farmerIdValue }).update({ data: syncUpdates }),
+          db.collection('settlements').where({ farmerId: farmerIdValue }).update({ data: syncUpdates }),
+          db.collection('seed_records').where({ farmerId: farmerIdValue }).update({ data: syncUpdates }),
+          db.collection('business_records').where({ farmerId: farmerId }).update({ data: syncUpdates })
+        ]);
+      } catch (syncError) {
+        console.error('同步冗余字段失败（不影响主流程）:', syncError);
+      }
+    }
 
     return {
       success: true,
@@ -519,6 +558,32 @@ async function deleteFarmer(event) {
       return {
         success: false,
         message: '无权删除此农户'
+      };
+    }
+
+    // 检查是否有未完成的结算单
+    const pendingSettlements = await db.collection('settlements')
+      .where({
+        farmerId: farmer.farmerId,
+        status: _.and(_.neq('completed'), _.neq('deleted'))
+      })
+      .count();
+
+    if (pendingSettlements.total > 0) {
+      return {
+        success: false,
+        message: `该农户还有 ${pendingSettlements.total} 笔未完成的结算单，请先处理后再删除`
+      };
+    }
+
+    // 检查是否有未结清欠款
+    const seedDebt = farmer.seedDebt || farmer.stats?.seedDebt || 0;
+    const agriculturalDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;
+    const totalDebt = seedDebt + agriculturalDebt;
+    if (totalDebt > 0) {
+      return {
+        success: false,
+        message: `该农户还有 ¥${totalDebt.toFixed(2)} 未结清欠款，请先处理后再删除`
       };
     }
 
@@ -832,15 +897,12 @@ async function getFarmerStatusStats(event) {
   try {
     // 构建基础查询条件
     let baseCondition = { isDeleted: false };
-
-    // 获取用户信息，判断权限
-    try {
-      const userRes = await db.collection('users').doc(userId).get();
-      if (userRes.data && userRes.data.role === 'assistant') {
-        baseCondition.createBy = userId;
-      }
-    } catch (userErr) {
-      baseCondition.createBy = userId;
+    const userRes = await db.collection('users').doc(userId).get();
+    if (!userRes.data) {
+      return {
+        success: false,
+        message: '用户不存在'
+      };
     }
 
     // 统计总数
@@ -868,10 +930,10 @@ async function getFarmerStatusStats(event) {
     // 统计未发苗（未完成 且 无发苗记录）
     const pendingCount = allCount.total - completedCount.total - inProgressCount.total;
 
-    // 聚合统计：总签约面积、签约种苗、已发种苗
+    // 聚合统计：总签约面积、签约种苗、总定金
     let totalAcreage = 0;
     let totalSeedTotal = 0;
-    let totalSeedDistributed = 0;
+    let totalDeposit = 0;
 
     // 获取所有农户数据进行聚合（分批获取避免超限）
     const batchSize = 100;
@@ -884,7 +946,7 @@ async function getFarmerStatusStats(event) {
         .field({
           acreage: true,
           seedTotal: true,
-          'stats.totalSeedDistributed': true
+          deposit: true
         })
         .skip(skip)
         .limit(batchSize)
@@ -896,7 +958,7 @@ async function getFarmerStatusStats(event) {
         farmersRes.data.forEach(farmer => {
           totalAcreage += (farmer.acreage || 0);
           totalSeedTotal += (farmer.seedTotal || 0);
-          totalSeedDistributed += (farmer.stats?.totalSeedDistributed || 0);
+          totalDeposit += (farmer.deposit || 0);
         });
         skip += batchSize;
         if (farmersRes.data.length < batchSize) {
@@ -904,6 +966,17 @@ async function getFarmerStatusStats(event) {
         }
       }
     }
+
+    // 已发种苗从 seed_records 实时聚合（与 dashboard 口径一致）
+    const seedAggRes = await db.collection('seed_records')
+      .aggregate()
+      .match({ status: _.neq('deleted') })
+      .group({
+        _id: null,
+        totalDistributed: $.sum('$quantity')
+      })
+      .end();
+    const totalSeedDistributed = seedAggRes.list[0]?.totalDistributed || 0;
 
     return {
       success: true,
@@ -914,7 +987,8 @@ async function getFarmerStatusStats(event) {
         completed: completedCount.total,
         totalAcreage: Number(totalAcreage.toFixed(2)),
         totalSeedTotal: Number(totalSeedTotal.toFixed(2)),
-        totalSeedDistributed: Number(totalSeedDistributed.toFixed(2))
+        totalSeedDistributed: Number(totalSeedDistributed.toFixed(2)),
+        totalDeposit: Number(totalDeposit.toFixed(2))
       }
     };
 
@@ -937,6 +1011,7 @@ async function getFarmerStatusStats(event) {
  * @param {string} unit - 单位
  * @param {number} unitPrice - 单价
  * @param {number} amount - 金额（自动计算）
+ * @param {number} paidAmount - 已支付金额
  * @param {string} remark - 备注
  */
 async function addAgriculturalSupply(event) {
@@ -957,6 +1032,7 @@ async function addAgriculturalSupply(event) {
     unit,         // 单位（袋、瓶、kg等）
     unitPrice,    // 单价
     amount,       // 金额
+    paidAmount,   // 已支付金额
     supplyDate,   // 发放日期
     remark        // 备注
   } = data;
@@ -997,6 +1073,21 @@ async function addAgriculturalSupply(event) {
 
   // 计算金额 - 使用精确计算
   const totalAmount = parseFloat(amount) || multiply(qty, price);
+  const paid = roundToFen(parseFloat(paidAmount) || 0);
+
+  if (paid < 0) {
+    return {
+      success: false,
+      message: '已支付金额不能小于0'
+    };
+  }
+  if (paid > totalAmount) {
+    return {
+      success: false,
+      message: '已支付金额不能大于农资金额'
+    };
+  }
+  const unpaid = roundToFen(subtract(totalAmount, paid));
 
   try {
     // 1. 获取当前农户信息
@@ -1015,14 +1106,20 @@ async function addAgriculturalSupply(event) {
 
     // 2. 计算新的农资欠款 - 使用精确计算
     const currentAgriDebt = farmer.agriculturalDebt || 0;
+    const currentAgriPaid = farmer.agriculturalPaidAmount || 0;
     const currentFertilizer = farmer.fertilizerAmount || 0;
     const currentPesticide = farmer.pesticideAmount || 0;
 
-    const newAgriDebt = roundToFen(add(currentAgriDebt, totalAmount));
+    // 农资欠款 = 农资款 - 已支付款（按每笔增量累加）
+    const newAgriDebt = roundToFen(add(currentAgriDebt, unpaid));
+    const newAgriPaid = roundToFen(add(currentAgriPaid, paid));
 
     // 根据类型更新对应金额
     const updateData = {
       agriculturalDebt: newAgriDebt,
+      agriculturalPaidAmount: newAgriPaid,
+      'stats.agriculturalDebt': newAgriDebt,
+      'stats.agriculturalPaidAmount': newAgriPaid,
       updateTime: db.serverDate()
     };
 
@@ -1062,10 +1159,13 @@ async function addAgriculturalSupply(event) {
           unit: unit || (type === 'fertilizer' ? '袋' : '瓶'),
           unitPrice: price,
           totalAmount: totalAmount,
+          paidAmount: paid,
+          unpaidAmount: unpaid,
           supplyDate: supplyDate || now.toISOString().split('T')[0],
 
           // 余额快照
           snapshotAgriDebt: newAgriDebt,
+          snapshotAgriPaid: newAgriPaid,
           snapshotFertilizer: type === 'fertilizer' ? (currentFertilizer + totalAmount) : currentFertilizer,
           snapshotPesticide: type === 'pesticide' ? (currentPesticide + totalAmount) : currentPesticide,
 
@@ -1097,9 +1197,9 @@ async function addAgriculturalSupply(event) {
           module: 'farmer',
           targetId: farmerId,
           targetName: farmer.name,
-          description: `发放${typeName}：${name}，${qty}${unit || ''}，金额 ¥${totalAmount}，农资欠款累计 ¥${newAgriDebt}`,
-          before: { agriculturalDebt: currentAgriDebt },
-          after: { agriculturalDebt: newAgriDebt },
+          description: `发放${typeName}：${name}，${qty}${unit || ''}，金额 ¥${totalAmount}，已付 ¥${paid}，欠款 ¥${unpaid}，农资欠款累计 ¥${newAgriDebt}`,
+          before: { agriculturalDebt: currentAgriDebt, agriculturalPaidAmount: currentAgriPaid },
+          after: { agriculturalDebt: newAgriDebt, agriculturalPaidAmount: newAgriPaid },
           createTime: db.serverDate()
         }
       });
@@ -1116,7 +1216,10 @@ async function addAgriculturalSupply(event) {
         quantity: qty,
         unitPrice: price,
         totalAmount,
+        paidAmount: paid,
+        unpaidAmount: unpaid,
         newAgriDebt,
+        newAgriPaid,
         newFertilizerAmount: type === 'fertilizer' ? (currentFertilizer + totalAmount) : currentFertilizer,
         newPesticideAmount: type === 'pesticide' ? (currentPesticide + totalAmount) : currentPesticide
       }
@@ -1307,6 +1410,184 @@ async function handleDeposit(event) {
 }
 
 /**
+ * 批量导入农户
+ * 仅 admin 可操作，直接写入 farmers 集合，跳过身份证重复的记录
+ * 导入完成后更新 id_counters 计数器
+ */
+async function batchImportFarmers(event) {
+  const { userId, farmers } = event;
+
+  if (!userId) {
+    return { success: false, message: '缺少用户ID' };
+  }
+
+  if (!Array.isArray(farmers) || farmers.length === 0) {
+    return { success: false, message: '没有要导入的数据' };
+  }
+
+  if (farmers.length > 50) {
+    return { success: false, message: '每批最多导入50条' };
+  }
+
+  try {
+    // 权限检查：仅 admin
+    const userRes = await db.collection('users').doc(userId).get();
+    if (!userRes.data) {
+      return { success: false, message: '用户不存在' };
+    }
+    if (userRes.data.role !== 'admin') {
+      return { success: false, message: '仅管理员可执行批量导入' };
+    }
+
+    const currentUser = userRes.data;
+    let imported = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    // 预加载所有涉及的助理信息，避免重复查询
+    const assistantIds = [...new Set(farmers.map(f => f.assistantId).filter(Boolean))];
+    const assistantMap = {};
+    for (const aid of assistantIds) {
+      try {
+        const aRes = await db.collection('users').doc(aid).get();
+        if (aRes.data) {
+          assistantMap[aid] = aRes.data;
+        }
+      } catch (e) {
+        console.warn('助理ID不存在:', aid);
+      }
+    }
+
+    for (const item of farmers) {
+      try {
+        // 检查身份证是否已存在
+        const existing = await db.collection('farmers')
+          .where({ idCard: item.idCard, isDeleted: false })
+          .count();
+
+        if (existing.total > 0) {
+          skipped++;
+          continue;
+        }
+
+        // 根据 assistantId 确定 createBy
+        const assistant = item.assistantId ? assistantMap[item.assistantId] : null;
+        const createBy = assistant ? assistant._id : userId;
+        const createByName = assistant ? assistant.name : currentUser.name;
+
+        const farmerData = {
+          farmerId: item.farmerId,
+          name: item.name,
+          phone: item.phone || '',
+          idCard: item.idCard,
+          address: {
+            county: item.address?.county || '',
+            township: item.address?.township || '',
+            village: item.address?.village || '',
+          },
+          addressText: `${item.address?.county || ''}${item.address?.township || ''}${item.address?.village || ''}`,
+          acreage: parseFloat(item.acreage) || 0,
+          grade: 'C',
+          deposit: 0,
+          firstManager: item.firstManager || '',
+          firstManagerId: '',
+          secondManager: item.secondManager || '',
+          secondManagerId: '',
+          seedTotal: 0,
+          seedUnitPrice: 0,
+          receivableAmount: 0,
+          seedDebt: 0,
+          agriculturalDebt: 0,
+          agriculturalPaidAmount: 0,
+          advancePayment: 0,
+          stats: {
+            totalSeedDistributed: 0,
+            totalSeedAmount: 0,
+            totalSeedArea: 0,
+            seedDistributionCount: 0,
+            lastSeedDistributionDate: null,
+            totalAcquisitionCount: 0,
+            totalAcquisitionWeight: 0,
+            totalAcquisitionAmount: 0,
+            totalPaidAmount: 0,
+            seedDebt: 0,
+            agriculturalDebt: 0,
+            agriculturalPaidAmount: 0,
+            advancePayment: 0,
+          },
+          status: 'active',
+          isDeleted: false,
+          createBy,
+          createByName,
+          createTime: db.serverDate(),
+          updateTime: db.serverDate(),
+        };
+
+        await db.collection('farmers').add({ data: farmerData });
+        imported++;
+      } catch (itemError) {
+        console.error('导入单条农户失败:', item.farmerId, itemError);
+        errors++;
+      }
+    }
+
+    // 更新 id_counters：找到所有 PH 编号中最大的序号
+    try {
+      let maxSeq = 0;
+      for (const item of farmers) {
+        const id = item.farmerId || '';
+        if (id.startsWith('PH')) {
+          const num = parseInt(id.substring(2), 10);
+          if (!isNaN(num) && num > maxSeq) {
+            maxSeq = num;
+          }
+        }
+      }
+
+      if (maxSeq > 0) {
+        const counterId = 'farmer_id_global';
+        const counterRes = await db.collection('id_counters')
+          .where({ _id: counterId })
+          .limit(1)
+          .get();
+
+        if (counterRes.data && counterRes.data.length > 0) {
+          const currentSeq = counterRes.data[0].seq || 0;
+          if (maxSeq > currentSeq) {
+            await db.collection('id_counters').doc(counterId).update({
+              data: { seq: maxSeq, updateTime: db.serverDate() },
+            });
+          }
+        } else {
+          await db.collection('id_counters').add({
+            data: {
+              _id: counterId,
+              bizType: 'farmer',
+              seq: maxSeq,
+              createTime: db.serverDate(),
+              updateTime: db.serverDate(),
+            },
+          });
+        }
+      }
+    } catch (counterError) {
+      console.error('更新计数器失败（不影响导入结果）:', counterError);
+    }
+
+    console.log(`批量导入完成: imported=${imported}, skipped=${skipped}, errors=${errors}`);
+
+    return {
+      success: true,
+      message: `导入完成：成功${imported}条，跳过${skipped}条，失败${errors}条`,
+      data: { imported, skipped, errors },
+    };
+  } catch (error) {
+    console.error('批量导入农户失败:', error);
+    return { success: false, message: error.message || '批量导入失败' };
+  }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -1351,6 +1632,9 @@ exports.main = async (event, context) => {
     case 'handleDeposit':
       return await handleDeposit(event);
 
+    case 'batchImport':
+      return await batchImportFarmers(event);
+
     default:
       return {
         success: false,
@@ -1376,18 +1660,9 @@ async function getBusinessRecords(event) {
   try {
     // 统一口径：business_records.farmerId 仅按农户文档 _id 查询
     let farmerDocId = farmerId;
-    const lookupCondition = buildFarmerLookupCondition(farmerId);
-
-    let farmerRes = { data: [] };
-    if (lookupCondition) {
-      farmerRes = await db.collection('farmers')
-        .where(lookupCondition)
-        .limit(1)
-        .get();
-    }
-
-    if (farmerRes.data && farmerRes.data.length > 0) {
-      farmerDocId = farmerRes.data[0]._id || farmerId;
+    const farmer = await findFarmerByAnyId(farmerId);
+    if (farmer && farmer._id) {
+      farmerDocId = farmer._id;
     }
 
     // 只查 business_records 表

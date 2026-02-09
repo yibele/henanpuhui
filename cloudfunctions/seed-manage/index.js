@@ -14,9 +14,29 @@ cloud.init({
 
 const db = cloud.database();
 const _ = db.command;
+const $ = db.command.aggregate;
 
 // 引入精确计算工具
 const { multiply, add, subtract, roundToFen } = require('./calc');
+
+/**
+ * 通用四舍五入到2位小数（用于非金额字段如面积、数量）
+ */
+function roundTo2(val) {
+  if (!Number.isFinite(val)) return 0;
+  return Math.round(val * 100) / 100;
+}
+
+/**
+ * 种苗欠款计算（甲方口径）
+ * 规则：种苗欠款 = max(0, 累计发苗金额 - 定金)
+ * 说明：定金仅抵扣一次，后续发苗自然体现在累计发苗金额里
+ */
+function calculateSeedDebtByDeposit(totalSeedAmount, deposit) {
+    const total = Number.isFinite(totalSeedAmount) ? totalSeedAmount : 0;
+    const downPayment = Number.isFinite(deposit) ? deposit : 0;
+    return roundToFen(Math.max(0, subtract(total, downPayment)));
+}
 
 /**
  * 生成发放记录编号
@@ -33,7 +53,7 @@ function generateRecordId() {
 
 /**
  * 发放种苗
- * 权限：助理只能给自己创建的农户发苗，管理员可以给所有农户发苗
+ * 权限：助理/管理员/财务可对全量农户发苗
  */
 async function distributeSeed(event) {
     const { userId, userName, farmerId, data } = event;
@@ -88,26 +108,27 @@ async function distributeSeed(event) {
             };
         }
 
-        // 3. 如果是助理，检查农户是否是自己创建的
-        if (currentUser.role === 'assistant') {
-            const farmerCheck = await db.collection('farmers')
-                .where({ _id: farmerId, createBy: userId })
-                .get();
-
-            if (farmerCheck.data.length === 0) {
-                return {
-                    success: false,
-                    message: '只能为自己签约的农户发放种苗'
-                };
-            }
-        }
-
         // ==================== 权限检查结束 ====================
 
         // 4. 获取农户信息
-        const farmerRes = await db.collection('farmers')
-            .where({ _id: farmerId, isDeleted: false })
+        const activeOrLegacyStatus = _.or([
+            { status: 'active' },
+            { status: _.exists(false) },
+            { status: '' },
+            { status: null }
+        ]);
+
+        let farmerRes = await db.collection('farmers')
+            .where(_.and([{ farmerId: farmerId }, activeOrLegacyStatus]))
+            .limit(1)
             .get();
+
+        if (farmerRes.data.length === 0) {
+            farmerRes = await db.collection('farmers')
+                .where(_.and([{ _id: farmerId }, activeOrLegacyStatus]))
+                .limit(1)
+                .get();
+        }
 
         if (farmerRes.data.length === 0) {
             return {
@@ -132,8 +153,9 @@ async function distributeSeed(event) {
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
         const currentArea = farmer.stats?.totalSeedArea || 0;
         const currentCount = farmer.stats?.seedDistributionCount || 0;
-        const currentSeedDebt = farmer.seedDebt || 0;
-        const newSeedDebt = roundToFen(Math.max(0, add(currentSeedDebt, seedAmount)));
+        const depositAmount = parseFloat(farmer.deposit) || 0;
+        const newTotalSeedAmount = roundToFen(add(currentAmount, seedAmount));
+        const newSeedDebt = calculateSeedDebtByDeposit(newTotalSeedAmount, depositAmount);
 
         // ==================== 事务操作开始 ====================
         const transaction = await db.startTransaction();
@@ -170,11 +192,11 @@ async function distributeSeed(event) {
             });
 
             // 6. 更新农户统计（累计发放数量、金额和面积）- 使用精确计算
-            await transaction.collection('farmers').doc(farmerId).update({
+            await transaction.collection('farmers').doc(farmer._id).update({
                 data: {
-                    'stats.totalSeedDistributed': roundToFen(add(currentDistributed, qty)),
-                    'stats.totalSeedAmount': roundToFen(add(currentAmount, seedAmount)),
-                    'stats.totalSeedArea': roundToFen(add(currentArea, area)),  // 累加已发面积
+                    'stats.totalSeedDistributed': roundTo2(add(currentDistributed, qty)),
+                    'stats.totalSeedAmount': newTotalSeedAmount,
+                    'stats.totalSeedArea': roundTo2(add(currentArea, area)),  // 累加已发面积
                     'stats.seedDistributionCount': currentCount + 1, // 累计发苗次数
                     'stats.lastSeedDistributionDate': db.serverDate(),
                     seedDebt: newSeedDebt,
@@ -242,7 +264,7 @@ async function distributeSeed(event) {
 
 /**
  * 获取农户的发放记录
- * 权限：助理只能查看自己创建的农户的记录，管理员和财务可以查看所有农户
+ * 权限：助理、管理员和财务均可查看全量农户记录
  */
 async function getSeedRecordsByFarmer(event) {
     const { farmerId, page = 1, pageSize = 20, userId } = event;
@@ -263,21 +285,6 @@ async function getSeedRecordsByFarmer(event) {
                 success: false,
                 message: '用户不存在'
             };
-        }
-        const userRole = userRes.data.role;
-
-        // 如果是助理，检查农户是否是自己创建的
-        if (userRole === 'assistant') {
-            const farmerCheck = await db.collection('farmers')
-                .where({ _id: farmerId, createBy: userId })
-                .get();
-
-            if (farmerCheck.data.length === 0) {
-                return {
-                    success: false,
-                    message: '无权限查看此农户的发放记录'
-                };
-            }
         }
 
         // ==================== 权限检查结束 ====================
@@ -479,7 +486,7 @@ async function getRecordDetail(event) {
 
 /**
  * 更新发放记录
- * 权限：只有创建者可以修改自己的记录，管理员可以修改所有记录
+ * 权限：助理可编辑全部记录；管理员可编辑全部记录；其他角色沿用原有校验
  */
 async function updateSeedRecord(event) {
     const { recordId, data, userId } = event;
@@ -516,8 +523,8 @@ async function updateSeedRecord(event) {
         }
         const currentUser = userRes.data;
 
-        // 只有管理员和记录创建者可以修改
-        if (currentUser.role !== 'admin' && old.createBy !== userId) {
+        // 助理和管理员可编辑全部记录；其他角色仅可编辑自己创建的记录
+        if (!['assistant', 'admin'].includes(currentUser.role) && old.createBy !== userId) {
             return {
                 success: false,
                 message: '无权限修改此记录'
@@ -533,25 +540,36 @@ async function updateSeedRecord(event) {
 
         // 3. 获取农户信息（如果有差值需要更新）
         let farmerUpdateData = null;
+        let farmer = null;
         if (diffQuantity !== 0 || diffAmount !== 0 || diffArea !== 0) {
-            const farmerRes = await db.collection('farmers').doc(farmerId).get();
-            if (!farmerRes.data) {
+            let farmerRes = await db.collection('farmers')
+                .where({ farmerId: farmerId })
+                .limit(1)
+                .get();
+            if (farmerRes.data.length === 0) {
+                farmerRes = await db.collection('farmers')
+                    .where({ _id: farmerId })
+                    .limit(1)
+                    .get();
+            }
+            if (farmerRes.data.length === 0) {
                 return {
                     success: false,
                     message: '关联农户不存在'
                 };
             }
-            const farmer = farmerRes.data;
+            farmer = farmerRes.data[0];
             const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
             const currentAmount = farmer.stats?.totalSeedAmount || 0;
             const currentArea = farmer.stats?.totalSeedArea || 0;
-            const currentSeedDebt = farmer.seedDebt || 0;
-            const newSeedDebt = roundToFen(Math.max(0, add(currentSeedDebt, diffAmount)));
+            const depositAmount = parseFloat(farmer.deposit) || 0;
+            const nextTotalSeedAmount = roundToFen(Math.max(0, add(currentAmount, diffAmount)));
+            const newSeedDebt = calculateSeedDebtByDeposit(nextTotalSeedAmount, depositAmount);
 
             farmerUpdateData = {
-                'stats.totalSeedDistributed': roundToFen(add(currentDistributed, diffQuantity)),
-                'stats.totalSeedAmount': roundToFen(add(currentAmount, diffAmount)),
-                'stats.totalSeedArea': roundToFen(add(currentArea, diffArea)),
+                'stats.totalSeedDistributed': roundTo2(Math.max(0, add(currentDistributed, diffQuantity))),
+                'stats.totalSeedAmount': nextTotalSeedAmount,
+                'stats.totalSeedArea': roundTo2(Math.max(0, add(currentArea, diffArea))),
                 seedDebt: newSeedDebt,
                 'stats.seedDebt': newSeedDebt,
                 updateTime: db.serverDate()
@@ -579,8 +597,8 @@ async function updateSeedRecord(event) {
             });
 
             // 5. 同步更新农户统计（如果有差值）
-            if (farmerUpdateData) {
-                await transaction.collection('farmers').doc(farmerId).update({
+            if (farmerUpdateData && farmer) {
+                await transaction.collection('farmers').doc(farmer._id).update({
                     data: farmerUpdateData
                 });
             }
@@ -611,7 +629,7 @@ async function updateSeedRecord(event) {
 
 /**
  * 删除发放记录
- * 权限：只有创建者可以删除自己的记录，管理员可以删除所有记录
+ * 权限：助理不可删除；管理员可删除全部；其他角色仅可删除自己创建的记录
  */
 async function deleteSeedRecord(event) {
     const { recordId, userId } = event;
@@ -647,7 +665,15 @@ async function deleteSeedRecord(event) {
         }
         const currentUser = userRes.data;
 
-        // 只有管理员和记录创建者可以删除
+        // 助理不可删除任何记录
+        if (currentUser.role === 'assistant') {
+            return {
+                success: false,
+                message: '助理无权限删除发苗记录'
+            };
+        }
+
+        // 管理员可删除全部；其他角色仅可删除自己创建的记录
         if (currentUser.role !== 'admin' && old.createBy !== userId) {
             return {
                 success: false,
@@ -663,34 +689,52 @@ async function deleteSeedRecord(event) {
         const area = old.distributedArea || 0;
 
         // 2. 获取农户信息，计算更新值
-        const farmerRes = await db.collection('farmers').doc(farmerId).get();
-        if (!farmerRes.data) {
+        let farmerRes = await db.collection('farmers')
+            .where({ farmerId: farmerId })
+            .limit(1)
+            .get();
+        if (farmerRes.data.length === 0) {
+            farmerRes = await db.collection('farmers')
+                .where({ _id: farmerId })
+                .limit(1)
+                .get();
+        }
+        if (farmerRes.data.length === 0) {
             return {
                 success: false,
                 message: '关联农户不存在'
             };
         }
-        const farmer = farmerRes.data;
+        const farmer = farmerRes.data[0];
         const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
         const currentArea = farmer.stats?.totalSeedArea || 0;
         const currentCount = farmer.stats?.seedDistributionCount || 0;
-        const currentSeedDebt = farmer.seedDebt || 0;
-        const newSeedDebt = roundToFen(Math.max(0, subtract(currentSeedDebt, amount)));
+        const depositAmount = parseFloat(farmer.deposit) || 0;
+        const nextTotalSeedAmount = roundToFen(Math.max(0, subtract(currentAmount, amount)));
+        const newSeedDebt = calculateSeedDebtByDeposit(nextTotalSeedAmount, depositAmount);
 
         // ==================== 事务操作开始 ====================
         const transaction = await db.startTransaction();
 
         try {
-            // 3. 删除发苗记录
-            await transaction.collection('seed_records').doc(recordId).remove();
+            // 3. 软删除发苗记录
+            await transaction.collection('seed_records').doc(recordId).update({
+                data: {
+                    status: 'deleted',
+                    deleteBy: userId,
+                    deleteByName: currentUser.name,
+                    deleteTime: db.serverDate(),
+                    updateTime: db.serverDate()
+                }
+            });
 
             // 4. 同步减少农户统计 - 使用精确计算
             await transaction.collection('farmers').doc(farmerId).update({
                 data: {
-                    'stats.totalSeedDistributed': roundToFen(subtract(currentDistributed, quantity)),
-                    'stats.totalSeedAmount': roundToFen(subtract(currentAmount, amount)),
-                    'stats.totalSeedArea': roundToFen(subtract(currentArea, area)),
+                    'stats.totalSeedDistributed': roundTo2(Math.max(0, subtract(currentDistributed, quantity))),
+                    'stats.totalSeedAmount': nextTotalSeedAmount,
+                    'stats.totalSeedArea': roundTo2(Math.max(0, subtract(currentArea, area))),
                     'stats.seedDistributionCount': Math.max(0, currentCount - 1),
                     seedDebt: newSeedDebt,
                     'stats.seedDebt': newSeedDebt,
@@ -707,6 +751,29 @@ async function deleteSeedRecord(event) {
             throw transactionError;
         }
         // ==================== 事务操作结束 ====================
+
+        // 在事务成功后（事务外），尝试清理关联的 business_records
+        try {
+            // 使用 seed record 的创建时间范围来定位关联的 business_record
+            const seedRecord = old; // 已有的原记录
+            await db.collection('business_records')
+                .where({
+                    farmerId: farmerId,
+                    type: 'seed',
+                    'quantity': seedRecord.quantity,
+                    'totalAmount': seedRecord.amount
+                })
+                .update({
+                    data: {
+                        status: 'deleted',
+                        deleteBy: userId,
+                        deleteTime: db.serverDate(),
+                        updateTime: db.serverDate()
+                    }
+                });
+        } catch (e) {
+            console.error('清理关联 business_records 失败（不影响主流程）:', e);
+        }
 
         return {
             success: true,
@@ -733,9 +800,16 @@ async function getDistributionStats(event) {
         let skip = 0;
         const allFarmers = [];
 
+        const activeStatus = _.or([
+            { status: 'active' },
+            { status: _.exists(false) },
+            { status: '' },
+            { status: null }
+        ]);
+
         while (true) {
             const batch = await db.collection('farmers')
-                .where({ isDeleted: false })
+                .where(activeStatus)
                 .field({ _id: true, stats: true })
                 .skip(skip)
                 .limit(BATCH_SIZE)
@@ -779,6 +853,68 @@ async function getDistributionStats(event) {
 }
 
 /**
+ * 获取发苗汇总统计（聚合查询，不受分页限制）
+ * 返回：总数量、总金额、总面积、农户数、记录数
+ */
+async function getSeedSummaryStats() {
+    try {
+        const matchCondition = { status: _.neq('deleted') };
+
+        // 聚合统计：总数量、总金额、总面积
+        const aggRes = await db.collection('seed_records')
+            .aggregate()
+            .match(matchCondition)
+            .group({
+                _id: null,
+                totalQuantity: $.sum('$quantity'),
+                totalAmount: $.sum('$amount'),
+                totalArea: $.sum('$distributedArea'),
+                recordCount: $.sum(1)
+            })
+            .end();
+
+        const agg = aggRes.list[0] || {
+            totalQuantity: 0,
+            totalAmount: 0,
+            totalArea: 0,
+            recordCount: 0
+        };
+
+        // 农户去重计数
+        const farmerAggRes = await db.collection('seed_records')
+            .aggregate()
+            .match(matchCondition)
+            .group({
+                _id: '$farmerId'
+            })
+            .group({
+                _id: null,
+                farmerCount: $.sum(1)
+            })
+            .end();
+
+        const farmerCount = farmerAggRes.list[0]?.farmerCount || 0;
+
+        return {
+            success: true,
+            data: {
+                totalQuantity: agg.totalQuantity || 0,
+                totalAmount: agg.totalAmount || 0,
+                totalArea: agg.totalArea || 0,
+                recordCount: agg.recordCount || 0,
+                farmerCount
+            }
+        };
+    } catch (error) {
+        console.error('获取发苗汇总统计失败:', error);
+        return {
+            success: false,
+            message: error.message || '获取发苗汇总统计失败'
+        };
+    }
+}
+
+/**
  * 云函数入口
  */
 exports.main = async (event, context) => {
@@ -805,6 +941,9 @@ exports.main = async (event, context) => {
 
         case 'getDistributionStats':
             return await getDistributionStats(event);
+
+        case 'getSummaryStats':
+            return await getSeedSummaryStats();
 
         default:
             return {

@@ -146,21 +146,21 @@ Page({
 
         this.setData({
           overview: {
-            pendingCount: data.pendingCount || 0,
-            pendingAmount: data.pendingAmount || 0,
-            approvedCount: data.pendingCount || 0,  // approved就是待付款
+            pendingCount: data.pendingAuditCount || 0,
+            pendingAmount: data.pendingAuditAmount || 0,
+            approvedCount: data.pendingCount || 0,
             approvedAmount: data.pendingAmount || 0,
             completedCount: data.totalPaidCount || 0,
             completedAmount: data.totalPaidAmount || 0
           },
           formattedOverview: {
-            pendingAmount: this.formatAmount(data.pendingAmount || 0),
+            pendingAmount: this.formatAmount(data.pendingAuditAmount || 0),
             approvedAmount: this.formatAmount(data.pendingAmount || 0),
             completedAmount: this.formatAmount(data.totalPaidAmount || 0)
           },
           counts: {
-            all: (data.pendingCount || 0) + (data.totalPaidCount || 0),
-            pending: 0,  // 待获取
+            all: (data.pendingAuditCount || 0) + (data.pendingCount || 0) + (data.totalPaidCount || 0),
+            pending: data.pendingAuditCount || 0,
             approved: data.pendingCount || 0,
             completed: data.totalPaidCount || 0
           }

@@ -89,17 +89,27 @@ Page({
 
       console.log('[seeds-stats] 从服务器加载数据, userId:', userId);
 
-      const res = await wx.cloud.callFunction({
-        name: 'seed-manage',
-        data: {
-          action: 'list',
-          userId,
-          page: 1,
-          pageSize: 500
-        }
-      });
+      // 并行请求：记录列表 + 汇总统计
+      const [listRes, statsRes] = await Promise.all([
+        wx.cloud.callFunction({
+          name: 'seed-manage',
+          data: {
+            action: 'list',
+            userId,
+            page: 1,
+            pageSize: 500
+          }
+        }),
+        wx.cloud.callFunction({
+          name: 'seed-manage',
+          data: {
+            action: 'getSummaryStats'
+          }
+        })
+      ]);
 
-      const result = res.result as any;
+      const result = listRes.result as any;
+      const statsResult = statsRes.result as any;
 
       if (result.success && result.data) {
         const rawRecords = result.data.list || [];
@@ -121,18 +131,31 @@ Page({
           createTime: r.createTime
         }));
 
-        const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
-        const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
-        const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
-        const farmerIds = new Set(records.map((r: any) => r.farmerId));
-
-        const summary = {
-          totalQuantity: formatSeedCount(totalQuantity),
-          totalAmount: formatAmount(totalAmount),
-          farmerCount: farmerIds.size + '户',
-          recordCount: records.length,
-          totalArea: totalArea.toFixed(1) + '亩'
-        };
+        // 汇总数据优先使用后端聚合结果（不受分页截断影响）
+        let summary;
+        if (statsResult && statsResult.success && statsResult.data) {
+          const s = statsResult.data;
+          summary = {
+            totalQuantity: formatSeedCount(s.totalQuantity || 0),
+            totalAmount: formatAmount(s.totalAmount || 0),
+            farmerCount: (s.farmerCount || 0) + '户',
+            recordCount: s.recordCount || 0,
+            totalArea: (s.totalArea || 0).toFixed(1) + '亩'
+          };
+        } else {
+          // 降级：使用列表数据计算（可能不完整）
+          const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
+          const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
+          const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
+          const farmerIds = new Set(records.map((r: any) => r.farmerId));
+          summary = {
+            totalQuantity: formatSeedCount(totalQuantity),
+            totalAmount: formatAmount(totalAmount),
+            farmerCount: farmerIds.size + '户',
+            recordCount: records.length,
+            totalArea: totalArea.toFixed(1) + '亩'
+          };
+        }
 
         // 保存到缓存
         setCache(cacheKey, { records, summary });

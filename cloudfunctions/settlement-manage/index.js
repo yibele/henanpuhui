@@ -26,6 +26,22 @@ function isFiniteNumber(val) {
   return typeof val === 'number' && Number.isFinite(val);
 }
 
+/**
+ * 种苗欠款计算（甲方口径）
+ * 规则：种苗欠款 = max(0, 累计发苗金额 - 定金)
+ * 说明：定金仅在种苗欠款中抵扣一次，不单独参与结算扣款
+ */
+function resolveSeedDebt(farmer) {
+  if (isFiniteNumber(farmer?.seedDebt)) {
+    return Math.max(0, roundToFen(farmer.seedDebt));
+  }
+  const totalSeedAmount = isFiniteNumber(farmer?.stats?.totalSeedAmount)
+    ? farmer.stats.totalSeedAmount
+    : (isFiniteNumber(farmer?.receivableAmount) ? farmer.receivableAmount : 0);
+  const deposit = isFiniteNumber(farmer?.deposit) ? farmer.deposit : 0;
+  return Math.max(0, roundToFen(subtract(totalSeedAmount, deposit)));
+}
+
 async function deleteCollectionBatch(collectionName) {
   let deleted = 0;
   while (true) {
@@ -349,76 +365,58 @@ async function auditSettlement(event, context) {
     if (approved) {
       // ============ 审核通过：实时计算扣款 ============
 
-      // 1. 获取农户最新的欠款数据
-      const farmerRes = await db.collection('farmers')
-        .where({ farmerId: settlement.farmerId })
-        .get();
-
-      if (farmerRes.data.length === 0) {
-        return {
-          success: false,
-          errMsg: '关联农户不存在'
-        };
-      }
-
-      const farmer = farmerRes.data[0];
       const acquisitionAmount = settlement.acquisitionAmount || settlement.grossAmount || 0; // 收购货款
 
-      // 2. 读取当前欠款余额
-      // 种苗欠款 = 累计发苗金额 - 结算已扣（定金独立管理，不参与种苗欠款计算）
-      const currentSeedDebt = Number.isFinite(farmer.seedDebt)
-        ? Math.max(0, farmer.seedDebt)
-        : Math.max(0, farmer.stats?.totalSeedAmount || farmer.receivableAmount || 0);
-      const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;  // 农资欠款
-      const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;  // 预付款
-
-      // 3. 计算本次可扣除金额（按优先级：预付款 > 种苗 > 农资）- 使用精确计算
-      let remaining = acquisitionAmount;  // 剩余可用于扣款的金额
+      // 事务内读取农户数据并计算扣款（防止并发重复扣除）
       let deductAdvance = 0;
       let deductSeed = 0;
       let deductAgri = 0;
-
-      // 优先扣预付款（现金债权优先回收）
-      if (remaining > 0 && currentAdvance > 0) {
-        deductAdvance = Math.min(remaining, currentAdvance);
-        remaining = subtract(remaining, deductAdvance);
-      }
-
-      // 其次扣种苗欠款
-      if (remaining > 0 && currentSeedDebt > 0) {
-        deductSeed = Math.min(remaining, currentSeedDebt);
-        remaining = subtract(remaining, deductSeed);
-      }
-
-      // 最后扣农资欠款
-      if (remaining > 0 && currentAgriDebt > 0) {
-        deductAgri = Math.min(remaining, currentAgriDebt);
-        remaining = subtract(remaining, deductAgri);
-      }
-
-      const totalDeduction = add(deductAdvance, deductSeed, deductAgri);
-      const actualPayment = roundToFen(remaining); // 剩余的就是实际应付给农户的
-
-      // 4. 更新结算单 & 农户欠款（事务）- 使用精确计算
-      const updateData = {
-        updateTime: db.serverDate()
-      };
-
-      if (deductAdvance > 0) {
-        updateData.advancePayment = roundToFen(subtract(currentAdvance, deductAdvance));
-        updateData['stats.advancePayment'] = roundToFen(subtract(currentAdvance, deductAdvance));
-      }
-      if (deductSeed > 0) {
-        const newSeedDebt = roundToFen(subtract(currentSeedDebt, deductSeed));
-        updateData.seedDebt = newSeedDebt;
-        updateData['stats.seedDebt'] = newSeedDebt;
-      }
-      if (deductAgri > 0) {
-        updateData.agriculturalDebt = roundToFen(subtract(currentAgriDebt, deductAgri));
-        updateData['stats.agriculturalDebt'] = roundToFen(subtract(currentAgriDebt, deductAgri));
-      }
+      let totalDeduction = 0;
+      let actualPayment = 0;
 
       await db.runTransaction(async (t) => {
+        // 1. 事务内获取农户最新的欠款数据
+        const farmerRes = await t.collection('farmers')
+          .where({ farmerId: settlement.farmerId })
+          .get();
+
+        if (farmerRes.data.length === 0) {
+          throw new Error('关联农户不存在');
+        }
+
+        const farmer = farmerRes.data[0];
+
+        // 2. 读取当前欠款余额
+        // 种苗欠款按甲方口径：累计发苗金额 - 定金（定金仅抵扣一次）
+        const currentSeedDebt = resolveSeedDebt(farmer);
+        const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;  // 农资欠款
+        const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;  // 预付款
+
+        // 3. 计算本次可扣除金额（按优先级：预付款 > 种苗 > 农资）- 使用精确计算
+        let remaining = acquisitionAmount;  // 剩余可用于扣款的金额
+
+        // 优先扣预付款（现金债权优先回收）
+        if (remaining > 0 && currentAdvance > 0) {
+          deductAdvance = Math.min(remaining, currentAdvance);
+          remaining = subtract(remaining, deductAdvance);
+        }
+
+        // 其次扣种苗欠款
+        if (remaining > 0 && currentSeedDebt > 0) {
+          deductSeed = Math.min(remaining, currentSeedDebt);
+          remaining = subtract(remaining, deductSeed);
+        }
+
+        // 最后扣农资欠款
+        if (remaining > 0 && currentAgriDebt > 0) {
+          deductAgri = Math.min(remaining, currentAgriDebt);
+          remaining = subtract(remaining, deductAgri);
+        }
+
+        totalDeduction = add(deductAdvance, deductSeed, deductAgri);
+        actualPayment = roundToFen(remaining); // 剩余的就是实际应付给农户的
+
+        // 4. 更新结算单
         await t.collection('settlements')
           .doc(settlement._id)
           .update({
@@ -446,9 +444,27 @@ async function auditSettlement(event, context) {
             }
           });
 
+        // 5. 使用原子操作更新农户欠款（防止并发冲突）
+        const farmerUpdateData = {
+          updateTime: db.serverDate()
+        };
+
+        if (deductAdvance > 0) {
+          farmerUpdateData.advancePayment = _.inc(-deductAdvance);
+          farmerUpdateData['stats.advancePayment'] = _.inc(-deductAdvance);
+        }
+        if (deductSeed > 0) {
+          farmerUpdateData.seedDebt = _.inc(-deductSeed);
+          farmerUpdateData['stats.seedDebt'] = _.inc(-deductSeed);
+        }
+        if (deductAgri > 0) {
+          farmerUpdateData.agriculturalDebt = _.inc(-deductAgri);
+          farmerUpdateData['stats.agriculturalDebt'] = _.inc(-deductAgri);
+        }
+
         await t.collection('farmers')
           .doc(farmer._id)
-          .update({ data: updateData });
+          .update({ data: farmerUpdateData });
       });
 
       // 6. 发送通知给出纳（待付款）
@@ -613,122 +629,9 @@ async function auditSettlement(event, context) {
  * 标记支付中
  */
 async function markPayment(event, context) {
-  const { OPENID } = cloud.getWXContext();
-  const {
-    settlementId,
-    paymentMethod
-  } = event;
-
-  if (!settlementId || !paymentMethod) {
-    return {
-      success: false,
-      errMsg: '缺少必填字段'
-    };
-  }
-
-  try {
-    // 获取当前用户信息
-    const userRes = await db.collection('users')
-      .where({ _openid: OPENID })
-      .get();
-
-    if (userRes.data.length === 0) {
-      return {
-        success: false,
-        errMsg: '用户不存在'
-      };
-    }
-
-    const currentUser = userRes.data[0];
-
-    // 权限检查：必须是财务或管理员
-    if (currentUser.role !== 'finance_admin' && currentUser.role !== 'admin') {
-      return {
-        success: false,
-        errMsg: '无权限操作支付'
-      };
-    }
-
-    // 获取结算单信息
-    const settlementRes = await db.collection('settlements')
-      .where({ settlementId })
-      .get();
-
-    if (settlementRes.data.length === 0) {
-      return {
-        success: false,
-        errMsg: '结算单不存在'
-      };
-    }
-
-    const settlement = settlementRes.data[0];
-
-    // 状态检查：必须是审核通过且未支付
-    const auditState = settlement.auditStatus || settlement.status;
-    if (auditState !== 'approved') {
-      return {
-        success: false,
-        errMsg: '结算单未审核通过'
-      };
-    }
-
-    const payState = settlement.paymentStatus || (settlement.status === 'paying' ? 'paying' : 'unpaid');
-    if (payState !== 'unpaid') {
-      return {
-        success: false,
-        errMsg: '结算单不是待支付状态'
-      };
-    }
-
-    // 更新支付状态
-    await db.collection('settlements')
-      .where({ settlementId })
-      .update({
-        data: {
-          auditStatus: settlement.auditStatus || 'approved',
-          paymentStatus: 'paying',
-          paymentMethod,
-          paymentBy: currentUser.name,
-          paymentById: currentUser._id,
-          paymentTime: db.serverDate(),
-          status: 'paying',
-          updateTime: db.serverDate()
-        }
-      });
-
-    // 非核心操作：记录操作日志（失败不影响主流程）
-    try {
-      await db.collection('operation_logs').add({
-        data: {
-          userId: currentUser._id,
-          userName: currentUser.name,
-          userRole: currentUser.role,
-          action: 'mark_payment',
-          module: 'settlement',
-          targetId: settlementId,
-          targetName: settlement.farmerName,
-          description: `标记支付中：${settlement.farmerName}，方式：${paymentMethod}`,
-          before: { paymentStatus: 'unpaid' },
-          after: { paymentStatus: 'paying' },
-          changes: [{ field: 'paymentStatus', oldValue: 'unpaid', newValue: 'paying' }],
-          createTime: db.serverDate()
-        }
-      });
-    } catch (logError) {
-      console.error('标记支付操作日志写入失败（不影响主流程）:', logError);
-    }
-
-    return {
-      success: true,
-      message: '已标记为支付中'
-    };
-  } catch (error) {
-    console.error('标记支付失败:', error);
-    return {
-      success: false,
-      errMsg: error.message || '标记支付失败'
-    };
-  }
+  // 三阶段状态机仅保留 pending -> approved -> completed
+  // 兼容旧前端 action，直接复用 completePayment 流程
+  return await completePayment(event, context);
 }
 
 /**
@@ -741,7 +644,8 @@ async function completePayment(event, context) {
     userId,
     settlementId,
     paymentMethod,   // 付款方式：cash/wechat/bank
-    paymentRemark
+    paymentRemark,
+    voucherNo        // 财务凭条编号（青号），出纳填写
   } = event;
 
   if (!settlementId) {
@@ -803,7 +707,7 @@ async function completePayment(event, context) {
     // 状态检查：必须是已审核待付款状态
     const auditState = settlement.auditStatus || settlement.status;
     const payState = settlement.paymentStatus || 'unpaid';
-    if ((auditState !== 'approved' && settlement.status !== 'paying') || payState === 'paid') {
+    if (auditState !== 'approved' || payState === 'paid') {
       return {
         success: false,
         errMsg: payState === 'paid' || settlement.status === 'completed' ? '该结算单已付款完成' : '该结算单尚未审核通过'
@@ -837,6 +741,7 @@ async function completePayment(event, context) {
             paymentStatus: 'paid',
             paymentMethod: paymentMethod || 'cash',
             paymentMethodName: methodNames[paymentMethod] || paymentMethod || '现金',
+            voucherNo: voucherNo || '',
             paymentRemark: paymentRemark || '',
             cashierId: currentUser._id,
             cashierName: currentUser.name,
@@ -968,6 +873,14 @@ async function recalculateSettlement(event) {
 
     const settlement = settlementRes.data[0];
 
+    // 状态检查：已付款的结算单不允许重新计算
+    if (settlement.status === 'completed' || settlement.paymentStatus === 'paid') {
+      return {
+        success: false,
+        message: '已付款的结算单无法重新计算'
+      };
+    }
+
     // 获取农户信息
     const farmerRes = await db.collection('farmers')
       .where({ farmerId: settlement.farmerId })
@@ -984,27 +897,64 @@ async function recalculateSettlement(event) {
 
     // 计算各项扣款
     const grossAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;  // 收购总额
-    // 种苗欠款 = 累计发苗金额 - 结算已扣（定金独立管理，不参与种苗欠款计算）
-    const seedDebt = Number.isFinite(farmer.seedDebt)
-      ? Math.max(0, farmer.seedDebt)
-      : Math.max(0, farmer.stats?.totalSeedAmount || farmer.receivableAmount || 0);
-    const agriDebt = parseFloat(agriculturalDebt) || farmer.agriculturalDebt || 0;  // 农资款
-    const advPay = parseFloat(advancePayment) || farmer.advancePayment || 0;        // 预支款
 
-    // 新结算公式 - 使用精确计算
-    const totalDeductions = add(seedDebt, agriDebt, advPay);
-    const actualPayment = roundToFen(Math.max(0, subtract(grossAmount, totalDeductions)));
+    // 读取农户当前欠款
+    let seedDebt = resolveSeedDebt(farmer);
+    let agriDebt = parseFloat(agriculturalDebt) || farmer.agriculturalDebt || 0;  // 农资款
+    let advPay = parseFloat(advancePayment) || farmer.advancePayment || 0;        // 预支款
+
+    // 如果结算单已审核过，需要回滚之前的扣款来还原真实欠款
+    let effectiveSeedDebt = seedDebt;
+    let effectiveAgriDebt = agriDebt;
+    let effectiveAdvPay = advPay;
+
+    if (settlement.auditStatus === 'approved') {
+      const prevSeedDeduction = settlement.seedDeduction || 0;
+      const prevAgriDeduction = settlement.agriculturalDeduction || 0;
+      const prevAdvDeduction = settlement.advanceDeduction || 0;
+
+      effectiveSeedDebt = add(seedDebt, prevSeedDeduction);
+      effectiveAgriDebt = add(agriDebt, prevAgriDeduction);
+      effectiveAdvPay = add(advPay, prevAdvDeduction);
+    }
+
+    // 计算新的扣款（优先级：预付款 > 种苗 > 农资）
+    let remaining = grossAmount;
+    let newAdvDeduction = 0;
+    let newSeedDeduction = 0;
+    let newAgriDeduction = 0;
+
+    if (remaining > 0 && effectiveAdvPay > 0) {
+      newAdvDeduction = Math.min(remaining, effectiveAdvPay);
+      remaining = subtract(remaining, newAdvDeduction);
+    }
+
+    if (remaining > 0 && effectiveSeedDebt > 0) {
+      newSeedDeduction = Math.min(remaining, effectiveSeedDebt);
+      remaining = subtract(remaining, newSeedDeduction);
+    }
+
+    if (remaining > 0 && effectiveAgriDebt > 0) {
+      newAgriDeduction = Math.min(remaining, effectiveAgriDebt);
+      remaining = subtract(remaining, newAgriDeduction);
+    }
+
+    const totalDeductions = add(newAdvDeduction, newSeedDeduction, newAgriDeduction);
+    const actualPayment = roundToFen(remaining);
 
     // ==================== 事务操作开始 ====================
     await db.runTransaction(async (t) => {
-      // 1. 更新结算单
+      // 1. 更新结算单（记录回滚后的真实欠款和新扣款明细）
       await t.collection('settlements')
         .doc(settlement._id)
         .update({
           data: {
-            seedDebt,
-            agriculturalDebt: agriDebt,
-            advancePayment: advPay,
+            seedDebt: effectiveSeedDebt,
+            agriculturalDebt: effectiveAgriDebt,
+            advancePayment: effectiveAdvPay,
+            advanceDeduction: newAdvDeduction,
+            seedDeduction: newSeedDeduction,
+            agriculturalDeduction: newAgriDeduction,
             totalDeduction: totalDeductions,
             totalDeductions,
             actualPayment: actualPayment,
@@ -1016,15 +966,17 @@ async function recalculateSettlement(event) {
           }
         });
 
-      // 2. 更新农户的农资款和预支款记录
+      // 2. 更新农户欠款（回滚到真实值，后续审核时再扣减）
       await t.collection('farmers')
         .doc(farmer._id)
         .update({
           data: {
-            agriculturalDebt: agriDebt,
-            advancePayment: advPay,
-            'stats.agriculturalDebt': agriDebt,
-            'stats.advancePayment': advPay,
+            seedDebt: effectiveSeedDebt,
+            agriculturalDebt: effectiveAgriDebt,
+            advancePayment: effectiveAdvPay,
+            'stats.seedDebt': effectiveSeedDebt,
+            'stats.agriculturalDebt': effectiveAgriDebt,
+            'stats.advancePayment': effectiveAdvPay,
             updateTime: db.serverDate()
           }
         });
@@ -1089,36 +1041,83 @@ async function recalculateSettlement(event) {
  */
 async function getCashierStats() {
   try {
+    // 获取待审核结算单
+    const pendingAuditRes = await db.collection('settlements')
+      .where(_.or([{ auditStatus: 'pending' }, { status: 'pending' }]))
+      .count();
+    const pendingAuditCount = pendingAuditRes.total || 0;
+
+    // 待审核金额（聚合）
+    const pendingAuditAmountRes = await db.collection('settlements')
+      .aggregate()
+      .match(
+        _.or([{ auditStatus: 'pending' }, { status: 'pending' }])
+      )
+      .group({
+        _id: null,
+        total: $.sum('$acquisitionAmount')
+      })
+      .end();
+    const pendingAuditAmount = pendingAuditAmountRes.list[0]?.total || 0;
+
     // 获取待付款结算单（状态为approved）
-    const pendingRes = await db.collection('settlements')
+    // 待付款数量
+    const pendingCountRes = await db.collection('settlements')
       .where(
         _.or([
           { auditStatus: 'approved', paymentStatus: 'unpaid' },
           { status: 'approved' }
         ])
       )
-      .get();
+      .count();
+    const pendingCount = pendingCountRes.total || 0;
 
-    const pendingList = pendingRes.data || [];
-    const pendingCount = pendingList.length;
-    const pendingAmount = pendingList.reduce((sum, s) => sum + (s.actualPayment || 0), 0);
+    // 待付款金额（聚合）
+    const pendingAmountRes = await db.collection('settlements')
+      .aggregate()
+      .match(
+        _.or([
+          { auditStatus: 'approved', paymentStatus: 'unpaid' },
+          { status: 'approved' }
+        ])
+      )
+      .group({
+        _id: null,
+        total: $.sum('$actualPayment')
+      })
+      .end();
+    const pendingAmount = pendingAmountRes.list[0]?.total || 0;
 
     // 获取今日已付款结算单
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayPaidRes = await db.collection('settlements')
+    // 今日已付款数量
+    const todayPaidCountRes = await db.collection('settlements')
       .where(
         _.and([
           _.or([{ paymentStatus: 'paid' }, { status: 'completed' }]),
           { paymentTime: _.gte(today) }
         ])
       )
-      .get();
+      .count();
+    const todayPaidCount = todayPaidCountRes.total || 0;
 
-    const todayPaidList = todayPaidRes.data || [];
-    const todayPaidCount = todayPaidList.length;
-    const todayPaidAmount = todayPaidList.reduce((sum, s) => sum + (s.actualPayment || 0), 0);
+    // 今日已付款金额（聚合）
+    const todayPaidAmountRes = await db.collection('settlements')
+      .aggregate()
+      .match(
+        _.and([
+          _.or([{ paymentStatus: 'paid' }, { status: 'completed' }]),
+          { paymentTime: _.gte(today) }
+        ])
+      )
+      .group({
+        _id: null,
+        total: $.sum('$actualPayment')
+      })
+      .end();
+    const todayPaidAmount = todayPaidAmountRes.list[0]?.total || 0;
 
     // 获取累计已付款
     const totalPaidRes = await db.collection('settlements')
@@ -1142,6 +1141,8 @@ async function getCashierStats() {
     return {
       success: true,
       data: {
+        pendingAuditCount,
+        pendingAuditAmount,
         pendingCount,
         pendingAmount,
         todayPaidCount,
@@ -1204,10 +1205,8 @@ async function previewDeduction(event) {
     const acquisitionAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;
 
     // 读取当前欠款余额
-    // 种苗欠款 = 累计发苗金额 - 结算已扣（定金独立管理，不参与种苗欠款计算）
-    const currentSeedDebt = Number.isFinite(farmer.seedDebt)
-      ? Math.max(0, farmer.seedDebt)
-      : Math.max(0, farmer.stats?.totalSeedAmount || farmer.receivableAmount || 0);
+    // 种苗欠款按甲方口径：累计发苗金额 - 定金（定金仅抵扣一次）
+    const currentSeedDebt = resolveSeedDebt(farmer);
     const currentAgriDebt = farmer.agriculturalDebt || farmer.stats?.agriculturalDebt || 0;
     const currentAdvance = farmer.advancePayment || farmer.stats?.advancePayment || 0;
 
@@ -1305,12 +1304,12 @@ async function backfillSettlements(event) {
     if (!doc.auditStatus && status) {
       if (status === 'pending') updateData.auditStatus = 'pending';
       else if (status === 'rejected') updateData.auditStatus = 'rejected';
-      else if (status === 'approved' || status === 'paying' || status === 'completed') updateData.auditStatus = 'approved';
+      else if (status === 'approved' || status === 'completed' || status === 'paying') updateData.auditStatus = 'approved';
     }
 
     if (!doc.paymentStatus && status) {
       if (status === 'completed') updateData.paymentStatus = 'paid';
-      else if (status === 'paying') updateData.paymentStatus = 'paying';
+      else if (status === 'paying') updateData.paymentStatus = 'unpaid';
       else if (status === 'approved') updateData.paymentStatus = 'unpaid';
       else if (status === 'pending' || status === 'rejected') updateData.paymentStatus = 'unpaid';
     }
@@ -1391,11 +1390,8 @@ async function backfillFarmersSeedDebt(event) {
   let updated = 0;
   for (const doc of list) {
     if (isFiniteNumber(doc.seedDebt)) continue;
-    // 种苗欠款 = 累计发苗金额（定金独立管理，不参与种苗欠款计算）
-    const baseReceivable = isFiniteNumber(doc.stats?.totalSeedAmount)
-      ? doc.stats.totalSeedAmount
-      : (isFiniteNumber(doc.receivableAmount) ? doc.receivableAmount : 0);
-    const newSeedDebt = Math.max(0, baseReceivable);
+    // 种苗欠款按甲方口径：累计发苗金额 - 定金（定金仅抵扣一次）
+    const newSeedDebt = resolveSeedDebt(doc);
 
     const updateData = {
       seedDebt: newSeedDebt,
