@@ -31,6 +31,7 @@ export default function SeedDetailPage() {
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState(false)
   const [record, setRecord] = useState<SeedDetail | null>(null)
+  const canDelete = userInfo?.role !== 'assistant'
 
   useEffect(() => {
     if (id && userInfo?.id) {
@@ -95,18 +96,20 @@ export default function SeedDetailPage() {
         >
           返回列表
         </Button>
-        <Popconfirm
-          title="确认删除"
-          description="删除后无法恢复，确定要删除该发苗记录吗？"
-          onConfirm={handleDelete}
-          okText="确认删除"
-          cancelText="取消"
-          okButtonProps={{ danger: true, loading: deleting }}
-        >
-          <Button danger icon={<DeleteOutlined />} loading={deleting}>
-            删除记录
-          </Button>
-        </Popconfirm>
+        {canDelete && (
+          <Popconfirm
+            title="确认删除"
+            description="删除后无法恢复，确定要删除该发苗记录吗？"
+            onConfirm={handleDelete}
+            okText="确认删除"
+            cancelText="取消"
+            okButtonProps={{ danger: true, loading: deleting }}
+          >
+            <Button danger icon={<DeleteOutlined />} loading={deleting}>
+              删除记录
+            </Button>
+          </Popconfirm>
+        )}
       </div>
 
       <Card title="发苗记录详情" style={{ marginBottom: 24 }}>

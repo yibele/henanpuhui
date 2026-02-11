@@ -444,6 +444,17 @@
           <text class="popup-highlight">¥{{fertilizerForm.amount}}</text>
         </view>
 
+        <!-- 已支付金额 -->
+        <view class="form-field">
+          <text class="field-label">已支付（元）</text>
+          <input class="field-input" type="digit" placeholder="默认0，可填写本次已支付金额" value="{{fertilizerForm.paidAmount}}" bindinput="onFertilizerPaidAmountInput" />
+        </view>
+
+        <view class="popup-info-row" wx:if="{{fertilizerForm.amount > 0}}">
+          <text>本次欠款</text>
+          <text class="popup-highlight">¥{{fertilizerForm.amount - (fertilizerForm.paidAmount || 0)}}</text>
+        </view>
+
         <!-- 备注 -->
         <view class="form-field">
           <text class="field-label">备注</text>
@@ -574,6 +585,17 @@
         <view class="popup-info-row" wx:if="{{pesticideForm.amount > 0}}">
           <text>金额合计</text>
           <text class="popup-highlight">¥{{pesticideForm.amount}}</text>
+        </view>
+
+        <!-- 已支付金额 -->
+        <view class="form-field">
+          <text class="field-label">已支付（元）</text>
+          <input class="field-input" type="digit" placeholder="默认0，可填写本次已支付金额" value="{{pesticideForm.paidAmount}}" bindinput="onPesticidePaidAmountInput" />
+        </view>
+
+        <view class="popup-info-row" wx:if="{{pesticideForm.amount > 0}}">
+          <text>本次欠款</text>
+          <text class="popup-highlight">¥{{pesticideForm.amount - (pesticideForm.paidAmount || 0)}}</text>
         </view>
 
         <!-- 备注 -->

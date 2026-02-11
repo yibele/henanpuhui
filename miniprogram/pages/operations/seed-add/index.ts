@@ -34,7 +34,7 @@ Page({
       receiveLocation: '',    // 领取地点
       managerName: ''         // 发苗负责人
     },
-    // 计算的已发放金额
+    // 计算的本次发放金额
     calculatedAmount: '0.00',
     // 农户列表
     farmers: [] as any[],
@@ -65,11 +65,17 @@ Page({
     // 提交中
     submitting: false,
     // 是否可提交
-    canSubmit: false
+    canSubmit: false,
+    // 是否可删除（助理不可删除）
+    canDelete: false
   },
 
   onLoad(options: any) {
     const { recordId, mode, farmerId } = options || {};
+    const userRole = (app.globalData as any)?.userRole || '';
+    this.setData({
+      canDelete: userRole !== 'assistant'
+    });
 
     if (mode === 'edit' && recordId) {
       // 编辑模式
@@ -113,6 +119,10 @@ Page({
       searchValue: '',
       // 自动填充领取人为农户姓名
       'form.receiverName': farmer.name,
+      // 自动带出签约单价（与 web 端一致）
+      'form.unitPrice': farmer.seedUnitPrice !== undefined && farmer.seedUnitPrice !== null
+        ? String(farmer.seedUnitPrice)
+        : '',
       // 初始化面积统计
       'areaStats.totalArea': farmer.acreage || 0,
       'areaStats.distributedArea': 0,
@@ -174,7 +184,8 @@ Page({
             id: record.farmerId,
             name: record.farmerName,
             phone: record.farmerPhone || '',
-            acreage: 0
+            acreage: 0,
+            seedUnitPrice: record.unitPrice || 0
           },
           'form.distributeTime': record.distributionDate || '',
           'form.quantity': String(record.quantity || ''),
@@ -264,6 +275,7 @@ Page({
           ].filter(Boolean).join('') || '',
           deposit: f.deposit || 0,
           seedTotal: f.seedTotal || 0,
+          seedUnitPrice: f.seedUnitPrice || 0,
           stats: f.stats || {},
           // 已发放次数
           seedRecordCount: f.stats?.seedDistributionCount || 0,
@@ -615,8 +627,8 @@ Page({
   },
 
   /**
-   * 计算已发放金额
-   * 已发放金额 = 发放数量（万株）× 单价（元/万株）
+   * 计算本次发放金额
+   * 发放金额（本次）= 发放数量（万株）× 单价（元/万株）
    */
   calculateAmount() {
     const { quantity, unitPrice } = this.data.form;
@@ -637,7 +649,7 @@ Page({
     const canSubmit = !!(
       selectedFarmer &&
       form.distributeTime &&
-      form.quantity && parseInt(form.quantity) > 0 &&
+      form.quantity && parseFloat(form.quantity) > 0 &&
       form.unitPrice && parseFloat(form.unitPrice) > 0 &&
       form.distributedArea && parseFloat(form.distributedArea) > 0 &&
       form.receiverName.trim() &&
@@ -660,15 +672,15 @@ Page({
 
     // 面积超发警告检查
     const currentArea = parseFloat(form.distributedArea) || 0;
-    const totalAfterSubmit = areaStats.distributedArea + currentArea;
+    const remainingArea = areaStats.remainingArea || 0;
 
-    if (!isEditMode && totalAfterSubmit > areaStats.totalArea) {
+    if (!isEditMode && currentArea > remainingArea) {
       // 新增模式下检查是否超发
-      const overAmount = (totalAfterSubmit - areaStats.totalArea).toFixed(2);
+      const overAmount = (currentArea - remainingArea).toFixed(2);
       const confirmed = await new Promise<boolean>((resolve) => {
         wx.showModal({
           title: '面积超发警告',
-          content: `本次发放后总面积（${totalAfterSubmit.toFixed(2)}亩）将超过签约面积（${areaStats.totalArea}亩）${overAmount}亩，是否继续？`,
+          content: `本次发放面积（${currentArea.toFixed(2)}亩）将超过剩余可发放面积（${remainingArea.toFixed(2)}亩）${overAmount}亩，是否继续？`,
           confirmText: '继续发放',
           cancelText: '取消',
           success: (res) => resolve(res.confirm)
@@ -707,6 +719,7 @@ Page({
           name: 'seed-manage',
           data: {
             action: 'update',
+            userId,
             recordId,
             data: submitData
           }
@@ -796,6 +809,7 @@ Page({
         name: 'seed-manage',
         data: {
           action: 'delete',
+          userId: (app.globalData as any)?.currentUser?.id || (app.globalData as any)?.currentUser?._id || '',
           recordId: this.data.recordId
         }
       });

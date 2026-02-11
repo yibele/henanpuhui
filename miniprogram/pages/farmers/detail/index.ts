@@ -30,8 +30,8 @@ Page({
     businessRecords: [] as any[],
     // 发苗统计
     seedStats: {
-      totalQuantity: 0,      // 总发放数量（株）
-      totalQuantityText: '0株',
+      totalQuantity: 0,      // 总发放数量（万株）
+      totalQuantityText: '0万株',
       totalAmount: 0,        // 总金额
       totalArea: 0,          // 总发放面积
       recordCount: 0         // 发放次数
@@ -47,6 +47,7 @@ Page({
       unit: '袋',
       price: '',
       amount: 0,
+      paidAmount: '',
       remark: ''
     },
 
@@ -60,6 +61,7 @@ Page({
       unit: '瓶',
       price: '',
       amount: 0,
+      paidAmount: '',
       remark: ''
     },
 
@@ -198,6 +200,7 @@ Page({
           // 农资信息
           fertilizerAmount: farmerData.fertilizerAmount || 0,   // 化肥金额
           pesticideAmount: farmerData.pesticideAmount || 0,     // 农药金额
+          agriculturalPaidAmount: farmerData.agriculturalPaidAmount || 0, // 农资已付
           agriculturalDebt: farmerData.agriculturalDebt || 0,   // 农资欠款
           // 预支款
           advancePayment: farmerData.advancePayment || 0,       // 预支款余额
@@ -363,13 +366,8 @@ Page({
         const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
         const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
 
-        // 格式化数量显示
-        let totalQuantityText = totalQuantity + '株';
-        if (totalQuantity >= 10000) {
-          totalQuantityText = (totalQuantity / 10000).toFixed(1) + '万株';
-        } else if (totalQuantity >= 1000) {
-          totalQuantityText = (totalQuantity / 1000).toFixed(1) + '千株';
-        }
+        // 数据口径统一为万株
+        const totalQuantityText = `${Number.isInteger(totalQuantity) ? totalQuantity : totalQuantity.toFixed(2)}万株`;
 
         this.setData({
           seedStats: {
@@ -445,6 +443,7 @@ Page({
         unit: '袋',
         price: '',
         amount: 0,
+        paidAmount: '',
         remark: ''
       }
     });
@@ -490,6 +489,11 @@ Page({
     this.setData({ 'fertilizerForm.unit': e.detail.value });
   },
 
+  onFertilizerPaidAmountInput(e: WechatMiniprogram.CustomEvent) {
+    const paidAmount = e.detail.value.replace(/[^\d.]/g, '');
+    this.setData({ 'fertilizerForm.paidAmount': paidAmount });
+  },
+
   onFertilizerRemarkInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'fertilizerForm.remark': e.detail.value });
   },
@@ -503,6 +507,11 @@ Page({
     }
     if (!fertilizerForm.quantity || !fertilizerForm.price) {
       wx.showToast({ title: '请填写数量和单价', icon: 'none' });
+      return;
+    }
+    const paid = parseFloat(fertilizerForm.paidAmount || '0') || 0;
+    if (paid < 0 || paid > fertilizerForm.amount) {
+      wx.showToast({ title: '已支付金额需在0到金额合计之间', icon: 'none' });
       return;
     }
 
@@ -528,6 +537,7 @@ Page({
             unit: fertilizerForm.unit || '袋',
             unitPrice: parseFloat(fertilizerForm.price),
             amount: fertilizerForm.amount,
+            paidAmount: paid,
             supplyDate: fertilizerForm.date,
             remark: fertilizerForm.remark
           }
@@ -565,6 +575,7 @@ Page({
         unit: '瓶',
         price: '',
         amount: 0,
+        paidAmount: '',
         remark: ''
       }
     });
@@ -610,6 +621,11 @@ Page({
     this.setData({ 'pesticideForm.unit': e.detail.value });
   },
 
+  onPesticidePaidAmountInput(e: WechatMiniprogram.CustomEvent) {
+    const paidAmount = e.detail.value.replace(/[^\d.]/g, '');
+    this.setData({ 'pesticideForm.paidAmount': paidAmount });
+  },
+
   onPesticideRemarkInput(e: WechatMiniprogram.CustomEvent) {
     this.setData({ 'pesticideForm.remark': e.detail.value });
   },
@@ -623,6 +639,11 @@ Page({
     }
     if (!pesticideForm.quantity || !pesticideForm.price) {
       wx.showToast({ title: '请填写数量和单价', icon: 'none' });
+      return;
+    }
+    const paid = parseFloat(pesticideForm.paidAmount || '0') || 0;
+    if (paid < 0 || paid > pesticideForm.amount) {
+      wx.showToast({ title: '已支付金额需在0到金额合计之间', icon: 'none' });
       return;
     }
 
@@ -648,6 +669,7 @@ Page({
             unit: pesticideForm.unit || '瓶',
             unitPrice: parseFloat(pesticideForm.price),
             amount: pesticideForm.amount,
+            paidAmount: paid,
             supplyDate: pesticideForm.date,
             remark: pesticideForm.remark
           }

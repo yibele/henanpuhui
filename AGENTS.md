@@ -30,3 +30,8 @@
 ## Configuration & Security Notes
 - Cloud permissions and indexes are documented in `cloudfunctions/README.md` and `cloudfunctions/database-schema.md`.
 - Avoid direct database writes from the client; use cloud functions for all data mutations.
+
+## 业务术语（必须牢记）
+- **负责人（firstManager / secondManager）**：指副总，不是助理。负责人字段记录的是管理该片区的副总姓名。
+- **助理（assistant）**：指实际操作农户签约、发苗的助理人员，对应 users 表中 role='assistant' 的用户。助理通过 createBy 字段关联农户，助理登录后只能看到自己 createBy 的农户。
+- 两者是完全不同的角色，不要混淆。

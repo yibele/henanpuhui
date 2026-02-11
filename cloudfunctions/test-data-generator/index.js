@@ -491,13 +491,98 @@ async function getAssistants() {
   ];
 }
 
+async function ensureAssistantUser(name, phone, password = '123456') {
+  const existed = await db.collection('users').where({ phone }).limit(1).get();
+  if (existed.data && existed.data.length > 0) {
+    return existed.data[0];
+  }
+
+  const now = new Date();
+  const addRes = await db.collection('users').add({
+    data: {
+      name,
+      phone,
+      password,
+      role: 'assistant',
+      avatar: '',
+      nickName: name,
+      warehouseId: '',
+      warehouseName: '',
+      status: 'active',
+      createTime: now,
+      updateTime: now,
+      isTestData: true
+    }
+  });
+
+  const userRes = await db.collection('users').doc(addRes._id).get();
+  return userRes.data;
+}
+
+async function createFarmersForAssistant(assistant, count, batchTag) {
+  let inserted = 0;
+  for (let i = 0; i < count; i++) {
+    const farmerData = generateFarmerOnlyData(i + 1, assistant._id, assistant.name, `${batchTag}_${assistant._id.slice(-4)}`);
+    try {
+      await db.collection('farmers').add({ data: farmerData });
+      inserted++;
+    } catch (e) {
+      console.error(`为助理 ${assistant.name} 生成农户失败:`, e.message);
+    }
+  }
+  return inserted;
+}
+
 // ==================== 主函数 ====================
 
 exports.main = async (event) => {
   const { action = 'generate', count = 100 } = event;
 
   try {
-    if (action === 'generateFarmersOnly') {
+    if (action === 'createAssistantsAndFarmers') {
+      const {
+        assistantCount = 2,
+        farmersPerAssistant = 20,
+        basePhone = '13977000',
+        password = '123456'
+      } = event;
+
+      const ac = Math.max(1, Math.min(parseInt(assistantCount) || 2, 5));
+      const fpa = Math.max(1, Math.min(parseInt(farmersPerAssistant) || 20, 200));
+      const batchTag = Date.now().toString().slice(-8);
+
+      const assistants = [];
+      for (let i = 0; i < ac; i++) {
+        const seq = String(i + 1).padStart(3, '0');
+        const phone = `${basePhone}${seq}`.slice(0, 11);
+        const name = `测试助理${i + 1}`;
+        const user = await ensureAssistantUser(name, phone, password);
+        assistants.push(user);
+      }
+
+      const results = [];
+      for (const assistant of assistants) {
+        const created = await createFarmersForAssistant(assistant, fpa, batchTag);
+        results.push({
+          assistantId: assistant._id,
+          assistantName: assistant.name,
+          phone: assistant.phone,
+          createdFarmers: created
+        });
+      }
+
+      return {
+        success: true,
+        message: '助理与签单农户生成完成',
+        data: {
+          assistantCount: assistants.length,
+          farmersPerAssistant: fpa,
+          batchTag,
+          results
+        }
+      };
+
+    } else if (action === 'generateFarmersOnly') {
       const farmerCount = Math.min(parseInt(count) || 20, 500);
       const batchTag = Date.now().toString().slice(-8);
       console.log(`开始生成 ${farmerCount} 条签单农户（仅农户主档）...`);
@@ -788,7 +873,7 @@ exports.main = async (event) => {
     } else {
       return {
         success: false,
-        message: '未知操作，请使用 action: "generateFarmersOnly" / "generate" / "clean" / "stats"'
+        message: '未知操作，请使用 action: "createAssistantsAndFarmers" / "generateFarmersOnly" / "generate" / "clean" / "stats"'
       };
     }
 

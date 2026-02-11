@@ -12,7 +12,7 @@ export const RolePermissions: Record<UserRole, Permission[]> = {
   // 助理权限：用户签约 + 种苗发放
   [UserRole.ASSISTANT]: [
     Permission.FARMER_CREATE,      // 新增农户
-    Permission.FARMER_VIEW_OWN,    // 查看自己的农户
+    Permission.FARMER_VIEW_ALL,    // 查看所有农户
     Permission.SEED_DISTRIBUTE,    // 种苗发放
     Permission.SEED_VIEW,          // 查看发放记录
     Permission.GUIDE_CREATE,       // 添加种植指导

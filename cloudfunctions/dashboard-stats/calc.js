@@ -125,9 +125,10 @@ function roundToFen(amount) {
  * @returns {number} 净重（kg），精确到小数点后2位
  */
 function calcNetWeight(grossWeight, tareWeight, moistureRate) {
-  // 净重 = 毛重 - 皮重 - (毛重 × 水杂率)
-  const moisture = multiply(grossWeight, moistureRate)
-  const net = subtract(subtract(grossWeight, tareWeight), moisture)
+  // 净重 = 毛重 - 皮重 - ((毛重 - 皮重) × 水杂率)
+  const baseWeight = subtract(grossWeight, tareWeight)
+  const moisture = multiply(baseWeight, moistureRate)
+  const net = subtract(baseWeight, moisture)
   return roundToFen(net)
 }
 

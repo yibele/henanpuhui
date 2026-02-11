@@ -146,6 +146,20 @@ export const farmerApi = {
     remark?: string;
   }) =>
     callFunction('farmer-manage', { action: 'handleDeposit', userId, userName, farmerId, data }),
+
+  // 批量导入农户
+  batchImport: (userId: string, farmers: Array<{
+    farmerId: string;
+    name: string;
+    phone: string;
+    idCard: string;
+    address: { county: string; township: string; village: string };
+    acreage: number;
+    firstManager: string;
+    secondManager: string;
+    assistantId: string;
+  }>) =>
+    callFunction('farmer-manage', { action: 'batchImport', userId, farmers }),
 }
 
 /**
@@ -185,6 +199,10 @@ export const settlementApi = {
   get: (settlementId: string, userId?: string) =>
     callFunction('settlement-manage', { action: 'get', settlementId, userId }),
 
+  // 预览扣款（待审核时使用实时计算结果）
+  previewDeduction: (settlementId: string) =>
+    callFunction('settlement-manage', { action: 'previewDeduction', settlementId }),
+
   // 获取统计数据
   getStatistics: (params: { startDate?: string; endDate?: string; userId?: string }) =>
     callFunction('settlement-manage', { action: 'getStatistics', ...params }),
@@ -214,13 +232,14 @@ export const settlementApi = {
     }),
 
   // 出纳付款
-  pay: (settlementId: string, userId: string, paymentMethod: string, paymentRemark?: string) =>
+  pay: (settlementId: string, userId: string, paymentMethod: string, paymentRemark?: string, voucherNo?: string) =>
     callFunction('settlement-manage', {
       action: 'completePayment',
       settlementId,
       userId,
       paymentMethod,
       paymentRemark,
+      voucherNo,
     }),
 }
 

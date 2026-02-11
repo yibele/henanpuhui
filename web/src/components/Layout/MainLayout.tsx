@@ -32,7 +32,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ['/dashboard', '/farmers', '/seeds', '/acquisitions', '/settlements', '/reports', '/users'],
   finance_admin: ['/dashboard', '/farmers', '/seeds', '/settlements', '/reports'],
   cashier: ['/dashboard', '/settlements', '/reports'],
-  assistant: ['/dashboard', '/farmers', '/seeds', '/acquisitions'],
+  assistant: ['/farmers', '/seeds'],
   warehouse_manager: ['/dashboard', '/acquisitions'],
 }
 

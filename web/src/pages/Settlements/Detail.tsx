@@ -25,6 +25,7 @@ interface SettlementDetail {
   cashierName?: string
   paymentMethod?: string
   paymentRemark?: string
+  voucherNo?: string
 }
 
 const STATUS_MAP: Record<string, { text: string; color: string }> = {
@@ -57,6 +58,7 @@ export default function SettlementDetail() {
   const [payModalVisible, setPayModalVisible] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState('wechat')
   const [payRemark, setPayRemark] = useState('')
+  const [voucherNo, setVoucherNo] = useState('')
 
   useEffect(() => {
     if (id) {
@@ -70,10 +72,30 @@ export default function SettlementDetail() {
       const result = await settlementApi.get(settlementId, userInfo?.id) as any
       if (result.success) {
         const raw = result.data?.settlement || result.data || {}
-        setDetail({
+        const nextDetail: SettlementDetail = {
           ...raw,
           status: raw.status || raw.auditStatus || 'pending',
-        })
+        }
+
+        // 待审核时，展示实时预览金额，避免显示初始化的 0
+        if (nextDetail.status === 'pending') {
+          try {
+            const previewResult = await settlementApi.previewDeduction(settlementId) as any
+            if (previewResult?.success && previewResult?.data) {
+              const preview = previewResult.data
+              nextDetail.acquisitionAmount = preview.acquisitionAmount ?? nextDetail.acquisitionAmount ?? 0
+              nextDetail.advanceDeduction = preview.deductions?.advanceDeduction ?? nextDetail.advanceDeduction ?? 0
+              nextDetail.seedDeduction = preview.deductions?.seedDeduction ?? nextDetail.seedDeduction ?? 0
+              nextDetail.agriculturalDeduction = preview.deductions?.agriculturalDeduction ?? nextDetail.agriculturalDeduction ?? 0
+              nextDetail.totalDeduction = preview.deductions?.totalDeduction ?? nextDetail.totalDeduction ?? 0
+              nextDetail.actualPayment = preview.actualPayment ?? nextDetail.actualPayment ?? 0
+            }
+          } catch (previewError) {
+            console.warn('加载扣款预览失败:', previewError)
+          }
+        }
+
+        setDetail(nextDetail)
       } else {
         message.error(result.errMsg || result.message || '加载失败')
       }
@@ -144,11 +166,12 @@ export default function SettlementDetail() {
 
     setActionLoading(true)
     try {
-      const result = await settlementApi.pay(detail.settlementId, userInfo.id, paymentMethod, payRemark) as any
+      const result = await settlementApi.pay(detail.settlementId, userInfo.id, paymentMethod, payRemark, voucherNo) as any
       if (result.success) {
         message.success('付款成功')
         setPayModalVisible(false)
         setPayRemark('')
+        setVoucherNo('')
         loadDetail(detail.settlementId)
       } else {
         message.error(result.errMsg || result.message || '操作失败')
@@ -266,22 +289,22 @@ export default function SettlementDetail() {
               ¥{(detail.acquisitionAmount || 0).toFixed(2)}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="种苗扣款">
+          <Descriptions.Item label="种苗欠款">
             <span style={{ color: '#f5222d' }}>
               -¥{(detail.seedDeduction || 0).toFixed(2)}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="农资扣款">
+          <Descriptions.Item label="农资欠款">
             <span style={{ color: '#f5222d' }}>
               -¥{(detail.agriculturalDeduction || 0).toFixed(2)}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="预支扣款">
+          <Descriptions.Item label="预支欠款">
             <span style={{ color: '#f5222d' }}>
               -¥{(detail.advanceDeduction || 0).toFixed(2)}
             </span>
           </Descriptions.Item>
-          <Descriptions.Item label="扣款合计">
+          <Descriptions.Item label="欠款合计">
             <span style={{ color: '#f5222d', fontWeight: 500 }}>
               -¥{(detail.totalDeduction || 0).toFixed(2)}
             </span>
@@ -297,6 +320,9 @@ export default function SettlementDetail() {
       {detail.status === 'completed' && (
         <Card title="付款信息">
           <Descriptions column={{ xs: 1, sm: 2 }}>
+            {detail.voucherNo && (
+              <Descriptions.Item label="序号">{detail.voucherNo}</Descriptions.Item>
+            )}
             <Descriptions.Item label="付款方式">
               {PAYMENT_METHODS[detail.paymentMethod || ''] || detail.paymentMethod || '-'}
             </Descriptions.Item>
@@ -343,6 +369,14 @@ export default function SettlementDetail() {
           <div style={{ fontSize: 24, color: '#52c41a', fontWeight: 600 }}>
             ¥{(detail.actualPayment || 0).toFixed(2)}
           </div>
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 8 }}>序号（选填）</div>
+          <Input
+            placeholder="请输入序号"
+            value={voucherNo}
+            onChange={(e) => setVoucherNo(e.target.value)}
+          />
         </div>
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8 }}>付款方式</div>

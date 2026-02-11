@@ -101,6 +101,7 @@ Page({
                 name: 'warehouse-manage',
                 data: {
                     action: 'getDashboard',
+                    userId: currentUser?.id || currentUser?._id,
                     warehouseId,
                     page: this.data.page
                 }

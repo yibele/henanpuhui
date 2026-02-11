@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Button, Spin, Tag, Table, Statistic, Row, Col, Progress, message } from 'antd'
-import { ArrowLeftOutlined, PlusOutlined } from '@ant-design/icons'
+import { Card, Descriptions, Button, Spin, Tag, Table, Statistic, Row, Col, Progress, message, Typography, Popconfirm, Space } from 'antd'
+import { ArrowLeftOutlined, PlusOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { farmerApi, seedApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
 import type { ColumnsType } from 'antd/es/table'
@@ -49,6 +49,7 @@ export default function FarmerSeedDetail() {
   const [recordsLoading, setRecordsLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const [markingComplete, setMarkingComplete] = useState(false)
 
   useEffect(() => {
     if (farmerId && userInfo?.id) {
@@ -91,6 +92,25 @@ export default function FarmerSeedDetail() {
       console.error('加载发苗记录失败:', error)
     } finally {
       setRecordsLoading(false)
+    }
+  }
+
+  const handleMarkSeedComplete = async (complete: boolean) => {
+    if (!farmer || !userInfo?.id) return
+    setMarkingComplete(true)
+    try {
+      const result = await farmerApi.markSeedComplete(userInfo.id, farmer._id, complete) as any
+      if (result.success) {
+        message.success(complete ? '已标记发苗完成' : '已取消发苗完成标记')
+        await loadFarmer()
+      } else {
+        message.error(result.message || '操作失败')
+      }
+    } catch (error) {
+      console.error('标记发苗完成失败:', error)
+      message.error('操作失败')
+    } finally {
+      setMarkingComplete(false)
     }
   }
 
@@ -170,6 +190,11 @@ export default function FarmerSeedDetail() {
   const progress = getProgress()
   const distributed = farmer.stats?.totalSeedDistributed || 0
   const remaining = Math.max(0, (farmer.seedTotal || 0) - distributed)
+  const totalSeedAmount = farmer.stats?.totalSeedAmount || 0
+  const contractSeedUnitPrice = farmer.seedUnitPrice || 0
+  const avgSeedUnitPrice = distributed > 0 ? Number((totalSeedAmount / distributed).toFixed(2)) : 0
+  const displaySeedUnitPrice = contractSeedUnitPrice > 0 ? contractSeedUnitPrice : avgSeedUnitPrice
+  const unitPriceSuffix = contractSeedUnitPrice > 0 ? '/万株（合同）' : '/万株（按累计苗款折算）'
 
   return (
     <div>
@@ -180,7 +205,32 @@ export default function FarmerSeedDetail() {
         >
           返回列表
         </Button>
-        <div>
+        <Space>
+          {farmer.seedDistributionComplete ? (
+            <Popconfirm
+              title="取消发苗完成"
+              description="确定要取消发苗完成标记吗？"
+              onConfirm={() => handleMarkSeedComplete(false)}
+              okText="确认"
+              cancelText="取消"
+            >
+              <Button icon={<CheckCircleOutlined />} loading={markingComplete}>
+                取消完成
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Popconfirm
+              title="标记发苗完成"
+              description="确定该农户的发苗已全部完成吗？"
+              onConfirm={() => handleMarkSeedComplete(true)}
+              okText="确认"
+              cancelText="取消"
+            >
+              <Button type="primary" ghost icon={<CheckCircleOutlined />} loading={markingComplete}>
+                标记发苗完成
+              </Button>
+            </Popconfirm>
+          )}
           <Button
             type="primary"
             icon={<PlusOutlined />}
@@ -188,7 +238,7 @@ export default function FarmerSeedDetail() {
           >
             新增发苗
           </Button>
-        </div>
+        </Space>
       </div>
 
       <Card title="农户信息" style={{ marginBottom: 24 }}>
@@ -235,18 +285,21 @@ export default function FarmerSeedDetail() {
       <Card title="苗款信息" style={{ marginBottom: 24 }}>
         <Row gutter={16}>
           <Col span={6}>
-            <Statistic title="应收苗款" value={farmer.receivableAmount || 0} prefix="¥" precision={2} />
+            <Statistic title="应收苗款（签约）" value={farmer.receivableAmount || 0} prefix="¥" precision={2} />
           </Col>
           <Col span={6}>
             <Statistic title="已收定金" value={farmer.deposit || 0} prefix="¥" precision={2} valueStyle={{ color: '#52c41a' }} />
           </Col>
           <Col span={6}>
-            <Statistic title="累计苗款" value={farmer.stats?.totalSeedAmount || 0} prefix="¥" precision={2} valueStyle={{ color: '#fa8c16' }} />
+            <Statistic title="累计苗款（实发）" value={totalSeedAmount} prefix="¥" precision={2} valueStyle={{ color: '#fa8c16' }} />
           </Col>
           <Col span={6}>
-            <Statistic title="种苗单价" value={farmer.seedUnitPrice || 0} prefix="¥" suffix="/万株" />
+            <Statistic title="种苗单价" value={displaySeedUnitPrice} prefix="¥" suffix={unitPriceSuffix} precision={2} />
           </Col>
         </Row>
+        <Typography.Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
+          备注：应收苗款按签约信息统计；累计苗款按已发苗记录统计。
+        </Typography.Text>
       </Card>
 
       <Card

@@ -4,7 +4,7 @@
  */
 
 import { getCache, setCache, CacheKeys } from '../../../utils/cache';
-import { formatAmount, formatSeedCount } from '../../../utils/format';
+import { formatAmount, formatSeedQuantity } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
@@ -122,7 +122,7 @@ Page({
 
         const stats = {
           totalCount: totalCount.toString(),
-          totalQuantity: formatSeedCount(totalQuantity),
+          totalQuantity: formatSeedQuantity(totalQuantity),
           totalAmount: formatAmount(totalAmount),
           farmerCount: farmerIds.size.toString()
         };
@@ -143,7 +143,7 @@ Page({
         console.error('获取发苗记录失败:', result.message);
         this.setData({
           seedRecords: [],
-          stats: { totalCount: '0', totalQuantity: '0株', totalAmount: '¥0', farmerCount: '0' },
+          stats: { totalCount: '0', totalQuantity: '0万株', totalAmount: '¥0', farmerCount: '0' },
           loading: false
         });
       }
@@ -163,7 +163,7 @@ Page({
       } else {
         this.setData({
           seedRecords: [],
-          stats: { totalCount: '0', totalQuantity: '0株', totalAmount: '¥0', farmerCount: '0' },
+          stats: { totalCount: '0', totalQuantity: '0万株', totalAmount: '¥0', farmerCount: '0' },
           loading: false
         });
       }

@@ -100,7 +100,7 @@
         </view>
         <view class="info-row">
           <text class="info-label">累计发苗</text>
-          <text class="info-value">{{formatted.totalSeedDistributed}} 株</text>
+          <text class="info-value">{{formatted.totalSeedDistributed}} 万株</text>
         </view>
         <view class="info-row">
           <text class="info-label">发苗金额</text>
@@ -265,6 +265,10 @@
     <view class="section" wx:if="{{settlement.cashierName}}">
       <view class="section-title">付款信息</view>
       <view class="info-card">
+        <view class="info-row" wx:if="{{settlement.voucherNo}}">
+          <text class="info-label">序号</text>
+          <text class="info-value">{{settlement.voucherNo}}</text>
+        </view>
         <view class="info-row">
           <text class="info-label">出纳</text>
           <text class="info-value">{{settlement.cashierName}}</text>
@@ -285,7 +289,7 @@
     </view>
 
     <!-- 底部操作按钮 -->
-    <view class="bottom-actions" wx:if="{{(canAudit && settlement.status === 'pending') || (canPay && settlement.status === 'approved')}}">
+    <view class="bottom-actions" wx:if="{{(canAudit && settlement.status === 'pending') || (canPay && (settlement.auditStatus === 'approved' || settlement.status === 'approved') && settlement.paymentStatus !== 'paid')}}">
       <!-- 会计审核按钮 -->
       <block wx:if="{{canAudit && settlement.status === 'pending'}}">
         <t-button theme="primary" size="large" block bindtap="onAuditTap">
@@ -294,7 +298,7 @@
       </block>
       
       <!-- 出纳付款按钮 -->
-      <block wx:if="{{canPay && settlement.status === 'approved'}}">
+      <block wx:if="{{canPay && (settlement.auditStatus === 'approved' || settlement.status === 'approved') && settlement.paymentStatus !== 'paid'}}">
         <t-button theme="primary" size="large" block bindtap="onPayTap">
           确认付款 ¥{{formatted.actualPayment}}
         </t-button>
@@ -420,6 +424,17 @@
         <text class="payment-summary-amount">¥{{formatted.actualPayment}}</text>
       </view>
       
+      <view class="form-item">
+        <text class="form-label">序号（选填）</text>
+        <input
+          class="form-input"
+          placeholder="请输入序号"
+          value="{{voucherNo}}"
+          bindinput="onVoucherNoInput"
+          maxlength="50"
+        />
+      </view>
+
       <view class="form-item">
         <text class="form-label">付款方式</text>
         <t-radio-group value="{{paymentMethod}}" bind:change="onPaymentMethodChange">

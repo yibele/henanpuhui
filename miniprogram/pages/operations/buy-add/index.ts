@@ -477,7 +477,8 @@ Page({
 
       const globalData = (app.globalData as any) || {};
       const currentUser = globalData.currentUser || {};
-      if (!currentUser.id) {
+      const userId = currentUser.id || currentUser._id || '';
+      if (!userId) {
         throw new Error('用户信息不存在，请重新登录');
       }
 
@@ -485,13 +486,14 @@ Page({
         name: 'acquisition-manage',
         data: {
           action: 'create',
-          userId: currentUser.id,
+          userId,
           data: acquisitionData
         }
       });
 
       if (!res.result || !(res.result as any).success) {
-        throw new Error((res.result as any)?.message || '收购登记失败');
+        const cloudErr = (res.result as any)?.message || (res.result as any)?.errMsg || (res.result as any)?.error;
+        throw new Error(cloudErr || '收购登记失败');
       }
 
       this.setData({ submitting: false });

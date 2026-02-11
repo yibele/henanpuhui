@@ -74,6 +74,7 @@ Page({
     paymentMethod: 'wechat',
     paymentMethods: PAYMENT_METHODS,
     paymentRemark: '',
+    voucherNo: '',
 
     // 加载状态
     isLoading: false,
@@ -355,7 +356,8 @@ Page({
     this.setData({
       showPayDialog: true,
       paymentMethod: 'wechat',
-      paymentRemark: ''
+      paymentRemark: '',
+      voucherNo: ''
     });
   },
 
@@ -378,6 +380,13 @@ Page({
    */
   onPaymentRemarkInput(e: WechatMiniprogram.Input) {
     this.setData({ paymentRemark: e.detail.value });
+  },
+
+  /**
+   * 序号输入
+   */
+  onVoucherNoInput(e: WechatMiniprogram.Input) {
+    this.setData({ voucherNo: e.detail.value });
   },
 
   /**
@@ -415,7 +424,8 @@ Page({
           userId: userInfo?._id || '',
           settlementId: this.data.settlement.settlementId,
           paymentMethod: this.data.paymentMethod,
-          paymentRemark: this.data.paymentRemark
+          paymentRemark: this.data.paymentRemark,
+          voucherNo: this.data.voucherNo
         }
       });
 

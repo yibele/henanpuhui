@@ -4,7 +4,7 @@
  */
 
 import { getCache, setCache } from '../../../utils/cache';
-import { formatAmount, formatSeedCount } from '../../../utils/format';
+import { formatAmount, formatSeedQuantity } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
@@ -136,7 +136,7 @@ Page({
         if (statsResult && statsResult.success && statsResult.data) {
           const s = statsResult.data;
           summary = {
-            totalQuantity: formatSeedCount(s.totalQuantity || 0),
+            totalQuantity: formatSeedQuantity(s.totalQuantity || 0),
             totalAmount: formatAmount(s.totalAmount || 0),
             farmerCount: (s.farmerCount || 0) + '户',
             recordCount: s.recordCount || 0,
@@ -149,7 +149,7 @@ Page({
           const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
           const farmerIds = new Set(records.map((r: any) => r.farmerId));
           summary = {
-            totalQuantity: formatSeedCount(totalQuantity),
+            totalQuantity: formatSeedQuantity(totalQuantity),
             totalAmount: formatAmount(totalAmount),
             farmerCount: farmerIds.size + '户',
             recordCount: records.length,
@@ -328,7 +328,7 @@ Page({
     const record = e.currentTarget.dataset.record;
     wx.showModal({
       title: '发苗详情',
-      content: `农户：${record.farmerName}\n数量：${record.quantity}株\n金额：¥${record.amount}\n面积：${record.distributedArea}亩\n领取人：${record.receiverName}\n日期：${record.date}`,
+      content: `农户：${record.farmerName}\n数量：${record.quantity}万株\n金额：¥${record.amount}\n面积：${record.distributedArea}亩\n领取人：${record.receiverName}\n日期：${record.date}`,
       showCancel: false
     });
   }

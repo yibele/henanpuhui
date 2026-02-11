@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard'
 import FarmerList from './pages/Farmers/List'
 import FarmerDetail from './pages/Farmers/Detail'
 import FarmerForm from './pages/Farmers/Form'
+import FarmerImport from './pages/Farmers/Import'
 import AcquisitionList from './pages/Acquisitions/List'
 import AcquisitionForm from './pages/Acquisitions/Form'
 import AcquisitionDetail from './pages/Acquisitions/Detail'
@@ -25,8 +26,13 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   admin: ['/dashboard', '/farmers', '/seeds', '/acquisitions', '/settlements', '/reports', '/users'],
   finance_admin: ['/dashboard', '/farmers', '/seeds', '/settlements', '/reports'],
   cashier: ['/dashboard', '/settlements', '/reports'],
-  assistant: ['/dashboard', '/farmers', '/seeds', '/acquisitions'],
+  assistant: ['/farmers', '/seeds'],
   warehouse_manager: ['/dashboard', '/acquisitions'],
+}
+
+function getDefaultPathByRole(role: string): string {
+  const allowed = ROLE_PERMISSIONS[role] || []
+  return allowed[0] || '/dashboard'
 }
 
 // 需要登录才能访问的路由
@@ -46,15 +52,19 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
   const userRole = userInfo?.role || ''
   const allowedPaths = ROLE_PERMISSIONS[userRole] || []
   const currentPath = location.pathname
+  const fallbackPath = getDefaultPathByRole(userRole)
 
   // 检查当前路径是否在允许的路径列表中
-  const hasPermission = currentPath === '/' || allowedPaths.some(path =>
+  const hasPermission = allowedPaths.some(path =>
     currentPath === path || currentPath.startsWith(path + '/')
   )
 
-  if (!hasPermission && currentPath !== '/') {
-    // 无权限访问，重定向到仪表盘
-    return <Navigate to="/dashboard" replace />
+  if (currentPath === '/') {
+    return <Navigate to={fallbackPath} replace />
+  }
+
+  if (!hasPermission) {
+    return <Navigate to={fallbackPath} replace />
   }
 
   return <>{children}</>
@@ -75,11 +85,12 @@ export default function AppRouter() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="farmers" element={<FarmerList />} />
         <Route path="farmers/new" element={<FarmerForm />} />
         <Route path="farmers/:id" element={<FarmerDetail />} />
+        <Route path="farmers/import" element={<FarmerImport />} />
         <Route path="farmers/:id/edit" element={<FarmerForm />} />
         <Route path="seeds" element={<SeedManagement />} />
         <Route path="seeds/farmer/:farmerId" element={<FarmerSeedDetail />} />

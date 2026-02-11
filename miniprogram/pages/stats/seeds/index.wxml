@@ -95,7 +95,7 @@
       <view class="record-body">
         <view class="info-row">
           <text class="info-label">发放数量</text>
-          <text class="info-value">{{item.quantity}}株</text>
+          <text class="info-value">{{item.quantity}}万株</text>
         </view>
         <view class="info-row">
           <text class="info-label">发放面积</text>

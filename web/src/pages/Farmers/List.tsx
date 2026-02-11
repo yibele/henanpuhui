@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Table, Input, Card, Tag, Space, Button, Tooltip, Row, Col, Statistic } from 'antd'
-import { SearchOutlined, PlusOutlined, ExperimentOutlined } from '@ant-design/icons'
+import { SearchOutlined, PlusOutlined, ExperimentOutlined, UploadOutlined } from '@ant-design/icons'
 import { farmerApi } from '../../services/cloudbase'
 import { useAuth } from '../../stores/AuthContext'
 import type { ColumnsType } from 'antd/es/table'
@@ -222,9 +222,16 @@ export default function FarmerList() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ margin: 0 }}>农户管理</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/farmers/new')}>
-          新增农户
-        </Button>
+        <Space>
+          {userInfo?.role === 'admin' && (
+            <Button icon={<UploadOutlined />} onClick={() => navigate('/farmers/import')}>
+              导入农户
+            </Button>
+          )}
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/farmers/new')}>
+            新增农户
+          </Button>
+        </Space>
       </div>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>

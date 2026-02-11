@@ -129,18 +129,15 @@ exports.main = async (event, context) => {
  */
 async function getAssistantStats(user) {
   try {
-    const userId = user._id;
-
-    // 获取我录入的农户总数
+    // 获取农户总数（助理可查看全量）
     const farmersRes = await db.collection('farmers').where({
-      createBy: userId,
       isDeleted: false
     }).count();
 
     // 获取农户详细列表（分批，避免 get() 上限导致漏算）
     const farmers = await queryAll(
       'farmers',
-      { createBy: userId, isDeleted: false },
+      { isDeleted: false },
       { orderByField: 'createTime', orderByDirection: 'desc' }
     );
 

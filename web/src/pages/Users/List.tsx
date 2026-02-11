@@ -132,6 +132,14 @@ export default function UserList() {
 
   const columns: ColumnsType<User> = [
     {
+      title: '用户ID',
+      dataIndex: '_id',
+      width: 220,
+      render: (id: string) => (
+        <span style={{ fontSize: 12, color: '#666', userSelect: 'all' }}>{id}</span>
+      ),
+    },
+    {
       title: '姓名',
       dataIndex: 'name',
       width: 100,
