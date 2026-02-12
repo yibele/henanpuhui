@@ -203,7 +203,7 @@ Page({
       [UserRole.WAREHOUSE_MANAGER]: 'warehouse',
       [UserRole.FINANCE_ADMIN]: 'finance',
       [UserRole.CASHIER]: 'cashier',       // 出纳专属视图
-      [UserRole.ADMIN]: 'finance'  // 管理员与会计共用视图
+      [UserRole.ADMIN]: 'admin'  // 管理员独立视图
     };
 
     this.setData({
@@ -259,7 +259,7 @@ Page({
     }
 
     // 会计/管理层：加载全部统计数据
-    this.loadManagerData();
+    this.loadManagerData(forceRefresh);
   },
 
   /**
@@ -388,7 +388,21 @@ Page({
   /**
    * 加载管理层数据（从云函数获取真实数据）
    */
-  async loadManagerData() {
+  async loadManagerData(forceRefresh: boolean = false) {
+    // 缓存机制：优先使用缓存数据
+    const CACHE_KEY_MANAGER = 'cache_manager_dashboard';
+    if (!forceRefresh) {
+      const cached = getCache<any>(CACHE_KEY_MANAGER);
+      if (cached) {
+        console.log('[dashboard] 从缓存加载管理层数据');
+        this.setData({
+          adminDashboard: cached.adminDashboard,
+          adminStats: cached.adminStats
+        });
+        return;
+      }
+    }
+
     try {
       wx.showLoading({ title: '加载中...' });
 
@@ -479,7 +493,7 @@ Page({
           farmerCount: data.farmer?.count || 0,
           acreage: formatAcreage(data.farmer?.totalAcreage || 0),
           deposit: formatAmount(data.farmer?.totalDeposit || 0),
-          seedQuantity: formatSeedCount(data.seed?.totalQuantity || 0),
+          seedQuantity: formatSeedQuantity(data.seed?.totalQuantity || 0),
           seedAmount: formatAmount(data.seed?.totalAmount || 0),
           acquisitionWeight: formatWeight(data.acquisition?.totalWeight || 0),
           acquisitionAmount: formatAmount(data.acquisition?.totalAmount || 0),
@@ -500,9 +514,28 @@ Page({
         }
       });
 
+      // 保存缓存
+      setCache(CACHE_KEY_MANAGER, {
+        adminDashboard: this.data.adminDashboard,
+        adminStats: this.data.adminStats
+      });
+
     } catch (error: any) {
       console.error('加载管理员数据失败:', error);
       wx.hideLoading();
+
+      // 请求失败时尝试使用缓存降级
+      const cached = getCache<any>(CACHE_KEY_MANAGER);
+      if (cached) {
+        console.log('[dashboard] 请求失败，使用缓存数据');
+        this.setData({
+          adminDashboard: cached.adminDashboard,
+          adminStats: cached.adminStats
+        });
+        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+        return;
+      }
+
       wx.showToast({
         title: error.message || '加载数据失败',
         icon: 'none'
@@ -745,7 +778,7 @@ Page({
     switch (type) {
       case 'farmers':
         // 管理层跳转到统计详情页，其他角色跳转到农户列表
-        if (currentRoleKey === 'finance') {
+        if (currentRoleKey === 'finance' || currentRoleKey === 'admin') {
           wx.navigateTo({ url: '/pages/stats/farmers/index' });
         } else {
           wx.switchTab({ url: '/pages/farmers/list/index' });
@@ -758,6 +791,18 @@ Page({
         wx.switchTab({ url: '/pages/operations/index/index' });
         break;
       case 'settlements':
+        wx.switchTab({ url: '/pages/finance/index/index' });
+        break;
+      case 'seedQuantity':
+        wx.navigateTo({ url: '/pages/stats/seeds/index' });
+        break;
+      case 'acquisition':
+        wx.navigateTo({ url: '/pages/stats/acquisition/index' });
+        break;
+      case 'pending':
+        wx.switchTab({ url: '/pages/finance/index/index' });
+        break;
+      case 'approved':
         wx.switchTab({ url: '/pages/finance/index/index' });
         break;
     }

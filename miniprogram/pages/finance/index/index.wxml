@@ -29,19 +29,22 @@
           <text class="stat-label">已付款</text>
         </view>
       </block>
-      <!-- 会计视图：待审核、待付款、已完成 -->
+      <!-- 会计/管理员视图：待审核、待付款、已完成 -->
       <block wx:else>
         <view class="overview-stat-item">
           <text class="stat-value stat-value-orange">{{counts.pending}}</text>
           <text class="stat-label">待审核</text>
+          <text class="stat-amount">¥{{formattedOverview.pendingAmount}}</text>
         </view>
         <view class="overview-stat-item">
           <text class="stat-value stat-value-blue">{{overview.approvedCount}}</text>
           <text class="stat-label">待付款</text>
+          <text class="stat-amount">¥{{formattedOverview.approvedAmount}}</text>
         </view>
         <view class="overview-stat-item">
           <text class="stat-value stat-value-green">{{overview.completedCount}}</text>
           <text class="stat-label">已完成</text>
+          <text class="stat-amount">¥{{formattedOverview.completedAmount}}</text>
         </view>
       </block>
     </view>

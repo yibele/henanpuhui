@@ -226,7 +226,7 @@
   </block>
 
   <!-- ==================== 管理层视图（新版 - 真实数据） ==================== -->
-  <block wx:if="{{currentRoleKey === 'finance'}}">
+  <block wx:if="{{currentRoleKey === 'finance' || currentRoleKey === 'admin'}}">
     <!-- 欢迎横幅 -->
     <view class="welcome-banner">
       <view class="banner-content">
@@ -251,6 +251,7 @@
             <text class="kpi-value">{{adminStats.farmerCount}}</text>
             <text class="kpi-label">签约农户(户)</text>
           </view>
+          <t-icon name="chevron-right" size="32rpx" color="#d1d5db" class="kpi-arrow" />
         </view>
         <view class="admin-kpi-card">
           <view class="kpi-icon-wrapper kpi-icon-blue">
@@ -272,7 +273,7 @@
             <text class="kpi-label">定金总额(元)</text>
           </view>
         </view>
-        <view class="admin-kpi-card">
+        <view class="admin-kpi-card" bindtap="onStatTap" data-type="acquisition">
           <view class="kpi-icon-wrapper kpi-icon-purple">
             <t-icon name="cart" size="40rpx" color="#ffffff" />
           </view>
@@ -280,6 +281,7 @@
             <text class="kpi-value">{{adminStats.acquisitionWeight}}</text>
             <text class="kpi-label">收购总量</text>
           </view>
+          <t-icon name="chevron-right" size="32rpx" color="#d1d5db" class="kpi-arrow" />
         </view>
       </view>
     </view>
@@ -311,13 +313,15 @@
       </view>
       <!-- 待办提醒 -->
       <view class="fund-pending-row">
-        <view class="pending-item" bindtap="goSettlementPage">
+        <view class="pending-item" bindtap="onStatTap" data-type="pending">
           <view class="pending-badge pending-badge-warning">{{adminStats.pendingCount}}</view>
           <text class="pending-text">待审核 ¥{{adminStats.pendingAmount}}</text>
+          <t-icon name="chevron-right" size="28rpx" color="#9ca3af" />
         </view>
-        <view class="pending-item" bindtap="goSettlementPage">
+        <view class="pending-item" bindtap="onStatTap" data-type="approved">
           <view class="pending-badge pending-badge-info">{{adminStats.approvedCount}}</view>
           <text class="pending-text">待付款 ¥{{adminStats.approvedAmount}}</text>
+          <t-icon name="chevron-right" size="28rpx" color="#9ca3af" />
         </view>
       </view>
     </view>
@@ -372,14 +376,16 @@
         <view class="stats-grid-item" bindtap="goSeedDetail">
           <text class="stats-grid-value">{{adminStats.seedQuantity}}</text>
           <text class="stats-grid-label">发苗总量</text>
+          <t-icon name="chevron-right" size="28rpx" color="#d1d5db" class="grid-item-arrow" />
         </view>
         <view class="stats-grid-item">
           <text class="stats-grid-value">{{adminStats.seedAmount}}</text>
           <text class="stats-grid-label">苗款金额</text>
         </view>
-        <view class="stats-grid-item">
+        <view class="stats-grid-item" bindtap="onStatTap" data-type="acquisition">
           <text class="stats-grid-value">{{adminDashboard.acquisition.count || 0}}</text>
           <text class="stats-grid-label">收购笔数</text>
+          <t-icon name="chevron-right" size="28rpx" color="#d1d5db" class="grid-item-arrow" />
         </view>
         <view class="stats-grid-item">
           <text class="stats-grid-value">{{adminStats.acquisitionAmount}}</text>

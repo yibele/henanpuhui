@@ -2113,3 +2113,40 @@
   opacity: 0.9;
 }
 
+/* ==================== 可点击卡片样式 ==================== */
+
+/* KPI卡片箭头定位 */
+.admin-kpi-card {
+  position: relative;
+}
+
+.kpi-arrow {
+  position: absolute;
+  right: 16rpx;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 可点击卡片点击态 */
+.admin-kpi-card[data-type]:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+  transition: all 0.15s ease;
+}
+
+/* 待办提醒项点击态 */
+.pending-item:active {
+  opacity: 0.7;
+}
+
+/* 业务统计网格项箭头 */
+.stats-grid-item {
+  position: relative;
+}
+
+.grid-item-arrow {
+  position: absolute;
+  right: 8rpx;
+  top: 12rpx;
+}
+

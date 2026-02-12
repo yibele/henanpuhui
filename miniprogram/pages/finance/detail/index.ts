@@ -19,10 +19,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; desc: string
 
 // 付款方式选项
 const PAYMENT_METHODS = [
-  { value: 'wechat', label: '微信转账' },
-  { value: 'bank', label: '银行转账' },
+  { value: 'wechat', label: '微信' },
+  { value: 'alipay', label: '支付宝' },
+  { value: 'public_account', label: '公户' },
+  { value: 'bank_card', label: '银行卡' },
   { value: 'cash', label: '现金' }
 ];
+const PAYMENT_METHOD_LABELS = PAYMENT_METHODS.map(item => item.label);
 
 Page({
   data: {
@@ -72,7 +75,9 @@ Page({
     // 付款弹窗
     showPayDialog: false,
     paymentMethod: 'wechat',
+    paymentMethodIndex: 0,
     paymentMethods: PAYMENT_METHODS,
+    paymentMethodLabels: PAYMENT_METHOD_LABELS,
     paymentRemark: '',
     voucherNo: '',
 
@@ -100,8 +105,8 @@ Page({
 
     this.setData({
       userRole,
-      canAudit: userRole === 'finance_admin' || userRole === 'admin',
-      canPay: userRole === 'cashier' || userRole === 'admin'
+      canAudit: userRole === 'finance_admin',
+      canPay: userRole === 'cashier'
     });
   },
 
@@ -353,9 +358,12 @@ Page({
    * 打开付款弹窗
    */
   onPayTap() {
+    const defaultMethod = 'wechat';
+    const defaultIndex = PAYMENT_METHODS.findIndex(item => item.value === defaultMethod);
     this.setData({
       showPayDialog: true,
-      paymentMethod: 'wechat',
+      paymentMethod: defaultMethod,
+      paymentMethodIndex: defaultIndex >= 0 ? defaultIndex : 0,
       paymentRemark: '',
       voucherNo: ''
     });
@@ -371,8 +379,15 @@ Page({
   /**
    * 选择付款方式
    */
-  onPaymentMethodChange(e: WechatMiniprogram.CustomEvent) {
-    this.setData({ paymentMethod: e.detail.value });
+  onPaymentMethodChange(e: WechatMiniprogram.PickerChange) {
+    const selectedIndex = Number(e.detail.value || 0);
+    const selectedMethod = PAYMENT_METHODS[selectedIndex];
+    if (!selectedMethod) return;
+
+    this.setData({
+      paymentMethodIndex: selectedIndex,
+      paymentMethod: selectedMethod.value
+    });
   },
 
   /**

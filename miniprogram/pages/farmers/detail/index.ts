@@ -149,10 +149,10 @@ Page({
    */
   checkUserRole() {
     const userRole = app.globalData.userRole;
-    const isFinanceAdmin = userRole === UserRole.FINANCE_ADMIN;
-    // 出纳和管理员可以退还定金
-    const canHandleDeposit = userRole === 'cashier' || userRole === 'admin';
-    this.setData({ isFinanceAdmin, canHandleDeposit });
+    const isFinanceAdmin = userRole === UserRole.FINANCE_ADMIN || userRole === 'admin';
+    // 仅出纳可以退还/扣除定金
+    const canHandleDeposit = userRole === 'cashier';
+    this.setData({ isFinanceAdmin, canHandleDeposit, userRole });
   },
 
   /**
@@ -266,7 +266,7 @@ Page({
           date: r.createTime ? new Date(r.createTime).toLocaleDateString('zh-CN') : '',
           name: this.getRecordTypeName(r.type),
           desc: this.buildRecordDesc(r),
-          amount: r.totalAmount || r.amount || 0,
+          amount: r.totalAmount || 0,
           operator: r.createByName || '系统'
         }));
       }
@@ -315,9 +315,9 @@ Page({
       case 'seed':
         return `发放 ${record.quantity || 0} 万株`;
       case 'fertilizer':
-        return `${record.name || '化肥'} ${record.quantity || 0}${record.unit || '袋'}，¥${record.totalAmount || record.amount || 0}`;
+        return `${record.name || '化肥'} ${record.quantity || 0}${record.unit || '袋'}，¥${record.totalAmount || 0}`;
       case 'pesticide':
-        return `${record.name || '农药'} ${record.quantity || 0}${record.unit || '瓶'}，¥${record.totalAmount || record.amount || 0}`;
+        return `${record.name || '农药'} ${record.quantity || 0}${record.unit || '瓶'}，¥${record.totalAmount || 0}`;
       case 'addendum':
         return `面积 +${record.addedAcreage || 0} 亩${record.addedDeposit ? `，定金 +¥${record.addedDeposit}` : ''}`;
       case 'advance':
@@ -325,7 +325,7 @@ Page({
       case 'deposit':
         return `追加定金 ¥${record.amount || 0}`;
       case 'acquisition':
-        return record.desc || `收购 ${record.weight || 0}kg，¥${record.amount || 0}`;
+        return record.desc || `收购 ${record.netWeight || 0}kg，¥${record.totalAmount || 0}`;
       case 'settlement':
       case 'settlement_audit':
         return record.desc || `货款¥${record.grossAmount || record.amount || 0}`;

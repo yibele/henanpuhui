@@ -138,7 +138,7 @@
       </view>
 
       <!-- 定金处理状态（出纳/管理员可见） -->
-      <view class="section-title-row section-title-row-mt" wx:if="{{canHandleDeposit || farmer.depositStatus}}">
+      <view class="section-title-row section-title-row-mt" wx:if="{{canHandleDeposit || farmer.depositStatus || userRole === 'admin'}}">
         <text class="section-title-text">定金状态</text>
       </view>
       <!-- 已退还 -->
@@ -168,6 +168,13 @@
           <view class="deposit-btn deposit-btn-return" bindtap="onOpenDepositReturnPopup">
             <text>退还</text>
           </view>
+        </view>
+      </view>
+      <!-- 管理员只读：显示定金待处理状态 -->
+      <view wx:elif="{{userRole === 'admin' && farmer.deposit > 0}}" class="stats-row">
+        <view class="stat-item" style="flex: 1;">
+          <text class="stat-value stat-blue">¥{{farmer.deposit}} 待处理</text>
+          <text class="stat-label">等待出纳处理（退还或扣除）</text>
         </view>
       </view>
     </view>
