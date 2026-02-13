@@ -185,7 +185,7 @@ Page({
         // 处理农户数据
         const stats = farmer.stats || {};
         const processedFarmer = {
-          id: farmer._id,
+          id: farmer.farmerId,
           farmerId: farmer.farmerId,  // 农户编号，用于查询收购记录
           name: farmer.name,
           phone: farmer.phone,

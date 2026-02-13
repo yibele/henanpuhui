@@ -51,6 +51,46 @@ function generateRecordId() {
     return `SEED_${year}${month}${day}_${random}`;
 }
 
+function normalizeFarmerLookupValue(farmerId) {
+    const value = String(farmerId || '').trim();
+    return value || '';
+}
+
+function buildActiveFarmerStatusCondition() {
+    return _.or([
+        { status: 'active' },
+        { status: _.exists(false) },
+        { status: '' },
+        { status: null }
+    ]);
+}
+
+async function findFarmerByAnyId(farmerId, options = {}) {
+    const value = normalizeFarmerLookupValue(farmerId);
+    if (!value) return null;
+
+    const { onlyActive = false } = options;
+    const activeStatus = buildActiveFarmerStatusCondition();
+
+    let whereByCode = { farmerId: value };
+    if (onlyActive) whereByCode = _.and([whereByCode, activeStatus]);
+
+    const farmerRes = await db.collection('farmers')
+        .where(whereByCode)
+        .limit(1)
+        .get();
+    if (farmerRes.data.length > 0) return farmerRes.data[0];
+
+    return null;
+}
+
+function buildFarmerIdCandidates(farmer) {
+    if (!farmer) return [];
+    return Array.from(new Set([
+        String(farmer.farmerId || '').trim()
+    ].filter(Boolean)));
+}
+
 /**
  * 发放种苗
  * 权限：助理/管理员/财务可对全量农户发苗
@@ -110,34 +150,16 @@ async function distributeSeed(event) {
 
         // ==================== 权限检查结束 ====================
 
-        // 4. 获取农户信息
-        const activeOrLegacyStatus = _.or([
-            { status: 'active' },
-            { status: _.exists(false) },
-            { status: '' },
-            { status: null }
-        ]);
-
-        let farmerRes = await db.collection('farmers')
-            .where(_.and([{ farmerId: farmerId }, activeOrLegacyStatus]))
-            .limit(1)
-            .get();
-
-        if (farmerRes.data.length === 0) {
-            farmerRes = await db.collection('farmers')
-                .where(_.and([{ _id: farmerId }, activeOrLegacyStatus]))
-                .limit(1)
-                .get();
-        }
-
-        if (farmerRes.data.length === 0) {
+        // 4. 获取农户信息（统一按业务编号 farmerId）
+        const farmer = await findFarmerByAnyId(farmerId, { onlyActive: true });
+        if (!farmer) {
             return {
                 success: false,
                 message: '农户不存在'
             };
         }
-
-        const farmer = farmerRes.data[0];
+        const canonicalFarmerId = farmer.farmerId;
+        const farmerDocId = farmer._id;
 
         // 2. 计算金额 - 使用精确计算
         const price = parseFloat(unitPrice) || 0;
@@ -165,7 +187,8 @@ async function distributeSeed(event) {
             await transaction.collection('seed_records').add({
                 data: {
                     recordId,
-                    farmerId,
+                    farmerId: canonicalFarmerId,
+                    farmerDocId,
                     farmerName: farmer.name,
                     farmerPhone: farmer.phone,
 
@@ -192,7 +215,7 @@ async function distributeSeed(event) {
             });
 
             // 6. 更新农户统计（累计发放数量、金额和面积）- 使用精确计算
-            await transaction.collection('farmers').doc(farmer._id).update({
+            await transaction.collection('farmers').doc(farmerDocId).update({
                 data: {
                     'stats.totalSeedDistributed': roundTo2(add(currentDistributed, qty)),
                     'stats.totalSeedAmount': newTotalSeedAmount,
@@ -209,7 +232,8 @@ async function distributeSeed(event) {
             await transaction.collection('business_records').add({
                 data: {
                     recordId: bizRecordId,
-                    farmerId,
+                    farmerId: canonicalFarmerId,
+                    farmerDocId,
                     farmerName: farmer.name,
                     type: 'seed',
 
@@ -289,16 +313,28 @@ async function getSeedRecordsByFarmer(event) {
 
         // ==================== 权限检查结束 ====================
 
+        const farmer = await findFarmerByAnyId(farmerId);
+        if (!farmer) {
+            return {
+                success: false,
+                message: '农户不存在'
+            };
+        }
+
         const skip = (page - 1) * pageSize;
+        const whereCondition = {
+            farmerId: farmer.farmerId,
+            status: _.neq('deleted')
+        };
 
         // 获取总数
         const countRes = await db.collection('seed_records')
-            .where({ farmerId })
+            .where(whereCondition)
             .count();
 
         // 获取列表
         const listRes = await db.collection('seed_records')
-            .where({ farmerId })
+            .where(whereCondition)
             .orderBy('createTime', 'desc')
             .skip(skip)
             .limit(pageSize)
@@ -512,7 +548,6 @@ async function updateSeedRecord(event) {
 
         // 2. 检查权限
         const old = oldRecord.data;
-        const farmerId = old.farmerId;
 
         const userRes = await db.collection('users').doc(userId).get();
         if (!userRes.data) {
@@ -538,27 +573,20 @@ async function updateSeedRecord(event) {
         const diffAmount = subtract((data.amount || 0), (old.amount || 0));
         const diffArea = subtract((data.distributedArea || 0), (old.distributedArea || 0));
 
-        // 3. 获取农户信息（如果有差值需要更新）
+        // 3. 获取农户信息（统一按业务编号 farmerId）
+        const farmer = await findFarmerByAnyId(old.farmerId);
+        if (!farmer) {
+            return {
+                success: false,
+                message: '关联农户不存在'
+            };
+        }
+        const canonicalFarmerId = farmer.farmerId || old.farmerId || '';
+        const farmerDocId = farmer._id;
+
+        // 4. 计算差值后更新农户汇总
         let farmerUpdateData = null;
-        let farmer = null;
         if (diffQuantity !== 0 || diffAmount !== 0 || diffArea !== 0) {
-            let farmerRes = await db.collection('farmers')
-                .where({ farmerId: farmerId })
-                .limit(1)
-                .get();
-            if (farmerRes.data.length === 0) {
-                farmerRes = await db.collection('farmers')
-                    .where({ _id: farmerId })
-                    .limit(1)
-                    .get();
-            }
-            if (farmerRes.data.length === 0) {
-                return {
-                    success: false,
-                    message: '关联农户不存在'
-                };
-            }
-            farmer = farmerRes.data[0];
             const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
             const currentAmount = farmer.stats?.totalSeedAmount || 0;
             const currentArea = farmer.stats?.totalSeedArea || 0;
@@ -580,9 +608,11 @@ async function updateSeedRecord(event) {
         const transaction = await db.startTransaction();
 
         try {
-            // 4. 更新发苗记录
+            // 5. 更新发苗记录，并顺带修正 farmerId 口径
             await transaction.collection('seed_records').doc(recordId).update({
                 data: {
+                    farmerId: canonicalFarmerId,
+                    farmerDocId,
                     quantity: data.quantity,
                     unitPrice: data.unitPrice,
                     amount: data.amount,
@@ -598,7 +628,7 @@ async function updateSeedRecord(event) {
 
             // 5. 同步更新农户统计（如果有差值）
             if (farmerUpdateData && farmer) {
-                await transaction.collection('farmers').doc(farmer._id).update({
+                await transaction.collection('farmers').doc(farmerDocId).update({
                     data: farmerUpdateData
                 });
             }
@@ -689,23 +719,14 @@ async function deleteSeedRecord(event) {
         const area = old.distributedArea || 0;
 
         // 2. 获取农户信息，计算更新值
-        let farmerRes = await db.collection('farmers')
-            .where({ farmerId: farmerId })
-            .limit(1)
-            .get();
-        if (farmerRes.data.length === 0) {
-            farmerRes = await db.collection('farmers')
-                .where({ _id: farmerId })
-                .limit(1)
-                .get();
-        }
-        if (farmerRes.data.length === 0) {
+        const farmer = await findFarmerByAnyId(farmerId);
+        if (!farmer) {
             return {
                 success: false,
                 message: '关联农户不存在'
             };
         }
-        const farmer = farmerRes.data[0];
+        const farmerDocId = farmer._id;
         const currentDistributed = farmer.stats?.totalSeedDistributed || 0;
         const currentAmount = farmer.stats?.totalSeedAmount || 0;
         const currentArea = farmer.stats?.totalSeedArea || 0;
@@ -730,7 +751,7 @@ async function deleteSeedRecord(event) {
             });
 
             // 4. 同步减少农户统计 - 使用精确计算
-            await transaction.collection('farmers').doc(farmerId).update({
+            await transaction.collection('farmers').doc(farmerDocId).update({
                 data: {
                     'stats.totalSeedDistributed': roundTo2(Math.max(0, subtract(currentDistributed, quantity))),
                     'stats.totalSeedAmount': nextTotalSeedAmount,
@@ -758,7 +779,7 @@ async function deleteSeedRecord(event) {
             const seedRecord = old; // 已有的原记录
             await db.collection('business_records')
                 .where({
-                    farmerId: farmerId,
+                    farmerId: farmer.farmerId,
                     type: 'seed',
                     'quantity': seedRecord.quantity,
                     'totalAmount': seedRecord.amount
@@ -810,7 +831,7 @@ async function getDistributionStats(event) {
         while (true) {
             const batch = await db.collection('farmers')
                 .where(activeStatus)
-                .field({ _id: true, stats: true })
+                .field({ farmerId: true, stats: true })
                 .skip(skip)
                 .limit(BATCH_SIZE)
                 .get();
@@ -831,8 +852,11 @@ async function getDistributionStats(event) {
             const recordCount = stats.seedDistributionCount || 0;
             const totalQuantity = stats.totalSeedDistributed || 0;
 
-            // 保持旧返回结构：key 仍是 farmerId
-            statsMap[farmer._id] = {
+            const key = String(farmer.farmerId || '').trim();
+            if (!key) return;
+
+            // key 使用业务农户ID（farmerId）
+            statsMap[key] = {
                 recordCount,
                 totalQuantity
             };

@@ -68,7 +68,7 @@ export default function AcquisitionForm() {
 
       if (result.success && result.data.list) {
         const options = result.data.list.map((f: any) => ({
-          value: f._id,
+          value: f.farmerId,
           label: `${f.name} - ${f.phone}`,
           farmer: f,
         }))
@@ -90,13 +90,16 @@ export default function AcquisitionForm() {
     })
   }
 
-  // 计算净重和金额
+  // 计算净重和金额（与小程序端一致：扣除水分）
   const handleWeightChange = () => {
     const grossWeight = form.getFieldValue('grossWeight') || 0
     const tareWeight = form.getFieldValue('tareWeight') || 0
+    const moistureRate = form.getFieldValue('moistureRate') || 0
     const unitPrice = form.getFieldValue('unitPrice') || 0
 
-    const netWeight = Math.max(0, grossWeight - tareWeight)
+    const rawWeight = Math.max(0, grossWeight - tareWeight)
+    const moistureWeight = rawWeight * (moistureRate / 100)
+    const netWeight = Math.max(0, rawWeight - moistureWeight)
     const amount = netWeight * unitPrice
 
     form.setFieldsValue({
@@ -118,23 +121,15 @@ export default function AcquisitionForm() {
 
     setSubmitLoading(true)
     try {
-      const data = {
-        farmerId: selectedFarmer.farmerId || selectedFarmer._id,
-        farmerName: selectedFarmer.name,
-        farmerPhone: selectedFarmer.phone,
-        grossWeight: values.grossWeight,
-        tareWeight: values.tareWeight,
-        netWeight: values.netWeight,
-        unitPrice: values.unitPrice,
-        amount: values.amount,
-        remark: values.remark || '',
-      }
-
       const result = await acquisitionApi.create({
         userId: userInfo.id,
-        userName: userInfo.name,
+        farmerId: selectedFarmer.farmerId,
+        grossWeight: values.grossWeight,
+        tareWeight: values.tareWeight,
+        moistureRate: values.moistureRate || 0,
+        unitPrice: values.unitPrice,
         warehouseId: values.warehouseId,
-        ...data,
+        remark: values.remark || '',
       }) as any
 
       if (result.success) {
@@ -236,6 +231,23 @@ export default function AcquisitionForm() {
             </Form.Item>
 
             <Form.Item
+              name="moistureRate"
+              label="水分率（%）"
+              rules={[{ required: true, message: '请输入水分率' }]}
+              initialValue={0}
+            >
+              <InputNumber
+                min={0}
+                max={100}
+                style={{ width: '100%' }}
+                placeholder="水分率"
+                onChange={handleWeightChange}
+              />
+            </Form.Item>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <Form.Item
               name="unitPrice"
               label="单价（元/kg）"
               rules={[{ required: true, message: '请输入单价' }]}
@@ -247,16 +259,16 @@ export default function AcquisitionForm() {
                 onChange={handleWeightChange}
               />
             </Form.Item>
-          </div>
 
-          <Form.Item name="amount" label="金额（元）">
-            <InputNumber
-              min={0}
-              style={{ width: '100%' }}
-              disabled
-              formatter={(value) => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-            />
-          </Form.Item>
+            <Form.Item name="amount" label="金额（元）">
+              <InputNumber
+                min={0}
+                style={{ width: '100%' }}
+                disabled
+                formatter={(value) => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              />
+            </Form.Item>
+          </div>
 
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={2} placeholder="备注信息（选填）" />

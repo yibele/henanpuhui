@@ -22,7 +22,7 @@ const PAGE_SIZE = 20;
 // 转换农户数据为列表格式
 function formatFarmerForList(farmer: any) {
   return {
-    id: farmer._id || farmer.id,
+    id: farmer.farmerId || farmer.id || '',
     name: farmer.name,
     phone: farmer.phone,
     grade: farmer.grade || 'bronze',

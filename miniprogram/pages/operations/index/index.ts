@@ -236,7 +236,7 @@ Page({
 
         // 格式化农户数据
         const newFarmers = rawFarmers.map((f: any) => ({
-          id: f._id,
+          id: f.farmerId || '',
           name: f.name,
           phone: f.phone,
           acreage: f.acreage || 0,

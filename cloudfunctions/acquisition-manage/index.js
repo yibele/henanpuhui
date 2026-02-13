@@ -75,6 +75,37 @@ function normalizeFarmerLookupValue(farmerId) {
   return value || '';
 }
 
+async function findFarmerByAnyId(farmerId, options = {}) {
+  const value = normalizeFarmerLookupValue(farmerId);
+  if (!value) return null;
+
+  const { onlyActive = false } = options;
+  const activeOrLegacyStatus = _.or([
+    { status: 'active' },
+    { status: _.exists(false) },
+    { status: '' },
+    { status: null }
+  ]);
+
+  let whereByCode = { farmerId: value };
+  if (onlyActive) whereByCode = _.and([whereByCode, activeOrLegacyStatus]);
+
+  const res = await db.collection('farmers')
+    .where(whereByCode)
+    .limit(1)
+    .get();
+  if (res.data && res.data.length > 0) return res.data[0];
+
+  return null;
+}
+
+function buildFarmerIdCandidates(farmer) {
+  if (!farmer) return [];
+  return Array.from(new Set([
+    String(farmer.farmerId || '').trim()
+  ].filter(Boolean)));
+}
+
 /**
  * 分批拉取全部数据（避免 get() 默认/上限返回导致统计不准）
  */
@@ -181,34 +212,14 @@ async function createAcquisition(event, context) {
       };
     }
 
-    const activeOrLegacyStatus = _.or([
-      { status: 'active' },
-      { status: _.exists(false) },
-      { status: '' },
-      { status: null }
-    ]);
-
-    // 优先按业务编号 farmerId 查询，兜底按 _id 查询（兼容历史传参）
-    let farmerRes = await db.collection('farmers')
-      .where(_.and([{ farmerId: farmerLookupValue }, activeOrLegacyStatus]))
-      .limit(1)
-      .get();
-
-    if (farmerRes.data.length === 0) {
-      farmerRes = await db.collection('farmers')
-        .where(_.and([{ _id: farmerLookupValue }, activeOrLegacyStatus]))
-        .limit(1)
-        .get();
-    }
-
-    if (farmerRes.data.length === 0) {
+    // 统一按业务编号 farmerId 查询
+    const farmer = await findFarmerByAnyId(farmerLookupValue, { onlyActive: true });
+    if (!farmer) {
       return {
         success: false,
         errMsg: '农户不存在或已停用'
       };
     }
-
-    const farmer = farmerRes.data[0];
 
     // 检查发苗是否完成
     if (!farmer.seedDistributionComplete) {
@@ -287,6 +298,7 @@ async function createAcquisition(event, context) {
     const acquisitionData = {
       acquisitionId,
       farmerId: farmer.farmerId,
+      farmerDocId: farmer._id,
       farmerName: farmer.name,
       farmerPhone: farmer.phone,
       farmerAcreage: farmer.acreage,
@@ -324,6 +336,7 @@ async function createAcquisition(event, context) {
 
       // 农户信息
       farmerId: farmer.farmerId,
+      farmerDocId: farmer._id,
       farmerName: farmer.name,
       farmerPhone: farmer.phone,
       farmerBankAccount: farmer.bankAccount || '',
@@ -421,7 +434,7 @@ async function createAcquisition(event, context) {
 
       // 3. 更新农户统计数据
       await transaction.collection('farmers')
-        .where({ farmerId: farmer.farmerId })
+        .doc(farmer._id)
         .update({
           data: farmerUpdateData
         });
@@ -468,6 +481,7 @@ async function createAcquisition(event, context) {
       await db.collection('business_records').add({
         data: {
           farmerId: farmer.farmerId,
+          farmerDocId: farmer._id,
           farmerName: farmer.name,
           type: 'acquisition',
           name: '收购入库',
@@ -606,9 +620,14 @@ async function listAcquisitions(event, context) {
       whereCondition.warehouseId = warehouseId;
     }
 
-    // 如果指定了农户ID
+    // 如果指定了农户ID（统一按业务编号 farmerId）
     if (farmerId) {
-      whereCondition.farmerId = farmerId;
+      const targetFarmer = await findFarmerByAnyId(farmerId);
+      if (targetFarmer) {
+        whereCondition.farmerId = targetFarmer.farmerId;
+      } else {
+        whereCondition.farmerId = farmerId;
+      }
     }
 
     // 统一过滤：默认排除 deleted，除非显式传入 status
@@ -830,6 +849,7 @@ async function updateAcquisition(event, context) {
         if (acquisition.farmerId) {
           const farmerRes = await t.collection('farmers')
             .where({ farmerId: acquisition.farmerId })
+            .limit(1)
             .get();
 
           if (farmerRes.data.length > 0) {
@@ -943,10 +963,13 @@ async function getFarmerAcquisitionSummary(event) {
   }
 
   try {
+    const targetFarmer = await findFarmerByAnyId(farmerId);
+    const farmerCode = targetFarmer?.farmerId || farmerId;
+
     // 获取该农户的所有收购记录
     const acquisitions = await queryAll(
       'acquisitions',
-      { farmerId: farmerId, status: _.neq('deleted') },
+      { farmerId: farmerCode, status: _.neq('deleted') },
       { orderByField: 'createTime', orderByDirection: 'desc' }
     );
 
@@ -1140,16 +1163,19 @@ async function deleteAcquisition(event) {
 
       // 3. 回滚农户统计
       if (acquisition.farmerId && netWeight > 0) {
-        await t.collection('farmers')
-          .where({ farmerId: acquisition.farmerId })
-          .update({
-            data: {
-              'stats.totalAcquisitionCount': _.inc(-1),
-              'stats.totalAcquisitionWeight': _.inc(-netWeight),
-              'stats.totalAcquisitionAmount': _.inc(-totalAmount),
-              updateTime: db.serverDate()
-            }
-          });
+        const farmer = await findFarmerByAnyId(acquisition.farmerId);
+        if (farmer) {
+          await t.collection('farmers')
+            .doc(farmer._id)
+            .update({
+              data: {
+                'stats.totalAcquisitionCount': _.inc(-1),
+                'stats.totalAcquisitionWeight': _.inc(-netWeight),
+                'stats.totalAcquisitionAmount': _.inc(-totalAmount),
+                updateTime: db.serverDate()
+              }
+            });
+        }
       }
 
       // 4. 回滚仓库统计
@@ -1337,13 +1363,10 @@ async function financeUpdateAcquisition(event) {
 
         // 2.2 更新农户统计（如果重量或金额有差异）
         if ((diffWeight !== 0 || diffAmount !== 0) && acquisition.farmerId) {
-          const farmerRes = await t.collection('farmers')
-            .where({ farmerId: acquisition.farmerId })
-            .get();
-
-          if (farmerRes.data.length > 0) {
+          const farmer = await findFarmerByAnyId(acquisition.farmerId);
+          if (farmer) {
             await t.collection('farmers')
-              .doc(farmerRes.data[0]._id)
+              .doc(farmer._id)
               .update({
                 data: {
                   'stats.totalAcquisitionWeight': _.inc(diffWeight),
@@ -1455,12 +1478,24 @@ exports.main = async (event, context) => {
  * 支持按日期筛选（today / all）
  */
 async function getAcquisitionSummaryStats(event) {
-  const { dateRange = 'all', groupByWarehouse = false } = event;
+  const {
+    dateRange = 'all',
+    groupByWarehouse = false,
+    startDate = '',
+    endDate = ''
+  } = event;
 
   try {
     let matchCondition = { status: _.neq('deleted') };
 
-    if (dateRange === 'today') {
+    // 优先按明确日期范围筛选（YYYY-MM-DD）
+    if (startDate && endDate) {
+      matchCondition.acquisitionDate = _.gte(startDate).and(_.lte(endDate));
+    } else if (startDate) {
+      matchCondition.acquisitionDate = _.gte(startDate);
+    } else if (endDate) {
+      matchCondition.acquisitionDate = _.lte(endDate);
+    } else if (dateRange === 'today') {
       const today = formatDate(new Date());
       matchCondition.acquisitionDate = today;
     }
@@ -1507,6 +1542,7 @@ async function getAcquisitionSummaryStats(event) {
       totalAmount,
       avgPrice,
       recordCount: agg.recordCount || 0,
+      totalCount: agg.recordCount || 0,
       farmerCount
     };
 

@@ -23,7 +23,7 @@ import {
 import { UserRole, UserRoleNames } from '../../models/types';
 import type { SeedDistributionStats, FarmerSummaryStats, SalesmanFarmerStats } from '../../models/types';
 import { getCache, setCache } from '../../utils/cache';
-import { formatAmount, formatWeight, formatSeedQuantity, formatAcreage, formatAmountToWan, formatSeedCount } from '../../utils/format';
+import { formatAmount, formatWeight, formatSeedQuantity, formatAcreage, formatAmountToWan, formatSeedCount, formatNumber } from '../../utils/format';
 
 // 缓存键
 const CACHE_KEY_DASHBOARD = 'cache_dashboard_data';
@@ -309,24 +309,24 @@ Page({
       // 计算我的业绩统计
       const myStats = {
         farmerCount: data.farmerCount || 0,
-        acreage: parseFloat((data.totalAcreage || 0).toFixed(1)),  // 修复浮点数精度问题
+        acreage: Number(formatNumber(data.totalAcreage || 0, 1)),  // 统一走格式化工具
         deposit: data.totalDeposit || 0,
         depositFormat: formatAmount(data.totalDeposit || 0),
         seedCount: data.seedRecordCount || 0,  // 发苗次数
         seedQuantity: data.seedTotalQuantity || 0,  // 发苗数量（万株）
-        seedQuantityFormat: (data.seedTotalQuantity || 0).toFixed(1).replace(/\.0$/, ''),  // 发苗数量（万株）格式化
+        seedQuantityFormat: formatNumber(data.seedTotalQuantity || 0, 1, true),  // 发苗数量（万株）格式化
         seedAmount: data.totalDistributedAmount || 0,
         seedAmountFormat: formatAmount(data.totalDistributedAmount || 0),
         // 发苗状态统计
         seedCompleted: data.seedCompletedCount || 0,     // 发苗完成农户数
         seedInProgress: data.seedInProgressCount || 0,   // 发苗中农户数
-        seedDistributedArea: parseFloat((data.seedDistributedArea || 0).toFixed(1))  // 已发面积(亩)
+        seedDistributedArea: Number(formatNumber(data.seedDistributedArea || 0, 1))  // 已发面积(亩)
       };
 
       // 最近签约的农户（显示前3条）
       const farmers = data.farmers || [];
       const recentFarmers = farmers.slice(0, 3).map((f: any) => ({
-        id: f._id,
+        id: f.farmerId || '',
         name: f.name,
         phone: f.phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'),
         acreage: f.acreage || 0,
@@ -480,12 +480,8 @@ Page({
           // 仓库统计（预格式化）
           warehouses: (data.warehouses || []).map((w: any) => ({
             ...w,
-            weightFormat: w.totalWeight >= 1000
-              ? (w.totalWeight / 1000).toFixed(1) + '吨'
-              : (w.totalWeight || 0) + 'kg',
-            amountFormat: w.totalAmount >= 10000
-              ? (w.totalAmount / 10000).toFixed(1) + '万'
-              : (w.totalAmount || 0)
+            weightFormat: formatWeight(w.totalWeight || 0, { precision: 1 }),
+            amountFormat: formatAmount(w.totalAmount || 0, { precision: 1 })
           }))
         },
         // 格式化后的显示数据
@@ -816,32 +812,6 @@ Page({
     wx.stopPullDownRefresh();
   },
 
-  /**
-   * 扫码功能
-   */
-  onScanTap() {
-    const currentRole = this.data.currentUser?.role;
-
-    // 仓库管理员：跳转到收苗登记
-    if (currentRole === UserRole.WAREHOUSE_MANAGER) {
-      wx.navigateTo({
-        url: '/pages/operations/buy-add/index'
-      });
-      return;
-    }
-
-    // 其他角色：调用扫码功能
-    wx.scanCode({
-      success: (res) => {
-        console.log('扫码结果:', res);
-        wx.showToast({ title: '扫码成功', icon: 'success' });
-      },
-      fail: (err) => {
-        console.error('扫码失败:', err);
-      }
-    });
-  },
-
   goAcquisitionCreate() {
     const target = '/pages/operations/buy-add/index';
     if (!app.canAccessPage(target)) {
@@ -901,11 +871,11 @@ Page({
         warehouseStats: {
           todayQuantity: data.today?.weight || 0,
           todayAmount: data.today?.amount || 0,
-          todayAmountWan: formatAmountToWan(data.today?.amount || 0),
+          todayAmountWan: formatAmountToWan(data.today?.amount || 0, 2),
           todayFarmerCount: data.today?.farmerCount || 0,
           totalQuantity: data.total?.weight || 0,
           totalAmount: data.total?.amount || 0,
-          totalAmountWan: formatAmountToWan(data.total?.amount || 0),
+          totalAmountWan: formatAmountToWan(data.total?.amount || 0, 2),
           totalFarmerCount: data.total?.farmerCount || 0,
           currentStock: data.inventory?.stockWeight ?? data.inventory?.count ?? 0,
           outStock: data.inventory?.totalOutWeight ?? 0
@@ -934,11 +904,11 @@ Page({
         warehouseStats: {
           todayQuantity: 0,
           todayAmount: 0,
-          todayAmountWan: '0.0000',
+          todayAmountWan: '0.00',
           todayFarmerCount: 0,
           totalQuantity: 0,
           totalAmount: 0,
-          totalAmountWan: '0.0000',
+          totalAmountWan: '0.00',
           totalFarmerCount: 0,
           currentStock: 0,
           outStock: 0

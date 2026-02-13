@@ -138,7 +138,7 @@ Page({
     this.setData({ filteredFarmers: this.data.farmers });
 
     // 加载该农户的已发放面积
-    await this.loadFarmerDistributedArea(farmer.id);
+    await this.loadFarmerDistributedArea(farmer.farmerId || farmer.id);
 
     // 检查是否可提交
     this.checkCanSubmit();
@@ -176,7 +176,7 @@ Page({
         await this.loadFarmers();
 
         // 查找对应农户
-        const farmer = this.data.farmers.find((f: any) => f.id === record.farmerId);
+        const farmer = this.data.farmers.find((f: any) => f.id === record.farmerId || f.farmerId === record.farmerId);
 
         // 填充表单数据
         const formData = {
@@ -205,7 +205,7 @@ Page({
           this.setData({
             'areaStats.totalArea': farmer.acreage || 0
           });
-          await this.loadFarmerDistributedArea(farmer.id);
+          await this.loadFarmerDistributedArea(farmer.farmerId || farmer.id);
         }
 
         this.checkCanSubmit();
@@ -260,7 +260,7 @@ Page({
 
         // 格式化农户数据
         const farmers = rawFarmers.map((f: any) => ({
-          id: f._id,
+          id: f.farmerId || '',
           farmerId: f.farmerId,
           name: f.name,
           phone: f.phone,
@@ -413,7 +413,7 @@ Page({
       if (result.success && result.data) {
         const rawFarmers = result.data.list || [];
         const farmers = rawFarmers.map((f: any) => ({
-          id: f._id,
+          id: f.farmerId || '',
           farmerId: f.farmerId,
           name: f.name,
           phone: f.phone,
@@ -732,7 +732,7 @@ Page({
             action: 'distribute',
             userId,
             userName,
-            farmerId: selectedFarmer.id,
+            farmerId: selectedFarmer.farmerId || selectedFarmer.id,
             data: submitData
           }
         });

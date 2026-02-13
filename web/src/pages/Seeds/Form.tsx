@@ -10,7 +10,7 @@ interface FarmerOption {
   value: string
   label: string
   farmer: {
-    _id: string
+    farmerId: string
     name: string
     phone: string
     acreage: number
@@ -50,7 +50,7 @@ export default function SeedForm() {
       if (result.success && result.data) {
         const f = result.data
         const farmer = {
-          _id: f._id,
+          farmerId: f.farmerId || '',
           name: f.name,
           phone: f.phone,
           acreage: f.acreage || 0,
@@ -86,7 +86,7 @@ export default function SeedForm() {
           value: f.name,
           label: `${f.name} - ${f.phone}`,
           farmer: {
-            _id: f._id,
+            farmerId: f.farmerId || '',
             name: f.name,
             phone: f.phone,
             acreage: f.acreage || 0,
@@ -142,7 +142,7 @@ export default function SeedForm() {
       const result = await seedApi.distribute(
         userInfo.id,
         userInfo.name,
-        selectedFarmer._id,
+        selectedFarmer.farmerId,
         data
       ) as any
 

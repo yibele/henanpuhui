@@ -99,7 +99,7 @@ export default function FarmerSeedDetail() {
     if (!farmer || !userInfo?.id) return
     setMarkingComplete(true)
     try {
-      const result = await farmerApi.markSeedComplete(userInfo.id, farmer._id, complete) as any
+      const result = await farmerApi.markSeedComplete(userInfo.id, farmer.farmerId, complete) as any
       if (result.success) {
         message.success(complete ? '已标记发苗完成' : '已取消发苗完成标记')
         await loadFarmer()
@@ -234,7 +234,7 @@ export default function FarmerSeedDetail() {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate(`/seeds/new?farmerId=${farmer._id}&farmerName=${encodeURIComponent(farmer.name)}`)}
+            onClick={() => navigate(`/seeds/new?farmerId=${farmer.farmerId}&farmerName=${encodeURIComponent(farmer.name)}`)}
           >
             新增发苗
           </Button>

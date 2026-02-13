@@ -207,7 +207,7 @@ export default function FarmerList() {
               icon={<ExperimentOutlined />}
               onClick={(e) => {
                 e.stopPropagation()
-                navigate(`/seeds/new?farmerId=${record._id}&farmerName=${encodeURIComponent(record.name)}`)
+                navigate(`/seeds/new?farmerId=${record.farmerId}&farmerName=${encodeURIComponent(record.name)}`)
               }}
             >
               发苗
@@ -278,7 +278,7 @@ export default function FarmerList() {
           <Button type="primary" onClick={handleSearch}>搜索</Button>
         </Space>
         <Table
-          rowKey="_id"
+          rowKey="farmerId"
           columns={columns}
           dataSource={data}
           loading={loading}
@@ -294,7 +294,7 @@ export default function FarmerList() {
             },
           }}
           onRow={(record) => ({
-            onClick: () => navigate(`/farmers/${record._id}`),
+            onClick: () => navigate(`/farmers/${record.farmerId}`),
             style: { cursor: 'pointer' },
           })}
         />

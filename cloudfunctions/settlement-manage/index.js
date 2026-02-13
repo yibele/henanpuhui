@@ -42,6 +42,37 @@ function resolveSeedDebt(farmer) {
   return Math.max(0, roundToFen(subtract(totalSeedAmount, deposit)));
 }
 
+function normalizeFarmerLookupValue(farmerId) {
+  const value = String(farmerId || '').trim();
+  return value || '';
+}
+
+async function findFarmerByAnyId(farmerId) {
+  const value = normalizeFarmerLookupValue(farmerId);
+  if (!value) return null;
+
+  const res = await db.collection('farmers')
+    .where({ farmerId: value })
+    .limit(1)
+    .get();
+  if (res.data && res.data.length > 0) return res.data[0];
+
+  return null;
+}
+
+async function findFarmerInTransaction(transaction, farmerId) {
+  const value = normalizeFarmerLookupValue(farmerId);
+  if (!value) return null;
+
+  const res = await transaction.collection('farmers')
+    .where({ farmerId: value })
+    .limit(1)
+    .get();
+  if (res.data && res.data.length > 0) return res.data[0];
+
+  return null;
+}
+
 async function deleteCollectionBatch(collectionName) {
   let deleted = 0;
   while (true) {
@@ -129,12 +160,7 @@ async function getSettlement(event) {
     // 获取农户完整信息（签约、欠款汇总）
     let farmer = null;
     if (settlement.farmerId) {
-      const farmerRes = await db.collection('farmers')
-        .where({ farmerId: settlement.farmerId })
-        .get();
-      if (farmerRes.data.length > 0) {
-        farmer = farmerRes.data[0];
-      }
+      farmer = await findFarmerByAnyId(settlement.farmerId);
     }
 
     return {
@@ -226,13 +252,14 @@ async function listSettlements(event, context) {
       whereCondition.paymentStatus = paymentStatus;
     }
 
-    // 如果指定了日期范围
+    // 如果指定了日期范围：结算统一按付款时间筛选
     if (startDate && endDate) {
-      whereCondition.acquisitionDate = _.gte(startDate).and(_.lte(endDate));
+      whereCondition.paymentTime = _.gte(new Date(`${startDate}T00:00:00+08:00`))
+        .and(_.lte(new Date(`${endDate}T23:59:59+08:00`)));
     } else if (startDate) {
-      whereCondition.acquisitionDate = _.gte(startDate);
+      whereCondition.paymentTime = _.gte(new Date(`${startDate}T00:00:00+08:00`));
     } else if (endDate) {
-      whereCondition.acquisitionDate = _.lte(endDate);
+      whereCondition.paymentTime = _.lte(new Date(`${endDate}T23:59:59+08:00`));
     }
 
     // 关键词搜索（农户姓名或电话）
@@ -258,9 +285,16 @@ async function listSettlements(event, context) {
       .count();
 
     // 查询数据
-    const result = await db.collection('settlements')
-      .where(finalWhere)
-      .orderBy('createTime', 'desc')
+    let query = db.collection('settlements')
+      .where(finalWhere);
+
+    if (status === 'completed' || paymentStatus === 'paid') {
+      query = query.orderBy('paymentTime', 'desc');
+    } else {
+      query = query.orderBy('createTime', 'desc');
+    }
+
+    const result = await query
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .get();
@@ -331,8 +365,8 @@ async function auditSettlement(event, context) {
 
     const currentUser = userRes.data[0];
 
-    // 权限检查：必须是会计或管理员
-    if (currentUser.role !== 'finance_admin' && currentUser.role !== 'admin') {
+    // 权限检查：必须是会计
+    if (currentUser.role !== 'finance_admin') {
       return {
         success: false,
         errMsg: '无权限审核结算单'
@@ -373,18 +407,15 @@ async function auditSettlement(event, context) {
       let deductAgri = 0;
       let totalDeduction = 0;
       let actualPayment = 0;
+      let settlementFarmerCode = settlement.farmerId || '';
 
       await db.runTransaction(async (t) => {
         // 1. 事务内获取农户最新的欠款数据
-        const farmerRes = await t.collection('farmers')
-          .where({ farmerId: settlement.farmerId })
-          .get();
-
-        if (farmerRes.data.length === 0) {
+        const farmer = await findFarmerInTransaction(t, settlement.farmerId);
+        if (!farmer) {
           throw new Error('关联农户不存在');
         }
-
-        const farmer = farmerRes.data[0];
+        settlementFarmerCode = farmer.farmerId || settlementFarmerCode;
 
         // 2. 读取当前欠款余额
         // 种苗欠款按甲方口径：累计发苗金额 - 定金（定金仅抵扣一次）
@@ -519,7 +550,7 @@ async function auditSettlement(event, context) {
       // 8. 写入业务往来记录 - 结算审核
       await db.collection('business_records').add({
         data: {
-          farmerId: settlement.farmerId,
+          farmerId: settlementFarmerCode,
           farmerName: settlement.farmerName,
           type: 'settlement_audit',
           name: '结算审核',
@@ -643,7 +674,7 @@ async function completePayment(event, context) {
   const {
     userId,
     settlementId,
-    paymentMethod,   // 付款方式：cash/wechat/bank
+    paymentMethod,   // 付款方式：cash/wechat/alipay/public_account/bank_card
     paymentRemark,
     voucherNo        // 财务凭条编号（青号），出纳填写
   } = event;
@@ -682,11 +713,11 @@ async function completePayment(event, context) {
 
     const currentUser = userRes.data[0];
 
-    // 权限检查：必须是出纳或管理员
-    if (currentUser.role !== 'cashier' && currentUser.role !== 'admin') {
+    // 权限检查：必须是出纳
+    if (currentUser.role !== 'cashier') {
       return {
         success: false,
-        errMsg: '无权限确认付款，请使用出纳账号操作'
+        errMsg: '无权限确认付款，请使用出纳账号'
       };
     }
 
@@ -717,19 +748,19 @@ async function completePayment(event, context) {
     // 付款方式名称映射
     const methodNames = {
       'cash': '现金',
-      'wechat': '微信转账',
-      'bank': '银行转账',
+      'wechat': '微信',
+      'alipay': '支付宝',
+      'public_account': '公户',
+      'bank_card': '银行卡',
+      'bank': '公户', // 兼容历史数据
       'other': '其他'
     };
 
     // 获取农户信息（用于事务更新）
-    const farmerRes = await db.collection('farmers')
-      .where({ farmerId: settlement.farmerId })
-      .get();
-    if (farmerRes.data.length === 0) {
+    const farmer = await findFarmerByAnyId(settlement.farmerId);
+    if (!farmer) {
       return { success: false, errMsg: '农户不存在' };
     }
-    const farmer = farmerRes.data[0];
 
     // 更新结算状态 & 农户统计（事务）
     await db.runTransaction(async (t) => {
@@ -781,7 +812,7 @@ async function completePayment(event, context) {
     // 写入业务往来记录 - 付款完成
     await db.collection('business_records').add({
       data: {
-        farmerId: settlement.farmerId,
+        farmerId: farmer.farmerId || settlement.farmerId,
         farmerName: settlement.farmerName,
         type: 'payment',
         name: '结算付款',
@@ -851,8 +882,8 @@ async function recalculateSettlement(event) {
 
     const currentUser = Array.isArray(userRes.data) ? userRes.data[0] : userRes.data;
 
-    // 权限检查：只有财务和管理员可以操作
-    if (!['finance_admin', 'admin'].includes(currentUser.role)) {
+    // 权限检查：只有会计可以操作
+    if (!['finance_admin'].includes(currentUser.role)) {
       return {
         success: false,
         message: '无权限重新计算结算'
@@ -882,18 +913,13 @@ async function recalculateSettlement(event) {
     }
 
     // 获取农户信息
-    const farmerRes = await db.collection('farmers')
-      .where({ farmerId: settlement.farmerId })
-      .get();
-
-    if (farmerRes.data.length === 0) {
+    const farmer = await findFarmerByAnyId(settlement.farmerId);
+    if (!farmer) {
       return {
         success: false,
         message: '农户不存在'
       };
     }
-
-    const farmer = farmerRes.data[0];
 
     // 计算各项扣款
     const grossAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;  // 收购总额
@@ -1190,18 +1216,13 @@ async function previewDeduction(event) {
     const settlement = settlementRes.data[0];
 
     // 获取农户当前欠款
-    const farmerRes = await db.collection('farmers')
-      .where({ farmerId: settlement.farmerId })
-      .get();
-
-    if (farmerRes.data.length === 0) {
+    const farmer = await findFarmerByAnyId(settlement.farmerId);
+    if (!farmer) {
       return {
         success: false,
         errMsg: '农户不存在'
       };
     }
-
-    const farmer = farmerRes.data[0];
     const acquisitionAmount = settlement.acquisitionAmount || settlement.grossAmount || 0;
 
     // 读取当前欠款余额
@@ -1581,8 +1602,11 @@ async function getStatistics(event) {
 
     const methodNames = {
       'cash': '现金',
-      'wechat': '微信转账',
-      'bank': '银行转账'
+      'wechat': '微信',
+      'alipay': '支付宝',
+      'public_account': '公户',
+      'bank_card': '银行卡',
+      'bank': '公户' // 兼容历史数据
     };
 
     const paymentMethodStats = methodRes.list.map(item => ({

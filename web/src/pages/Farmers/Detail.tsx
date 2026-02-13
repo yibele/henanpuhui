@@ -147,10 +147,11 @@ export default function FarmerDetail() {
   }
 
   const handleDelete = async () => {
-    if (!id || !userInfo) return
+    const targetFarmerId = farmer?.farmerId || id
+    if (!targetFarmerId || !userInfo) return
     setDeleting(true)
     try {
-      const result = await farmerApi.delete(userInfo.id, id) as any
+      const result = await farmerApi.delete(userInfo.id, targetFarmerId) as any
       if (result.success) {
         message.success('删除成功')
         navigate('/farmers')
@@ -166,13 +167,14 @@ export default function FarmerDetail() {
   }
 
   const handleMarkSeedComplete = async (complete: boolean) => {
-    if (!id || !userInfo) return
+    const targetFarmerId = farmer?.farmerId || id
+    if (!targetFarmerId || !userInfo) return
     setMarkingComplete(true)
     try {
-      const result = await farmerApi.markSeedComplete(userInfo.id, id, complete) as any
+      const result = await farmerApi.markSeedComplete(userInfo.id, targetFarmerId, complete) as any
       if (result.success) {
         message.success(complete ? '已标记发苗完成' : '已取消发苗完成标记')
-        loadDetail(id)
+        loadDetail(targetFarmerId)
       } else {
         message.error(result.message || '操作失败')
       }
@@ -196,6 +198,8 @@ export default function FarmerDetail() {
     return <div>农户不存在</div>
   }
 
+  const currentFarmerId = farmer.farmerId || id || ''
+
   const recordColumns = [
     {
       title: '类型',
@@ -217,7 +221,7 @@ export default function FarmerDetail() {
       width: 120,
       align: 'right' as const,
       render: (_: any, record: BusinessRecord) => {
-        const amount = record.totalAmount || record.amount
+        const amount = record.totalAmount
         return amount ? `¥${amount.toFixed(2)}` : '-'
       },
     },
@@ -241,7 +245,7 @@ export default function FarmerDetail() {
           <Button
             type="primary"
             icon={<ExperimentOutlined />}
-            onClick={() => navigate(`/seeds/new?farmerId=${id}&farmerName=${encodeURIComponent(farmer.name)}`)}
+            onClick={() => navigate(`/seeds/new?farmerId=${currentFarmerId}&farmerName=${encodeURIComponent(farmer.name)}`)}
           >
             发苗
           </Button>
@@ -300,7 +304,7 @@ export default function FarmerDetail() {
           )}
           <Button
             icon={<EditOutlined />}
-            onClick={() => navigate(`/farmers/${id}/edit`)}
+            onClick={() => navigate(`/farmers/${currentFarmerId}/edit`)}
           >
             编辑农户
           </Button>
@@ -493,41 +497,41 @@ export default function FarmerDetail() {
       {/* 业务操作弹窗 */}
       <AdvancePaymentModal
         visible={advanceModalVisible}
-        farmerId={id || ''}
+        farmerId={currentFarmerId}
         farmerName={farmer.name}
         userId={userInfo?.id || ''}
         userName={userInfo?.name || ''}
         onClose={() => setAdvanceModalVisible(false)}
-        onSuccess={() => loadDetail(id!)}
+        onSuccess={() => loadDetail(currentFarmerId)}
       />
       <AgriculturalSupplyModal
         visible={agriModalVisible}
-        farmerId={id || ''}
+        farmerId={currentFarmerId}
         farmerName={farmer.name}
         userId={userInfo?.id || ''}
         userName={userInfo?.name || ''}
         onClose={() => setAgriModalVisible(false)}
-        onSuccess={() => loadDetail(id!)}
+        onSuccess={() => loadDetail(currentFarmerId)}
       />
       <AddendumModal
         visible={addendumModalVisible}
-        farmerId={id || ''}
+        farmerId={currentFarmerId}
         farmerName={farmer.name}
         userId={userInfo?.id || ''}
         userName={userInfo?.name || ''}
         onClose={() => setAddendumModalVisible(false)}
-        onSuccess={() => loadDetail(id!)}
+        onSuccess={() => loadDetail(currentFarmerId)}
       />
       <DepositHandleModal
         visible={depositModalVisible}
         handleType={depositHandleType}
-        farmerId={id || ''}
+        farmerId={currentFarmerId}
         farmerName={farmer.name}
         depositAmount={farmer.deposit || 0}
         userId={userInfo?.id || ''}
         userName={userInfo?.name || ''}
         onClose={() => setDepositModalVisible(false)}
-        onSuccess={() => loadDetail(id!)}
+        onSuccess={() => loadDetail(currentFarmerId)}
       />
     </div>
   )

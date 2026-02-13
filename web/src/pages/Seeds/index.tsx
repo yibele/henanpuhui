@@ -251,7 +251,7 @@ export default function SeedManagement() {
         </Space>
 
         <Table
-          rowKey="_id"
+          rowKey="farmerId"
           columns={columns}
           dataSource={data}
           loading={loading}
@@ -267,7 +267,7 @@ export default function SeedManagement() {
             },
           }}
           onRow={(record) => ({
-            onClick: () => navigate(`/seeds/farmer/${record._id}`),
+            onClick: () => navigate(`/seeds/farmer/${record.farmerId}`),
             style: { cursor: 'pointer' },
           })}
         />

@@ -36,6 +36,8 @@ Page({
       totalArea: 0,          // 总发放面积
       recordCount: 0         // 发放次数
     },
+    // 欠款结清提示（首笔结算完成后且欠款为0时显示）
+    debtClearedAfterSettlement: false,
 
     // ========== 发放化肥 ==========
     fertilizerPopupVisible: false,
@@ -176,7 +178,8 @@ Page({
 
         // 构造前端需要的数据结构
         const farmer = {
-          id: farmerData._id || farmerData.farmerId,
+          id: farmerData.farmerId || id,
+          farmerDocId: farmerData._id || '',
           customerCode: farmerData.farmerId,
           name: farmerData.name,
           phone: farmerData.phone,
@@ -207,22 +210,32 @@ Page({
           // 定金处理状态
           depositStatus: farmerData.depositStatus || (farmerData.depositReturned ? 'returned' : ''),
           depositHandleAmount: farmerData.depositHandleAmount || farmerData.depositReturnedAmount || 0,
-          depositForfeitReason: farmerData.depositForfeitReason || ''
+          depositForfeitReason: farmerData.depositForfeitReason || '',
+          totalPaidAmount: farmerData.stats?.totalPaidAmount || 0
         };
 
-        this.setData({ farmer });
+        const seedDebt = Number(farmer.seedDebt || 0);
+        const agriculturalDebt = Number(farmer.agriculturalDebt || 0);
+        const advancePayment = Number(farmer.advancePayment || 0);
+        const totalPaidAmount = Number(farmer.totalPaidAmount || 0);
+        const debtClearedAfterSettlement = totalPaidAmount > 0
+          && seedDebt <= 0
+          && agriculturalDebt <= 0
+          && advancePayment <= 0;
+
+        this.setData({ farmer, debtClearedAfterSettlement });
 
         // 从数据库加载业务往来记录
-        await this.loadBusinessRecords(farmerData._id || id, farmer);
+        await this.loadBusinessRecords(farmerData.farmerId || id, farmer);
 
         // 加载发苗统计
-        await this.loadSeedStats(farmerData._id || id);
+        await this.loadSeedStats(farmerData.farmerId || id);
       } else {
         // 云函数失败，尝试从mock数据获取
         const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
         if (mockFarmer) {
           const businessRecords = this.generateInitialRecords(mockFarmer);
-          this.setData({ farmer: mockFarmer, businessRecords });
+          this.setData({ farmer: mockFarmer, businessRecords, debtClearedAfterSettlement: false });
         } else {
           wx.showToast({ title: '农户信息不存在', icon: 'none' });
           setTimeout(() => wx.navigateBack(), 1500);
@@ -235,7 +248,7 @@ Page({
       const mockFarmer = MOCK_FARMERS.find(f => f.id === id);
       if (mockFarmer) {
         const businessRecords = this.generateInitialRecords(mockFarmer);
-        this.setData({ farmer: mockFarmer, businessRecords });
+        this.setData({ farmer: mockFarmer, businessRecords, debtClearedAfterSettlement: false });
       } else {
         wx.showToast({ title: '加载失败', icon: 'none' });
       }
