@@ -975,10 +975,10 @@ async function getFarmerAcquisitionSummary(event) {
       }
 
       warehouseMap[wId].count += 1;
-      warehouseMap[wId].weight = add(warehouseMap[wId].weight, acq.netWeight || acq.weight || 0);
+      warehouseMap[wId].weight = add(warehouseMap[wId].weight, acq.netWeight || 0);
       warehouseMap[wId].amount = add(warehouseMap[wId].amount, acq.totalAmount || 0);
 
-      totalWeight = add(totalWeight, acq.netWeight || acq.weight || 0);
+      totalWeight = add(totalWeight, acq.netWeight || 0);
       totalAmount = add(totalAmount, acq.totalAmount || 0);
     });
 
@@ -993,7 +993,7 @@ async function getFarmerAcquisitionSummary(event) {
     const recentRecords = acquisitions.slice(0, 5).map(acq => ({
       acquisitionId: acq.acquisitionId,
       warehouseName: acq.warehouseName,
-      netWeight: acq.netWeight || acq.weight || 0,
+      netWeight: acq.netWeight || 0,
       unitPrice: acq.unitPrice,
       totalAmount: acq.totalAmount,
       acquisitionDate: acq.acquisitionDate,
@@ -1443,10 +1443,11 @@ exports.main = async (event, context) => {
 /**
  * 获取收购汇总统计（聚合查询，不受分页限制）
  * 返回：总重量、总金额、均价、农户数、记录数
+ * 可选返回：按仓库分组统计（groupByWarehouse=true）
  * 支持按日期筛选（today / all）
  */
 async function getAcquisitionSummaryStats(event) {
-  const { dateRange = 'all' } = event;
+  const { dateRange = 'all', groupByWarehouse = false } = event;
 
   try {
     let matchCondition = { status: _.neq('deleted') };
@@ -1493,15 +1494,41 @@ async function getAcquisitionSummaryStats(event) {
     const totalAmount = agg.totalAmount || 0;
     const avgPrice = totalWeight > 0 ? Number((totalAmount / totalWeight).toFixed(2)) : 0;
 
+    const result = {
+      totalWeight,
+      totalAmount,
+      avgPrice,
+      recordCount: agg.recordCount || 0,
+      farmerCount
+    };
+
+    // 按仓库分组聚合
+    if (groupByWarehouse) {
+      const warehouseAggRes = await db.collection('acquisitions')
+        .aggregate()
+        .match(matchCondition)
+        .group({
+          _id: '$warehouseId',
+          warehouseName: $.first('$warehouseName'),
+          weight: $.sum('$netWeight'),
+          amount: $.sum('$totalAmount'),
+          recordCount: $.sum(1)
+        })
+        .sort({ weight: -1 })
+        .end();
+
+      result.warehouseStats = warehouseAggRes.list.map(item => ({
+        warehouseId: item._id,
+        warehouseName: item.warehouseName || '未知仓库',
+        weight: item.weight || 0,
+        amount: item.amount || 0,
+        recordCount: item.recordCount || 0
+      }));
+    }
+
     return {
       success: true,
-      data: {
-        totalWeight,
-        totalAmount,
-        avgPrice,
-        recordCount: agg.recordCount || 0,
-        farmerCount
-      }
+      data: result
     };
   } catch (error) {
     console.error('获取收购汇总统计失败:', error);

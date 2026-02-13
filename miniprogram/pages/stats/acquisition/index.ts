@@ -1,10 +1,10 @@
 /**
  * 收苗统计页面
- * @description 管理层查看收苗数据汇总，使用云函数真实数据
+ * @description 管理层查看收苗数据汇总，使用后端聚合统计
  */
 
 import { getCache, setCache } from '../../../utils/cache';
-import { formatWeight, formatAmount } from '../../../utils/format';
+import { formatWeight, formatAmount, formatNumber } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
@@ -38,13 +38,10 @@ Page({
     },
     // 仓库统计列表
     warehouseStats: [] as any[],
-    // 趋势数据
-    trendData: [] as any[],
-    // 全部收购记录
-    allRecords: [] as any[],
-    // 后端聚合汇总（不受分页截断）
-    serverSummary: null as any,
-    // 仓库信息
+    // 后端聚合数据（今日 + 累计）
+    _todayData: null as any,
+    _allData: null as any,
+    // 仓库信息（用于库存容量显示）
     warehouseList: [] as any[],
     // 页面加载中
     pageLoading: true,
@@ -58,7 +55,6 @@ Page({
   },
 
   onShow() {
-    // 更新 tabbar 选中状态
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().initTabBar();
     }
@@ -75,103 +71,98 @@ Page({
     this.setData({ updateTime: time });
   },
 
+  /**
+   * 获取用户ID
+   */
+  getUserId(): string {
+    const globalData = (app.globalData as any) || {};
+    const userInfo = globalData.currentUser || {};
+    return userInfo.id || userInfo._id || '';
+  },
+
   // 切换Tab
   switchTab(e: any) {
     const tab = parseInt(e.currentTarget.dataset.tab);
     this.setData({ currentTab: tab });
-    this.calculateStats();
+    this.renderStats();
   },
 
   /**
-   * 加载数据
+   * 加载数据（后端聚合，不再全量拉取收购记录）
    * @param forceRefresh 是否强制刷新
    */
   async loadData(forceRefresh: boolean = false) {
-    const cacheKey = 'cache_acquisition_stats_all';
+    const cacheKey = 'cache_acquisition_stats_agg';
 
     // 先尝试从缓存加载
     if (!forceRefresh) {
       const cached = getCache<any>(cacheKey);
       if (cached) {
-        console.log('[acquisition-stats] 从缓存加载数据');
         this.setData({
-          allRecords: cached.records,
+          _todayData: cached.todayData,
+          _allData: cached.allData,
           warehouseList: cached.warehouses,
           fromCache: true,
           pageLoading: false
         });
-        this.calculateStats();
+        this.renderStats();
         return;
       }
     }
 
-    // 从服务器加载
     this.setData({ pageLoading: true, fromCache: false });
 
     try {
-      const globalData = (app.globalData as any) || {};
-      const userInfo = globalData.currentUser || {};
-      const userId = userInfo.id || userInfo._id || '';
+      const userId = this.getUserId();
 
-      console.log('[acquisition-stats] 从服务器加载数据');
-
-      // 并行获取收购记录、仓库信息、汇总统计
-      const [acquisitionRes, warehouseRes, statsRes] = await Promise.all([
+      // 并行获取：今日聚合、累计聚合、仓库列表
+      const [todayRes, allRes, warehouseRes] = await Promise.all([
         wx.cloud.callFunction({
           name: 'acquisition-manage',
           data: {
-            action: 'list',
-            userId,
-            page: 1,
-            pageSize: 1000
-          }
-        }),
-        wx.cloud.callFunction({
-          name: 'warehouse-manage',
-          data: {
-            action: 'getWarehouseList',
-            userId
+            action: 'getSummaryStats',
+            dateRange: 'today',
+            groupByWarehouse: true
           }
         }),
         wx.cloud.callFunction({
           name: 'acquisition-manage',
           data: {
             action: 'getSummaryStats',
-            dateRange: 'all'
+            dateRange: 'all',
+            groupByWarehouse: true
+          }
+        }),
+        wx.cloud.callFunction({
+          name: 'warehouse-manage',
+          data: {
+            action: 'list',
+            userId
           }
         })
       ]);
 
-      const acquisitionResult = acquisitionRes.result as any;
+      const todayResult = todayRes.result as any;
+      const allResult = allRes.result as any;
       const warehouseResult = warehouseRes.result as any;
-      const statsResult = statsRes.result as any;
 
-      let records: any[] = [];
-      let warehouses: any[] = [];
-
-      if (acquisitionResult.success && acquisitionResult.data) {
-        records = acquisitionResult.data.list || [];
-      }
-
-      if (warehouseResult.success && warehouseResult.data) {
-        warehouses = warehouseResult.data || [];
-      }
+      const todayData = (todayResult && todayResult.success && todayResult.data) ? todayResult.data : null;
+      const allData = (allResult && allResult.success && allResult.data) ? allResult.data : null;
+      const warehouses = (warehouseResult && warehouseResult.success && warehouseResult.data) ? warehouseResult.data : [];
 
       // 保存到缓存
-      setCache(cacheKey, { records, warehouses });
-
-      // 保存后端聚合汇总
-      const serverSummary = (statsResult && statsResult.success && statsResult.data) ? statsResult.data : null;
+      setCache(cacheKey, { todayData, allData, warehouses });
 
       this.setData({
-        allRecords: records,
+        _todayData: todayData,
+        _allData: allData,
         warehouseList: warehouses,
-        serverSummary,
         pageLoading: false,
         fromCache: false
       });
 
-      this.calculateStats();
+      this.setUpdateTime();
+      this.renderStats();
 
       if (forceRefresh) {
         wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
@@ -182,19 +173,17 @@ Page({
       // 请求失败时尝试使用缓存
       const staleCache = getCache<any>(cacheKey);
       if (staleCache) {
-        console.log('[acquisition-stats] 请求失败，使用缓存');
         this.setData({
-          allRecords: staleCache.records,
+          _todayData: staleCache.todayData,
+          _allData: staleCache.allData,
           warehouseList: staleCache.warehouses,
           fromCache: true,
           pageLoading: false
         });
-        this.calculateStats();
+        this.renderStats();
         wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
       } else {
         this.setData({
-          allRecords: [],
-          warehouseList: [],
           warehouseStats: [],
           pageLoading: false
         });
@@ -205,82 +194,47 @@ Page({
   },
 
   /**
-   * 计算统计数据
+   * 根据当前 Tab 渲染统计数据（纯展示，数据来自后端聚合）
    */
-  calculateStats() {
-    const { allRecords, warehouseList, currentTab, serverSummary } = this.data;
+  renderStats() {
+    const { currentTab, warehouseList } = this.data;
+    const statsData = currentTab === 0 ? this.data._todayData : this.data._allData;
 
-    // 筛选数据（今日 or 全部）
-    let records = [...allRecords];
-    if (currentTab === 0) {
-      const today = new Date().toLocaleDateString('zh-CN');
-      records = records.filter(r => {
-        const recordDate = r.acquisitionDate || (r.createTime ? new Date(r.createTime).toLocaleDateString('zh-CN') : '');
-        return recordDate === today;
+    if (!statsData) {
+      this.setData({
+        currentStats: {
+          totalWeight: '0',
+          totalAmount: '0',
+          avgPrice: '0',
+          farmerCount: '0'
+        },
+        warehouseStats: []
       });
+      return;
     }
 
-    // 汇总统计：全部Tab优先使用后端聚合（不受分页截断），今日Tab用本地计算
-    let totalWeight: number;
-    let totalAmount: number;
-    let avgPrice: string;
-    let farmerCount: number;
+    const totalWeight = statsData.totalWeight || 0;
+    const totalAmount = statsData.totalAmount || 0;
+    const avgPrice = totalWeight > 0 ? formatNumber(totalAmount / totalWeight, 2) : '0';
+    const farmerCount = statsData.farmerCount || 0;
 
-    if (currentTab === 1 && serverSummary) {
-      // 全部Tab：使用后端聚合数据
-      totalWeight = serverSummary.totalWeight || 0;
-      totalAmount = serverSummary.totalAmount || 0;
-      avgPrice = totalWeight > 0 ? (totalAmount / totalWeight).toFixed(2) : '0';
-      farmerCount = serverSummary.farmerCount || 0;
-    } else {
-      // 今日Tab或无后端数据：使用本地记录计算
-      totalWeight = records.reduce((sum, r) => sum + (r.netWeight || r.weight || 0), 0);
-      totalAmount = records.reduce((sum, r) => sum + (r.totalAmount || r.amount || 0), 0);
-      avgPrice = totalWeight > 0 ? (totalAmount / totalWeight).toFixed(2) : '0';
-      const farmerIds = new Set(records.map(r => r.farmerId));
-      farmerCount = farmerIds.size;
-    }
-
-    // 按仓库分组统计
-    const warehouseMap = new Map<string, any>();
-
-    // 初始化仓库数据
+    // 构建仓库 Map（用于补充库存容量信息）
+    const warehouseInfoMap = new Map<string, any>();
     warehouseList.forEach((w: any) => {
-      const warehouseId = w._id || w.id || w.warehouseId;
-      warehouseMap.set(warehouseId, {
-        warehouseId,
-        warehouseName: w.name || w.warehouseName,
-        weight: 0,
-        amount: 0,
-        currentStock: w.currentStock || 0
-      });
+      const id = w._id || w.id || w.warehouseId;
+      warehouseInfoMap.set(id, w);
     });
 
-    // 累计每个仓库的数据
-    records.forEach(r => {
-      const warehouseId = r.warehouseId;
-      if (warehouseMap.has(warehouseId)) {
-        const wData = warehouseMap.get(warehouseId);
-        wData.weight += (r.netWeight || r.weight || 0);
-        wData.amount += (r.totalAmount || r.amount || 0);
-      } else {
-        // 如果仓库不在列表中，创建一个
-        warehouseMap.set(warehouseId, {
-          warehouseId,
-          warehouseName: r.warehouseName || '未知仓库',
-          weight: r.netWeight || r.weight || 0,
-          amount: r.totalAmount || r.amount || 0,
-          currentStock: 0
-        });
-      }
-    });
+    // 使用后端按仓库分组的聚合数据
+    const serverWarehouseStats: any[] = statsData.warehouseStats || [];
 
-    // 格式化仓库统计数据
-    const warehouseStats = Array.from(warehouseMap.values())
-      .filter(w => w.weight > 0 || w.currentStock > 0)
-      .map(w => {
-        const capacityConfig = WAREHOUSE_CAPACITY[w.warehouseId] || { type: '中', capacity: 150000 };
-        const usagePercent = Math.round((w.currentStock / capacityConfig.capacity) * 100);
+    const warehouseStats = serverWarehouseStats
+      .map((ws: any) => {
+        const warehouseId = ws.warehouseId;
+        const warehouseInfo = warehouseInfoMap.get(warehouseId);
+        const currentStock = warehouseInfo?.currentStock || warehouseInfo?.stats?.currentStock || 0;
+        const capacityConfig = WAREHOUSE_CAPACITY[warehouseId] || { type: '中', capacity: 150000 };
+        const usagePercent = Math.round((currentStock / capacityConfig.capacity) * 100);
 
         let capacityStatus = 'normal';
         if (usagePercent >= 95) {
@@ -289,27 +243,28 @@ Page({
           capacityStatus = 'warning';
         }
 
-        const avgPrice = w.weight > 0 ? (w.amount / w.weight).toFixed(2) : '0';
+        const wAvgPrice = ws.weight > 0 ? formatNumber(ws.amount / ws.weight, 2) : '0';
 
         return {
-          ...w,
-          weightKg: w.weight,
-          formatWeight: formatWeight(w.weight),
-          formatAmount: formatAmount(w.amount),
-          avgPrice,
-          percent: totalWeight > 0 ? Math.round((w.weight / totalWeight) * 100) : 0,
+          warehouseId,
+          warehouseName: ws.warehouseName || warehouseInfo?.name || '未知仓库',
+          weight: ws.weight || 0,
+          amount: ws.amount || 0,
+          weightKg: ws.weight || 0,
+          formatWeight: formatWeight(ws.weight || 0),
+          formatAmount: formatAmount(ws.amount || 0),
+          avgPrice: wAvgPrice,
+          percent: totalWeight > 0 ? Math.round(((ws.weight || 0) / totalWeight) * 100) : 0,
           warehouseType: capacityConfig.type,
           capacity: capacityConfig.capacity,
           formatCapacity: formatWeight(capacityConfig.capacity),
-          formatCurrentStock: formatWeight(w.currentStock),
+          currentStock,
+          formatCurrentStock: formatWeight(currentStock),
           usagePercent,
           capacityStatus
         };
       })
       .sort((a, b) => b.weight - a.weight);
-
-    // 计算趋势数据（最近7天）
-    const trendData = this.calculateTrendData(allRecords);
 
     this.setData({
       currentStats: {
@@ -318,56 +273,8 @@ Page({
         avgPrice: avgPrice + '元/kg',
         farmerCount: farmerCount + '户'
       },
-      warehouseStats,
-      trendData
+      warehouseStats
     });
-  },
-
-  /**
-   * 计算趋势数据（最近7天）
-   */
-  calculateTrendData(allRecords: any[]) {
-    const days = 7;
-    const trendMap = new Map<string, number>();
-
-    // 初始化最近7天
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dateStr = `${date.getMonth() + 1}-${String(date.getDate()).padStart(2, '0')}`;
-      trendMap.set(dateStr, 0);
-    }
-
-    // 统计每天的收购量
-    allRecords.forEach(r => {
-      let recordDate: Date;
-      if (r.acquisitionDate) {
-        recordDate = new Date(r.acquisitionDate);
-      } else if (r.createTime) {
-        recordDate = new Date(r.createTime);
-      } else {
-        return;
-      }
-
-      const dateStr = `${recordDate.getMonth() + 1}-${String(recordDate.getDate()).padStart(2, '0')}`;
-      if (trendMap.has(dateStr)) {
-        const weight = r.netWeight || r.weight || 0;
-        trendMap.set(dateStr, (trendMap.get(dateStr) || 0) + weight);
-      }
-    });
-
-    // 转换为数组并计算高度
-    const trendArray = Array.from(trendMap.entries()).map(([date, value]) => ({
-      date,
-      value: value / 1000, // 转为吨
-      label: date.split('-')[1] + '日'
-    }));
-
-    const maxValue = Math.max(...trendArray.map(t => t.value), 1);
-    return trendArray.map(t => ({
-      ...t,
-      heightPercent: Math.round((t.value / maxValue) * 100)
-    }));
   },
 
   // 跳转到仓库详情页
