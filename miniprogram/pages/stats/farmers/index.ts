@@ -1,6 +1,6 @@
 /**
  * 签约农户统计详情页
- * @description 管理层查看签约农户的总体情况和单独情况，使用云函数真实数据
+ * @description 管理层查看签约农户的总体情况，使用服务端搜索和分页
  */
 
 import { getCache, setCache } from '../../../utils/cache';
@@ -15,6 +15,9 @@ const GRADE_TEXT: Record<string, string> = {
   silver: '银牌',
   bronze: '铜牌'
 };
+
+// 每页条数
+const PAGE_SIZE = 20;
 
 // 转换农户数据为列表格式
 function formatFarmerForList(farmer: any) {
@@ -56,15 +59,11 @@ Page({
     },
     // 负责人列表
     salesmanList: [] as any[],
-    // 全部农户数据（从云函数获取）
-    allFarmers: [] as any[],
-    // 筛选后的农户列表
-    filteredList: [] as any[],
-    // 当前显示的列表（分页）
+    // 当前显示的列表
     displayList: [] as any[],
     // 分页
-    pageSize: 20,
-    currentPage: 1,
+    page: 1,
+    total: 0,
     hasMore: false,
     loading: false,
     // 页面加载中
@@ -72,11 +71,15 @@ Page({
     // 是否来自缓存
     fromCache: false,
     // 负责人选择弹窗
-    showSalesmanPopup: false
+    showSalesmanPopup: false,
+    // 搜索防抖定时器
+    _searchTimer: 0 as any
   },
 
   onLoad() {
-    this.loadData(false);
+    this.loadSalesmanList();
+    this.loadSummary();
+    this.loadList(true);
   },
 
   onShow() {
@@ -87,220 +90,193 @@ Page({
   },
 
   onPullDownRefresh() {
-    // 下拉刷新：强制从服务器获取
-    this.loadData(true);
+    this.loadSummary();
+    this.loadList(true);
   },
 
   /**
-   * 加载数据
-   * @param forceRefresh 是否强制刷新
+   * 获取用户ID
    */
-  async loadData(forceRefresh: boolean = false) {
-    const cacheKey = 'cache_farmers_stats_all';
+  getUserId(): string {
+    const globalData = (app.globalData as any) || {};
+    const userInfo = globalData.currentUser || {};
+    return userInfo.id || userInfo._id || '';
+  },
 
-    // 先尝试从缓存加载
-    if (!forceRefresh) {
-      const cached = getCache<any>(cacheKey);
-      if (cached) {
-        console.log('[farmers-stats] 从缓存加载数据');
-        this.setData({
-          allFarmers: cached.farmers,
-          salesmanList: cached.salesmanList,
-          fromCache: true,
-          pageLoading: false
-        });
-        this.calculateSummary();
-        this.filterAndDisplayList();
-        return;
-      }
+  /**
+   * 加载负责人列表（仅首次加载，用于筛选器）
+   */
+  async loadSalesmanList() {
+    const cacheKey = 'cache_farmers_salesman_list';
+    const cached = getCache<any[]>(cacheKey);
+    if (cached) {
+      this.setData({ salesmanList: cached });
+      return;
     }
 
-    // 从服务器加载
-    this.setData({ pageLoading: true, fromCache: false });
-
     try {
-      const globalData = (app.globalData as any) || {};
-      const userInfo = globalData.currentUser || {};
-      const userId = userInfo.id || userInfo._id || '';
-
-      console.log('[farmers-stats] 从服务器加载数据, userId:', userId);
-
-      // 调用云函数获取农户列表
       const res = await wx.cloud.callFunction({
         name: 'farmer-manage',
         data: {
           action: 'list',
-          userId,
+          userId: this.getUserId(),
           page: 1,
-          pageSize: 1000 // 获取全部
+          pageSize: 1000
         }
+      });
+      const result = res.result as any;
+      if (result.success && result.data) {
+        const salesmanMap = new Map<string, any>();
+        (result.data.list || []).forEach((f: any) => {
+          const name = f.salesmanName || f.manager;
+          const id = f.salesmanId || f.managerId || name;
+          if (name && !salesmanMap.has(id)) {
+            salesmanMap.set(id, { salesmanId: id, salesmanName: name });
+          }
+        });
+        const salesmanList = Array.from(salesmanMap.values());
+        setCache(cacheKey, salesmanList);
+        this.setData({ salesmanList });
+      }
+    } catch (e) {
+      console.error('加载负责人列表失败:', e);
+    }
+  },
+
+  /**
+   * 加载汇总统计（使用 getStatusStats 后端聚合）
+   */
+  async loadSummary() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: {
+          action: 'getStatusStats',
+          userId: this.getUserId()
+        }
+      });
+
+      const result = res.result as any;
+      if (result.success && result.data) {
+        const stats = result.data;
+        const totalFarmers = stats.totalCount || 0;
+        const totalAcreage = stats.totalAcreage || 0;
+        const totalDeposit = stats.totalDeposit || 0;
+        const gold = stats.gradeStats?.gold || 0;
+        const silver = stats.gradeStats?.silver || 0;
+        const bronze = stats.gradeStats?.bronze || 0;
+
+        const total = gold + silver + bronze || 1;
+        const goldPercent = Math.round(gold / total * 100);
+        const silverPercent = Math.round(silver / total * 100);
+        const bronzePercent = 100 - goldPercent - silverPercent;
+
+        this.setData({
+          summary: {
+            totalFarmers: totalFarmers.toString(),
+            totalAcreage: formatAcreage(totalAcreage),
+            totalDeposit: formatAmount(totalDeposit),
+            gold,
+            silver,
+            bronze,
+            goldPercent,
+            silverPercent,
+            bronzePercent
+          }
+        });
+        return;
+      }
+    } catch (e) {
+      console.error('加载统计数据失败:', e);
+    }
+
+    // 降级：使用当前列表数据计算（loadList 完成后）
+  },
+
+  /**
+   * 加载农户列表（服务端搜索 + 服务端分页）
+   * @param reset 是否重置到第一页
+   */
+  async loadList(reset: boolean = false) {
+    if (this.data.loading) return;
+
+    const page = reset ? 1 : this.data.page;
+
+    if (reset) {
+      this.setData({ pageLoading: true, page: 1 });
+    } else {
+      this.setData({ loading: true });
+    }
+
+    try {
+      const { searchKeyword, filterGrade } = this.data;
+
+      const requestData: any = {
+        action: 'list',
+        userId: this.getUserId(),
+        page,
+        pageSize: PAGE_SIZE
+      };
+
+      // 服务端搜索
+      if (searchKeyword.trim()) {
+        requestData.keyword = searchKeyword.trim();
+      }
+
+      // 等级筛选
+      if (filterGrade) {
+        requestData.status = filterGrade;
+      }
+
+      const res = await wx.cloud.callFunction({
+        name: 'farmer-manage',
+        data: requestData
       });
 
       const result = res.result as any;
 
       if (result.success && result.data) {
-        const rawFarmers = result.data.list || [];
-        const farmers = rawFarmers.map(formatFarmerForList);
+        const newItems = (result.data.list || []).map(formatFarmerForList);
+        const total = result.data.total || 0;
 
-        // 提取负责人列表
-        const salesmanMap = new Map<string, any>();
-        rawFarmers.forEach((f: any) => {
-          const name = f.salesmanName || f.manager;
-          const id = f.salesmanId || f.managerId || name;
-          if (name && !salesmanMap.has(id)) {
-            salesmanMap.set(id, {
-              salesmanId: id,
-              salesmanName: name
-            });
-          }
-        });
-        const salesmanList = Array.from(salesmanMap.values());
-
-        // 保存到缓存
-        setCache(cacheKey, { farmers, salesmanList });
-
-        this.setData({
-          allFarmers: farmers,
-          salesmanList,
-          pageLoading: false,
-          fromCache: false
-        });
-
-        this.calculateSummary();
-        this.filterAndDisplayList();
-
-        if (forceRefresh) {
-          wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+        if (reset) {
+          this.setData({
+            displayList: newItems,
+            total,
+            page: 2,
+            hasMore: newItems.length < total,
+            pageLoading: false,
+            fromCache: false
+          });
+        } else {
+          const merged = [...this.data.displayList, ...newItems];
+          this.setData({
+            displayList: merged,
+            total,
+            page: page + 1,
+            hasMore: merged.length < total,
+            loading: false
+          });
         }
       } else {
         console.error('获取农户列表失败:', result.message);
-        this.setData({
-          allFarmers: [],
-          salesmanList: [],
-          filteredList: [],
-          displayList: [],
-          pageLoading: false
-        });
+        if (reset) {
+          this.setData({ displayList: [], total: 0, hasMore: false, pageLoading: false });
+        } else {
+          this.setData({ loading: false });
+        }
       }
     } catch (error) {
       console.error('加载农户数据失败:', error);
-
-      // 请求失败时尝试使用缓存
-      const staleCache = getCache<any>(cacheKey);
-      if (staleCache) {
-        console.log('[farmers-stats] 请求失败，使用缓存');
-        this.setData({
-          allFarmers: staleCache.farmers,
-          salesmanList: staleCache.salesmanList,
-          fromCache: true,
-          pageLoading: false
-        });
-        this.calculateSummary();
-        this.filterAndDisplayList();
-        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+      if (reset) {
+        this.setData({ displayList: [], total: 0, hasMore: false, pageLoading: false });
       } else {
-        this.setData({
-          allFarmers: [],
-          salesmanList: [],
-          filteredList: [],
-          displayList: [],
-          pageLoading: false
-        });
+        this.setData({ loading: false });
       }
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
     }
 
     wx.stopPullDownRefresh();
-  },
-
-  /**
-   * 计算汇总数据
-   */
-  calculateSummary() {
-    const { allFarmers, currentTab } = this.data;
-
-    // 如果是昨日tab，筛选昨日数据
-    let farmers = allFarmers;
-    if (currentTab === 0) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toLocaleDateString('zh-CN');
-      farmers = allFarmers.filter(f => f.contractDate === yesterdayStr);
-    }
-
-    const totalFarmers = farmers.length;
-    const totalAcreage = farmers.reduce((sum, f) => sum + (f.acreage || 0), 0);
-    const totalDeposit = farmers.reduce((sum, f) => sum + (f.deposit || 0), 0);
-
-    // 等级统计
-    const gold = farmers.filter(f => f.grade === 'gold').length;
-    const silver = farmers.filter(f => f.grade === 'silver').length;
-    const bronze = farmers.filter(f => f.grade === 'bronze').length;
-
-    const total = gold + silver + bronze || 1;
-    const goldPercent = Math.round(gold / total * 100);
-    const silverPercent = Math.round(silver / total * 100);
-    const bronzePercent = 100 - goldPercent - silverPercent;
-
-    this.setData({
-      summary: {
-        totalFarmers: totalFarmers.toString(),
-        totalAcreage: formatAcreage(totalAcreage),
-        totalDeposit: formatAmount(totalDeposit),
-        gold,
-        silver,
-        bronze,
-        goldPercent,
-        silverPercent,
-        bronzePercent
-      }
-    });
-  },
-
-  /**
-   * 筛选并显示列表
-   */
-  filterAndDisplayList() {
-    const { allFarmers, currentTab, searchKeyword, filterGrade, filterSalesman, filterSalesmanName } = this.data;
-
-    // 如果是昨日tab，筛选昨日数据
-    let list = [...allFarmers];
-    if (currentTab === 0) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toLocaleDateString('zh-CN');
-      list = list.filter(f => f.contractDate === yesterdayStr);
-    }
-
-    // 搜索过滤
-    if (searchKeyword) {
-      const keyword = searchKeyword.toLowerCase();
-      list = list.filter(f =>
-        f.name.toLowerCase().includes(keyword) ||
-        f.phone.includes(keyword)
-      );
-    }
-
-    // 等级过滤
-    if (filterGrade) {
-      list = list.filter(f => f.grade === filterGrade);
-    }
-
-    // 负责人过滤
-    if (filterSalesman) {
-      list = list.filter(f => f.manager === filterSalesmanName);
-    }
-
-    // 重置分页
-    const pageSize = this.data.pageSize;
-    const displayList = list.slice(0, pageSize);
-    const hasMore = list.length > pageSize;
-
-    this.setData({
-      filteredList: list,
-      displayList,
-      currentPage: 1,
-      hasMore
-    });
   },
 
   /**
@@ -315,30 +291,49 @@ Page({
       filterSalesman: '',
       filterSalesmanName: ''
     });
-    this.calculateSummary();
-    this.filterAndDisplayList();
+    this.loadSummary();
+    this.loadList(true);
   },
 
   /**
-   * 搜索输入
+   * 搜索输入（300ms 防抖）
    */
   onSearchInput(e: any) {
-    this.setData({ searchKeyword: e.detail.value });
+    const value = e.detail.value;
+    this.setData({ searchKeyword: value });
+
+    // 清除之前的防抖定时器
+    if (this.data._searchTimer) {
+      clearTimeout(this.data._searchTimer);
+    }
+
+    // 设置新的防抖定时器
+    const timer = setTimeout(() => {
+      this.loadList(true);
+    }, 300);
+
+    this.setData({ _searchTimer: timer });
   },
 
   /**
-   * 执行搜索
+   * 执行搜索（点击搜索按钮或键盘确认）
    */
   onSearch() {
-    this.filterAndDisplayList();
+    if (this.data._searchTimer) {
+      clearTimeout(this.data._searchTimer);
+    }
+    this.loadList(true);
   },
 
   /**
    * 清除搜索
    */
   clearSearch() {
+    if (this.data._searchTimer) {
+      clearTimeout(this.data._searchTimer);
+    }
     this.setData({ searchKeyword: '' });
-    this.filterAndDisplayList();
+    this.loadList(true);
   },
 
   /**
@@ -347,7 +342,7 @@ Page({
   setFilterGrade(e: any) {
     const grade = e.currentTarget.dataset.grade;
     this.setData({ filterGrade: grade });
-    this.filterAndDisplayList();
+    this.loadList(true);
   },
 
   /**
@@ -381,28 +376,15 @@ Page({
       filterSalesmanName: name,
       showSalesmanPopup: false
     });
-    this.filterAndDisplayList();
+    this.loadList(true);
   },
 
   /**
-   * 加载更多
+   * 加载更多（触底加载下一页）
    */
   loadMore() {
     if (this.data.loading || !this.data.hasMore) return;
-
-    this.setData({ loading: true });
-
-    const { filteredList, displayList, pageSize } = this.data;
-    const nextPage = displayList.length;
-    const moreItems = filteredList.slice(nextPage, nextPage + pageSize);
-
-    setTimeout(() => {
-      this.setData({
-        displayList: [...displayList, ...moreItems],
-        hasMore: nextPage + pageSize < filteredList.length,
-        loading: false
-      });
-    }, 300);
+    this.loadList(false);
   },
 
   /**

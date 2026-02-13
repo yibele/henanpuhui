@@ -1,6 +1,6 @@
 /**
  * 种苗发放统计详情页
- * @description 管理层查看种苗发放的详细情况，支持缓存和下拉刷新
+ * @description 管理层查看种苗发放的详细情况，使用服务端搜索和分页
  */
 
 import { getCache, setCache } from '../../../utils/cache';
@@ -8,6 +8,9 @@ import { formatAmount, formatSeedQuantity } from '../../../utils/format';
 
 // 获取应用实例
 const app = getApp();
+
+// 每页条数
+const PAGE_SIZE = 20;
 
 Page({
   data: {
@@ -23,26 +26,24 @@ Page({
       recordCount: 0,
       totalArea: '0'
     },
-    // 发放记录列表
-    records: [] as any[],
-    // 筛选后的记录列表
-    filteredList: [] as any[],
-    // 当前显示的列表（分页）
+    // 当前显示的列表
     displayList: [] as any[],
     // 分页
-    pageSize: 20,
-    currentPage: 1,
+    page: 1,
+    total: 0,
     hasMore: false,
     loading: false,
     // 加载中
     pageLoading: true,
     // 是否来自缓存
-    fromCache: false
+    fromCache: false,
+    // 搜索防抖定时器
+    _searchTimer: 0 as any
   },
 
   onLoad() {
-    // 首次加载：优先使用缓存
-    this.loadData(false);
+    this.loadSummary();
+    this.loadList(true);
   },
 
   onShow() {
@@ -52,69 +53,95 @@ Page({
   },
 
   onPullDownRefresh() {
-    // 下拉刷新：强制从服务器获取
-    this.loadData(true);
+    this.loadSummary();
+    this.loadList(true);
   },
 
   /**
-   * 加载数据
-   * @param forceRefresh 是否强制刷新
+   * 获取用户ID
    */
-  async loadData(forceRefresh: boolean = false) {
-    const cacheKey = 'cache_seed_stats_all';
+  getUserId(): string {
+    const globalData = (app.globalData as any) || {};
+    const userInfo = globalData.currentUser || {};
+    return userInfo.id || userInfo._id || '';
+  },
 
-    // 先尝试从缓存加载
-    if (!forceRefresh) {
-      const cached = getCache<any>(cacheKey);
-      if (cached) {
-        console.log('[seeds-stats] 从缓存加载数据');
+  /**
+   * 加载汇总统计（后端聚合，不受分页影响）
+   */
+  async loadSummary() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: { action: 'getSummaryStats' }
+      });
+
+      const result = res.result as any;
+      if (result.success && result.data) {
+        const s = result.data;
         this.setData({
-          records: cached.records,
-          summary: cached.summary,
-          fromCache: true,
-          pageLoading: false
+          summary: {
+            totalQuantity: formatSeedQuantity(s.totalQuantity || 0),
+            totalAmount: formatAmount(s.totalAmount || 0),
+            farmerCount: (s.farmerCount || 0) + '户',
+            recordCount: s.recordCount || 0,
+            totalArea: (s.totalArea || 0).toFixed(1) + '亩'
+          }
         });
-        this.filterAndDisplayList();
-        return;
       }
+    } catch (e) {
+      console.error('加载发苗统计失败:', e);
+    }
+  },
+
+  /**
+   * 加载发苗记录列表（服务端搜索 + 服务端分页）
+   * @param reset 是否重置到第一页
+   */
+  async loadList(reset: boolean = false) {
+    if (this.data.loading) return;
+
+    const page = reset ? 1 : this.data.page;
+
+    if (reset) {
+      this.setData({ pageLoading: true, page: 1 });
+    } else {
+      this.setData({ loading: true });
     }
 
-    // 从服务器加载
-    this.setData({ pageLoading: true, fromCache: false });
-
     try {
-      const globalData = (app.globalData as any) || {};
-      const userInfo = globalData.currentUser || {};
-      const userId = userInfo.id || userInfo._id || '';
+      const { searchKeyword, currentTab } = this.data;
 
-      console.log('[seeds-stats] 从服务器加载数据, userId:', userId);
+      const requestData: any = {
+        action: 'list',
+        userId: this.getUserId(),
+        page,
+        pageSize: PAGE_SIZE
+      };
 
-      // 并行请求：记录列表 + 汇总统计
-      const [listRes, statsRes] = await Promise.all([
-        wx.cloud.callFunction({
-          name: 'seed-manage',
-          data: {
-            action: 'list',
-            userId,
-            page: 1,
-            pageSize: 500
-          }
-        }),
-        wx.cloud.callFunction({
-          name: 'seed-manage',
-          data: {
-            action: 'getSummaryStats'
-          }
-        })
-      ]);
+      // 服务端搜索
+      if (searchKeyword.trim()) {
+        requestData.keyword = searchKeyword.trim();
+      }
 
-      const result = listRes.result as any;
-      const statsResult = statsRes.result as any;
+      // 今日筛选：传日期范围
+      if (currentTab === 0) {
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        requestData.startDate = dateStr;
+        requestData.endDate = dateStr;
+      }
+
+      const res = await wx.cloud.callFunction({
+        name: 'seed-manage',
+        data: requestData
+      });
+
+      const result = res.result as any;
 
       if (result.success && result.data) {
         const rawRecords = result.data.list || [];
-
-        const records = rawRecords.map((r: any) => ({
+        const newItems = rawRecords.map((r: any) => ({
           id: r._id,
           recordId: r.recordId,
           farmerId: r.farmerId,
@@ -131,129 +158,50 @@ Page({
           createTime: r.createTime
         }));
 
-        // 汇总数据优先使用后端聚合结果（不受分页截断影响）
-        let summary;
-        if (statsResult && statsResult.success && statsResult.data) {
-          const s = statsResult.data;
-          summary = {
-            totalQuantity: formatSeedQuantity(s.totalQuantity || 0),
-            totalAmount: formatAmount(s.totalAmount || 0),
-            farmerCount: (s.farmerCount || 0) + '户',
-            recordCount: s.recordCount || 0,
-            totalArea: (s.totalArea || 0).toFixed(1) + '亩'
-          };
+        const total = result.data.total || 0;
+
+        if (reset) {
+          this.setData({
+            displayList: newItems,
+            total,
+            page: 2,
+            hasMore: newItems.length < total,
+            pageLoading: false,
+            fromCache: false
+          });
         } else {
-          // 降级：使用列表数据计算（可能不完整）
-          const totalQuantity = records.reduce((sum: number, r: any) => sum + (r.quantity || 0), 0);
-          const totalAmount = records.reduce((sum: number, r: any) => sum + (r.amount || 0), 0);
-          const totalArea = records.reduce((sum: number, r: any) => sum + (r.distributedArea || 0), 0);
-          const farmerIds = new Set(records.map((r: any) => r.farmerId));
-          summary = {
-            totalQuantity: formatSeedQuantity(totalQuantity),
-            totalAmount: formatAmount(totalAmount),
-            farmerCount: farmerIds.size + '户',
-            recordCount: records.length,
-            totalArea: totalArea.toFixed(1) + '亩'
-          };
+          const merged = [...this.data.displayList, ...newItems];
+          this.setData({
+            displayList: merged,
+            total,
+            page: page + 1,
+            hasMore: merged.length < total,
+            loading: false
+          });
         }
 
-        // 保存到缓存
-        setCache(cacheKey, { records, summary });
-
-        this.setData({
-          records,
-          summary,
-          pageLoading: false,
-          fromCache: false
-        });
-
-        this.filterAndDisplayList();
-
-        if (forceRefresh) {
-          wx.showToast({ title: '已刷新', icon: 'success', duration: 1000 });
+        if (reset && this.data.displayList.length > 0) {
+          wx.showToast({ title: '已刷新', icon: 'success', duration: 800 });
         }
       } else {
         console.error('获取发苗记录失败:', result.message);
-        this.setData({
-          records: [],
-          filteredList: [],
-          displayList: [],
-          summary: { totalQuantity: '0', totalAmount: '0', farmerCount: '0户', recordCount: 0, totalArea: '0亩' },
-          pageLoading: false
-        });
+        if (reset) {
+          this.setData({ displayList: [], total: 0, hasMore: false, pageLoading: false });
+        } else {
+          this.setData({ loading: false });
+        }
       }
     } catch (error) {
       console.error('加载发苗记录失败:', error);
-
-      // 请求失败时尝试使用缓存
-      const staleCache = getCache<any>('cache_seed_stats_all');
-      if (staleCache) {
-        console.log('[seeds-stats] 请求失败，使用缓存');
-        this.setData({
-          records: staleCache.records,
-          summary: staleCache.summary,
-          fromCache: true,
-          pageLoading: false
-        });
-        this.filterAndDisplayList();
-        wx.showToast({ title: '网络异常，显示缓存数据', icon: 'none' });
+      if (reset) {
+        this.setData({ displayList: [], total: 0, hasMore: false, pageLoading: false });
       } else {
-        this.setData({
-          records: [],
-          filteredList: [],
-          displayList: [],
-          summary: { totalQuantity: '0', totalAmount: '0', farmerCount: '0户', recordCount: 0, totalArea: '0亩' },
-          pageLoading: false
-        });
+        this.setData({ loading: false });
       }
+      wx.showToast({ title: '加载失败，请重试', icon: 'none' });
     }
 
     wx.stopPullDownRefresh();
-  },
-
-  /**
-   * 筛选并显示列表
-   */
-  filterAndDisplayList() {
-    const { records, searchKeyword, currentTab } = this.data;
-
-    let list = [...records];
-
-    // 如果是今日tab，只显示今天的记录
-    if (currentTab === 0) {
-      const today = new Date().toLocaleDateString('zh-CN');
-      list = list.filter(r => r.date === today);
-    }
-
-    // 搜索过滤
-    if (searchKeyword) {
-      const keyword = searchKeyword.toLowerCase();
-      list = list.filter(r =>
-        (r.farmerName && r.farmerName.toLowerCase().includes(keyword)) ||
-        (r.phone && r.phone.includes(keyword)) ||
-        (r.managerName && r.managerName.toLowerCase().includes(keyword))
-      );
-    }
-
-    // 按时间倒序
-    list = list.sort((a, b) => {
-      if (a.createTime && b.createTime) {
-        return new Date(b.createTime).getTime() - new Date(a.createTime).getTime();
-      }
-      return 0;
-    });
-
-    // 分页
-    const pageSize = this.data.pageSize;
-    const displayList = list.slice(0, pageSize);
-    const hasMore = list.length > pageSize;
-
-    this.setData({
-      filteredList: list,
-      displayList,
-      hasMore,
-      currentPage: 1
-    });
   },
 
   /**
@@ -265,29 +213,46 @@ Page({
       currentTab: tab,
       searchKeyword: ''
     });
-    this.filterAndDisplayList();
+    this.loadList(true);
   },
 
   /**
-   * 搜索输入
+   * 搜索输入（300ms 防抖）
    */
   onSearchInput(e: any) {
-    this.setData({ searchKeyword: e.detail.value });
+    const value = e.detail.value;
+    this.setData({ searchKeyword: value });
+
+    if (this.data._searchTimer) {
+      clearTimeout(this.data._searchTimer);
+    }
+
+    const timer = setTimeout(() => {
+      this.loadList(true);
+    }, 300);
+
+    this.setData({ _searchTimer: timer });
   },
 
   /**
    * 执行搜索
    */
   onSearch() {
-    this.filterAndDisplayList();
+    if (this.data._searchTimer) {
+      clearTimeout(this.data._searchTimer);
+    }
+    this.loadList(true);
   },
 
   /**
    * 清除搜索
    */
   clearSearch() {
+    if (this.data._searchTimer) {
+      clearTimeout(this.data._searchTimer);
+    }
     this.setData({ searchKeyword: '' });
-    this.filterAndDisplayList();
+    this.loadList(true);
   },
 
   /**
@@ -295,21 +260,7 @@ Page({
    */
   loadMore() {
     if (this.data.loading || !this.data.hasMore) return;
-
-    this.setData({ loading: true });
-
-    const { filteredList, displayList, pageSize } = this.data;
-    const nextStart = displayList.length;
-    const moreItems = filteredList.slice(nextStart, nextStart + pageSize);
-
-    setTimeout(() => {
-      this.setData({
-        displayList: [...displayList, ...moreItems],
-        hasMore: nextStart + pageSize < filteredList.length,
-        loading: false,
-        currentPage: this.data.currentPage + 1
-      });
-    }, 300);
+    this.loadList(false);
   },
 
   /**
