@@ -210,6 +210,14 @@ async function createAcquisition(event, context) {
 
     const farmer = farmerRes.data[0];
 
+    // 检查发苗是否完成
+    if (!farmer.seedDistributionComplete) {
+      return {
+        success: false,
+        errMsg: '该农户尚未完成发苗，无法创建收购记录'
+      };
+    }
+
     // 获取仓库信息
     const warehouseRes = await db.collection('warehouses')
       .where({ _id: currentUser.warehouseId })

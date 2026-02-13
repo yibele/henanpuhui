@@ -43,6 +43,15 @@
         </view>
         <t-icon name="chevron-right" size="40rpx" color="#d1d5db" />
       </view>
+
+      <!-- 发苗未完成提示 -->
+      <view wx:if="{{!selectedFarmer.seedDistributionComplete}}" class="seed-warning">
+        <t-icon name="error-circle" size="36rpx" color="#dc2626" />
+        <view class="seed-warning-content">
+          <text class="seed-warning-title">该农户尚未完成发苗，无法收购</text>
+          <text class="seed-warning-desc">请联系助理确认发苗完成后再进行收购登记</text>
+        </view>
+      </view>
       
       <!-- 历史收购统计 -->
       <view wx:if="{{farmerSummary.totalCount > 0}}" class="farmer-history">

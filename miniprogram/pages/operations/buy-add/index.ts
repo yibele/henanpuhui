@@ -432,6 +432,7 @@ Page({
       form.date &&
       warehouseInfo.id &&
       selectedFarmer.id &&
+      selectedFarmer.seedDistributionComplete &&
       hasValue(form.grossWeight) &&
       parseFloat(form.grossWeight) > 0 &&
       hasValue(form.tareWeight) &&

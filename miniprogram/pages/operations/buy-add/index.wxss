@@ -261,6 +261,35 @@
   color: #a16207;
 }
 
+/* ====== 发苗未完成提示 ====== */
+.seed-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  padding: 20rpx 24rpx;
+  background: #fef2f2;
+  border: 2rpx solid #fecaca;
+  border-radius: 16rpx;
+}
+
+.seed-warning-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.seed-warning-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #dc2626;
+}
+
+.seed-warning-desc {
+  font-size: 24rpx;
+  color: #9ca3af;
+}
+
 /* ====== 输入网格 ====== */
 .input-grid {
   display: grid;
